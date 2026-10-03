@@ -1,0 +1,52 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Large session recordings (Stored in Google Drive / Chunks, not in Git)
+sessions/*
+!sessions/youtubeURLtoProcess.txt
+!sessions/.gitkeep
+
+# Checkpoints and Model Weights (Saved in Google Drive)
+checkpoints/
+*.pt
+*.pth
+*.bin
+*.onnx
+
+# Data archives and chunks
+chunks/
+*.tar.gz
+*.tar
+*.zip
+*.npz
+
+# Video & Audio media files
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.webm
+*.wav
+*.mp3
+
+# Runtime state and transient flags
+stop.flag
+switch.flag
+live_status.json
+live_status.json.tmp
+*.tmp
+*.log
+
+# Environments and OS files
+.venv/
+venv/
+env/
+.env
+.ipynb_checkpoints/
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
