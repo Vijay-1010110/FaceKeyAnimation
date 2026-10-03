@@ -1,27 +1,33 @@
-# FaceKey Animation Studio — Cloud-Ready Facial Motion AI Dataset & Training System
+# FaceKey Animation Studio — Multi-Cloud & 5 TB Drive AI Facial Dataset & Training System
 
 A high-performance pipeline for acquiring clean, timestamped, temporally consistent facial motion capture datasets and training neural speech-to-animation models.
 
-Designed for **both Local PCs** (Windows 11 low-resource execution) and **Cloud Environments** (**Google Colab Free Tier with 16GB NVIDIA T4 GPUs** + **Google Drive automated chunked storage**).
+Designed for **Local PCs** (low-resource Windows execution), **Google Colab Free Tier** (16GB NVIDIA T4 GPU), and **Kaggle Free Tier** (16GB NVIDIA P100 / Dual T4 GPUs) with automated, non-colliding chunked storage in your **5 TB Google Drive Plan (18 Months)**.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Vijay-1010110/FaceKeyAnimation/blob/main/notebooks/1_Colab_Data_Collector.ipynb)
+[![Open In Colab Collector](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Vijay-1010110/FaceKeyAnimation/blob/main/notebooks/1_Colab_Data_Collector.ipynb)
+[![Open In Colab Trainer](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Vijay-1010110/FaceKeyAnimation/blob/main/notebooks/2_Colab_Model_Trainer.ipynb)
+[![Kaggle Parallel](https://img.shields.io/badge/Kaggle-Parallel_Worker-20BEFF?logo=kaggle)](notebooks/3_Kaggle_Data_Collector_and_Trainer.ipynb)
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/Vijay-1010110/FaceKeyAnimation)
 
 ---
 
-## ⚡ Cloud & Local Processing Modes
+## ⚡ Multi-Cloud & Parallel Processing Architecture
 
-- ☁️ **Google Colab Cloud Collection & Training**:
-  - Run heavy YouTube extraction and PyTorch T4 GPU training entirely in the cloud without using local PC disk space or bandwidth!
-  - Stores compressed `.tar.gz` chunks and checkpoints directly in **Google Drive** (`/MyDrive/FaceKeyDataset/`).
-  - **Auto-resumes seamlessly** if Colab disconnects or reaches runtime limits.
-  - Read the complete [Google Drive & Colab Guide](GOOGLE_DRIVE_AND_COLAB_GUIDE.md).
-- 🚀 **Silent 480p Batch YouTube Queue**:
-  - Ingests links continuously from `sessions/youtubeURLtoProcess.txt`.
-  - Add links anytime while running; auto-resumes from save points if closed.
+- ☁️ **5 TB Google Drive Plan (18 Months) Integration**:
+  - Direct packaging of sessions into compressed `.tar.gz` chunks (~250–500 MB) on Google Drive (`MyDrive/FaceKeyDataset/`).
+  - Purges local temporary files immediately to maintain `< 5 GB` local scratch usage.
+  - Huge headroom: 100 Hours takes ~35 GB (< 0.7%), 1,000 Hours takes ~350 GB (< 7%), leaving massive space for up to 14,000+ hours!
+- 🤝 **Parallel Execution Across Colab & Kaggle**:
+  - Run Colab (`colab-worker-1`) and Kaggle (`kaggle-worker-1`) simultaneously to double data collection speed.
+  - **Zero Duplicate Downloads**: Distributed atomic file locks (`locks/<video_id>.lock.json`) and shared completed registries on Drive.
+  - **Session Expiry & Crash Recovery**: Live heartbeats detect if a session disconnects or times out; stale locks are automatically reclaimed.
+- 📋 **Dedicated Queue Files**:
+  - `sessions/youtube_urls_colab.txt`: Curated queue for Google Colab worker.
+  - `sessions/youtube_urls_kaggle.txt`: Curated queue for Kaggle worker.
+  - `sessions/youtubeURLtoProcess.txt`: Master queue (351 curated videos).
 - 🎯 **Phase 1 Training Milestone (100 Hours Target)**:
-  - Tracks accumulated clean animation hours toward 100 Hours (~48 GB estimated).
-  - Scales comfortably to 1,000 Hours (~480 GB).
+  - Tracks accumulated clean animation hours toward 100 Hours (~48 GB uncompressed / ~30–35 GB compressed).
+  - Scales comfortably to 1,000 Hours.
 
 ---
 
