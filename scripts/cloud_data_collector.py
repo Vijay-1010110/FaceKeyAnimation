@@ -220,7 +220,7 @@ def worker_process_loop(
     queue: StreamBatchQueue,
     target_urls_file: str,
     script_dir: str,
-    chunk_size: int = 5,
+    chunk_size: int = 1,
     quality: str = "480p",
     purge_local: bool = True,
     stale_timeout_sec: int = 1200,
@@ -684,7 +684,7 @@ def run_cloud_collector(
     drive_dir: Optional[str] = None,
     worker_id: Optional[str] = None,
     urls_file: Optional[str] = None,
-    chunk_size: int = 5,
+    chunk_size: int = 1,
     quality: str = "480p",
     purge_local: bool = True,
     stale_timeout_sec: int = 1200,
@@ -879,7 +879,7 @@ if __name__ == "__main__":
     parser.add_argument("--drive-dir", type=str, default=None, help="Google Drive storage directory path")
     parser.add_argument("--worker-id", type=str, default=None, help="Unique worker name (e.g. colab-1, kaggle-1)")
     parser.add_argument("--urls-file", type=str, default=None, help="Path to YouTube URLs queue text file")
-    parser.add_argument("--chunk-size", type=int, default=5, help="Number of sessions per .tar.gz chunk on Drive")
+    parser.add_argument("--chunk-size", type=int, default=1, help="Number of sessions per .tar.gz chunk on Drive")
     parser.add_argument("--quality", type=str, default="480p", help="Video resolution stream quality")
     parser.add_argument("--stale-timeout", type=int, default=1200, help="Heartbeat expiration in seconds (default 20 mins)")
     parser.add_argument("--no-purge", action="store_true", default=False, help="Do not delete local sessions after chunking")

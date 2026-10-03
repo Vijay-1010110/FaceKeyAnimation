@@ -106,7 +106,7 @@ python scripts/cloud_data_collector.py \
     --drive-dir "${DRIVE_DIR}" \
     --worker-id "lightning-worker-1" \
     --urls-file "sessions/youtube_urls_lightning.txt" \
-    --chunk-size 5 \
+    --chunk-size 1 \
     --quality 480p \
     --num-workers 3 \
     ${PROXY_FLAG} \
