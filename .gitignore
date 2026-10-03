@@ -19,6 +19,7 @@ checkpoints/
 
 # Data archives and chunks
 chunks/
+cloud_drive_backup/
 *.tar.gz
 *.tar
 *.zip
