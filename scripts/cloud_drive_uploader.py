@@ -65,7 +65,21 @@ def upload_to_gdrive_service_account(
         from googleapiclient.http import MediaFileUpload
 
     if not os.path.exists(service_account_json):
-        raise FileNotFoundError(f"Service account JSON not found at: {service_account_json}")
+        print("\n" + "=" * 75)
+        print(" [!] NOTICE: Service Account JSON not found at:")
+        print(f"     {service_account_json}")
+        print("-" * 75)
+        print(" To upload directly from Kaggle to Google Drive via Service Account:")
+        print("   1. Go to https://console.cloud.google.com and enable 'Google Drive API'")
+        print("   2. Under 'IAM & Admin' -> 'Service Accounts', create a service account")
+        print("   3. Click 'Keys' -> 'Add Key' -> 'Create new key' -> JSON")
+        print("   4. Upload the downloaded JSON to Kaggle as /kaggle/working/service_account.json")
+        print(f"   5. In Google Drive, share your folder ({folder_id}) with the service account email as Editor")
+        print("\n ALTERNATIVE (EASIEST - 0 GCP SETUP):")
+        print("   Use Hugging Face Hub in the next cell (free, unlimited private dataset):")
+        print("   !python scripts/cloud_drive_uploader.py --method hf --hf-token 'YOUR_TOKEN' --hf-repo 'username/facekey-chunks'")
+        print("=" * 75 + "\n")
+        return 0
 
     print("=" * 75)
     print(" [CLOUD-TO-CLOUD] DIRECT GOOGLE DRIVE UPLOADER (0 MB LOCAL DATA)")
@@ -195,10 +209,81 @@ def upload_to_hf_hub(
     return uploaded_count
 
 
+def sync_hf_to_gdrive(
+    repo_id: str,
+    hf_token: str,
+    target_chunks_dir: str
+) -> int:
+    """Synchronizes .tar.gz chunks from HuggingFace dataset directly to Google Drive chunks dir.
+    Skips existing files so no duplicate data is downloaded.
+    Transfers 100% cloud-to-cloud (Colab/Cloud -> Google Drive) using 0 MB local data.
+    """
+    try:
+        from huggingface_hub import HfApi, hf_hub_download
+    except ImportError:
+        import subprocess
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "huggingface_hub"])
+        from huggingface_hub import HfApi, hf_hub_download
+
+    os.makedirs(target_chunks_dir, exist_ok=True)
+    api = HfApi(token=hf_token)
+
+    print("=" * 75)
+    print(" [CLOUD-TO-CLOUD] HUGGINGFACE -> GOOGLE DRIVE SYNC (0 MB LOCAL DATA)")
+    print(f" Source HF Repo   : https://huggingface.co/datasets/{repo_id}")
+    print(f" Target Drive Dir : {target_chunks_dir}")
+    print("=" * 75)
+
+    try:
+        repo_files = api.list_repo_files(repo_id=repo_id, repo_type="dataset", token=hf_token)
+    except Exception as e:
+        print(f"[!] Error accessing HF repository '{repo_id}': {e}")
+        return 0
+
+    chunk_files = [f for f in repo_files if f.endswith(".tar.gz")]
+    if not chunk_files:
+        print("[*] No .tar.gz chunk files found in HuggingFace repository.")
+        return 0
+
+    downloaded = 0
+    skipped = 0
+
+    for idx, remote_path in enumerate(chunk_files, 1):
+        filename = os.path.basename(remote_path)
+        dest_file = os.path.join(target_chunks_dir, filename)
+
+        if os.path.exists(dest_file) and os.path.getsize(dest_file) > 0:
+            print(f"[{idx}/{len(chunk_files)}] [SKIP - Already in Drive] '{filename}'")
+            skipped += 1
+            continue
+
+        print(f"[{idx}/{len(chunk_files)}] Downloading '{filename}' directly to Drive...", end=" ", flush=True)
+        try:
+            downloaded_path = hf_hub_download(
+                repo_id=repo_id,
+                filename=remote_path,
+                repo_type="dataset",
+                token=hf_token,
+                local_dir=target_chunks_dir,
+            )
+            if os.path.basename(downloaded_path) == filename and downloaded_path != dest_file:
+                shutil.move(downloaded_path, dest_file)
+            print("[DONE]")
+            downloaded += 1
+        except Exception as e:
+            print(f"[FAILED: {e}]")
+
+    print("-" * 75)
+    print(f"[+] Sync Complete! Downloaded: {downloaded} new chunk(s), Skipped: {skipped} existing chunk(s).")
+    print(f"[+] All chunks now safely in: {target_chunks_dir}")
+    print("=" * 75)
+    return downloaded
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Cloud-to-Cloud Dataset Uploader (0 MB Local Data)")
     parser.add_argument("--chunks-dir", type=str, default="/kaggle/working/FaceKeyDataset/chunks")
-    parser.add_argument("--method", type=str, choices=["gdrive", "hf", "status"], default="status")
+    parser.add_argument("--method", type=str, choices=["gdrive", "hf", "sync-hf", "status"], default="status")
     parser.add_argument("--service-account", type=str, help="Path to Google Service Account JSON")
     parser.add_argument("--folder-id", type=str, default="11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA", help="Target Google Drive Folder ID")
     parser.add_argument("--hf-token", type=str, help="HuggingFace Write Token")
@@ -239,4 +324,14 @@ if __name__ == "__main__":
             hf_token=args.hf_token,
             repo_id=args.hf_repo,
             purge_after_upload=not args.no_purge
+        )
+
+    elif args.method == "sync-hf":
+        if not args.hf_token or not args.hf_repo:
+            print("[!] Error: --hf-token and --hf-repo are required for sync-hf.")
+            sys.exit(1)
+        sync_hf_to_gdrive(
+            repo_id=args.hf_repo,
+            hf_token=args.hf_token,
+            target_chunks_dir=args.chunks_dir
         )
