@@ -8,6 +8,7 @@ import os
 import re
 import json
 import time
+import threading
 from typing import Optional, Dict, Any, List, Tuple
 
 from src.storage.stream_registry import StreamRegistry, extract_youtube_id, normalize_stream_url
@@ -18,6 +19,7 @@ class StreamBatchQueue:
     """Manages continuous ingestion and persistent state for batch YouTube stream processing."""
 
     def __init__(self, project_root: Optional[str] = None, urls_file: Optional[str] = None):
+        self._lock = threading.RLock()
         if project_root is None:
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.project_root = project_root
@@ -157,14 +159,17 @@ class StreamBatchQueue:
             self._save()
         return reset_count
 
-    def get_next_pending(self) -> Optional[Dict[str, Any]]:
+    def get_next_pending(self, exclude_keys: Optional[set] = None) -> Optional[Dict[str, Any]]:
         """Return the next pending item in insertion order."""
-        items = self.state.get("items", {})
-        for key in self.state.get("order", []):
-            it = items.get(key)
-            if it and it.get("status") == "pending":
-                return it
-        return None
+        with self._lock:
+            items = self.state.get("items", {})
+            for key in self.state.get("order", []):
+                if exclude_keys and key in exclude_keys:
+                    continue
+                it = items.get(key)
+                if it and it.get("status") == "pending":
+                    return it
+            return None
 
     def mark_in_progress(self, key: str, title: Optional[str] = None):
         """Mark item as actively processing."""

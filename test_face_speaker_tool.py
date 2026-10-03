@@ -60,7 +60,56 @@ from src.core.capture import ScreenCaptureSource, AudioCaptureSource, WindowCapt
 from src.storage.dataset_tracker import DatasetReadinessTracker, DatasetReadinessReport
 from src.storage.dataset_writer import DatasetWriter
 from src.storage.stream_registry import StreamRegistry
-from src.utils.notifier import notify_user
+def extract_audio_from_file(video_path: str, target_sr: int = 16000) -> Optional[np.ndarray]:
+    """Extract audio track from video file as 16kHz mono float32 numpy array.
+    Tries ffmpeg first, then PyAV, returns None if video has no audio or tools unavailable.
+    """
+    if not os.path.exists(video_path):
+        return None
+    try:
+        import subprocess, tempfile
+        import scipy.io.wavfile as wavfile
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
+            wav_path = tf.name
+        cmd = [
+            "ffmpeg", "-y", "-i", video_path,
+            "-vn", "-ac", "1", "-ar", str(target_sr),
+            "-f", "wav", wav_path
+        ]
+        ret = subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if ret == 0 and os.path.exists(wav_path) and os.path.getsize(wav_path) > 44:
+            sr, data = wavfile.read(wav_path)
+            try:
+                os.remove(wav_path)
+            except Exception:
+                pass
+            if data.dtype == np.int16:
+                return (data.astype(np.float32) / 32768.0)
+            return data.astype(np.float32)
+        if os.path.exists(wav_path):
+            try:
+                os.remove(wav_path)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    try:
+        import av
+        container = av.open(video_path)
+        if container.streams.audio:
+            resampler = av.AudioResampler(format='fltp', layout='mono', rate=target_sr)
+            chunks = []
+            for frame in container.decode(audio=0):
+                for resampled in resampler.resample(frame):
+                    chunks.append(resampled.to_ndarray().flatten())
+            container.close()
+            if chunks:
+                return np.concatenate(chunks).astype(np.float32)
+        container.close()
+    except Exception:
+        pass
+    return None
 
 
 class MasterAtomicClock:
@@ -874,12 +923,16 @@ def main():
     ensure_input_desktop()
 
     parser = argparse.ArgumentParser(description="Single-Face Verified-Speaking Gate Test Studio")
-    parser.add_argument("--mode", choices=["sim", "screen", "window", "stream"], default="screen",
-                        help="Capture mode: 'screen' (desktop ROI), 'window' (specific app in background), 'stream' (phone camera URL), or 'sim'")
+    parser.add_argument("--mode", choices=["sim", "screen", "window", "stream", "file"], default="screen",
+                        help="Capture mode: 'screen' (desktop ROI), 'window' (specific app in background), 'stream' (phone camera URL), 'file' (offline turbo video), or 'sim'")
     parser.add_argument("--window", type=str, default="Brave",
                         help="Window title query to capture in background (e.g. 'Brave', 'Chrome', 'YouTube')")
     parser.add_argument("--stream-url", type=str, default="",
                         help="Phone camera video stream URL or YouTube link (e.g. 'http://192.168.1.15:8080/video')")
+    parser.add_argument("--video-file", type=str, default="",
+                        help="Path to local video file for high-speed offline turbo decoding")
+    parser.add_argument("--turbo", action="store_true", default=False,
+                        help="Enable uncapped turbo decoding speed (disables frame throttling sleeps)")
     parser.add_argument("--stream-title", type=str, default="",
                         help="Human-readable title of the stream/video being tracked")
     parser.add_argument("--canonical-url", type=str, default="",
@@ -946,9 +999,14 @@ def main():
     stream_registry = StreamRegistry(os.path.dirname(os.path.abspath(__file__)))
 
     active_stream_title = [args.stream_title or ""]
-    canonical_source_url = [args.canonical_url or args.stream_url or ""]
+    canonical_source_url = [args.canonical_url or args.stream_url or args.video_file or ""]
 
     mode = args.mode
+    if args.video_file or (args.mode == "file"):
+        mode = "file"
+
+    audio_file_waveform = [None]
+
     roi_parts = [int(x) for x in args.roi.split(",")]
     current_roi = (roi_parts[0], roi_parts[1], roi_parts[2], roi_parts[3])
 
@@ -1113,6 +1171,44 @@ def main():
         audio_src = AudioCaptureSource(device_index=audio_dev_idx)
         audio_src.start(on_audio)
 
+    def start_file_mode():
+        nonlocal cap, screen_src, audio_src, mode
+        mode = "file"
+        if cap:
+            cap.release()
+            cap = None
+        if screen_src:
+            screen_src.stop()
+            screen_src = None
+        if audio_src:
+            audio_src.stop()
+            audio_src = None
+        pipeline.reset()
+
+        target_file = args.video_file or args.stream_url
+        if not target_file or not os.path.exists(target_file):
+            raise FileNotFoundError(f"Offline video file not found: {target_file}")
+
+        print(f"[*] Loading offline turbo video: '{target_file}'")
+        cap = cv2.VideoCapture(target_file)
+        if not cap.isOpened():
+            raise RuntimeError(f"Could not open video file: {target_file}")
+
+        fps_val = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        total_f = cap.get(cv2.CAP_PROP_FRAME_COUNT) or -1
+        w_val = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+        h_val = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
+        print(f"[*] Video Properties: {w_val}x{h_val} @ {fps_val:.2f} FPS ({total_f:,.0f} total frames)")
+
+        # Extract 16kHz audio track for genuine speech & VAD attribution
+        print(f"[*] Extracting audio track for genuine speech & VAD attribution...")
+        audio_file_waveform[0] = extract_audio_from_file(target_file, target_sr=16000)
+        if audio_file_waveform[0] is not None:
+            dur_sec = len(audio_file_waveform[0]) / 16000.0
+            print(f"[+] Loaded {len(audio_file_waveform[0]):,} audio samples ({dur_sec:.1f}s genuine audio)")
+        else:
+            print("[!] No audio stream found or extraction failed; using synthetic fallback.")
+
     # Check if a pre-selected target was set via switch.flag by launcher/window_picker
     script_dir = os.path.dirname(os.path.abspath(__file__))
     startup_flag = os.path.join(script_dir, "switch.flag")
@@ -1135,6 +1231,8 @@ def main():
         start_window_mode()
     elif mode == "stream":
         start_stream_mode()
+    elif mode == "file":
+        start_file_mode()
     else:
         start_sim_mode()
 
@@ -1559,7 +1657,44 @@ def main():
             t_infer_start = time.perf_counter()
             global_frame_idx += 1
 
-            if mode == "sim":
+            if mode == "file":
+                ret, frame_bgr = cap.read()
+                if not ret or frame_bgr is None:
+                    print("\n[*] Offline turbo video reached EOF. Finalizing & saving...")
+                    app_controls["quit_requested"] = True
+                    break
+
+                fps_source = cap.get(cv2.CAP_PROP_FPS) or 30.0
+                frame_dt_sec = 1.0 / fps_source
+                frame_dt_ms = frame_dt_sec * 1000.0
+                ts = global_frame_idx * frame_dt_sec
+                session_elapsed = ts
+
+                if args.quality == "480p" and frame_bgr.shape[0] > 480:
+                    scale = 480.0 / frame_bgr.shape[0]
+                    frame_bgr = cv2.resize(frame_bgr, (int(frame_bgr.shape[1] * scale), 480), interpolation=cv2.INTER_AREA)
+
+                frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+
+                if audio_file_waveform[0] is not None:
+                    aud = audio_file_waveform[0]
+                    idx_start = max(0, int((ts - frame_dt_sec) * 16000))
+                    idx_end = min(len(aud), int(ts * 16000))
+                    if idx_end > idx_start:
+                        cur_audio_samples = aud[idx_start:idx_end]
+                    else:
+                        cur_audio_samples = np.zeros(int(frame_dt_sec * 16000), dtype=np.float32)
+                    audio_frame = pipeline.speaker_engine.update_audio(cur_audio_samples, ts)
+                else:
+                    cur_audio_samples = None
+                    audio_frame = AudioFrameData(timestamp=ts, energy_rms=0.02, is_speech=True, vad_confidence=0.8)
+
+                audio_frame.timestamp_ns = int(ts * 1e9)
+                t_infer_start = time.perf_counter()
+                tracked_faces = pipeline.process_frame(frame_rgb, ts, audio_frame)
+                infer_latency_ms = (time.perf_counter() - t_infer_start) * 1000.0
+                mode_label = f"TURBO FILE ({args.quality}): ({frame_bgr.shape[1]}x{frame_bgr.shape[0]})"
+            elif mode == "sim":
                 ret, frame_bgr = cap.read()
                 if not ret:
                     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -1618,12 +1753,13 @@ def main():
 
             if is_gate_active and len(tracked_faces) == 1:
                 recorded_frames_count += 1
+                increment_sec = frame_dt_sec if mode == "file" else dt_sec
                 if conv_state == "ACTIVE_SPEECH":
-                    session_speech_sec += dt_sec
+                    session_speech_sec += increment_sec
                 elif conv_state == "BETWEEN_WORDS":
-                    session_inter_word_sec += dt_sec
+                    session_inter_word_sec += increment_sec
                 elif conv_state == "CONVERSATIONAL_PAUSE":
-                    session_pause_sec += dt_sec
+                    session_pause_sec += increment_sec
                 # Accumulate for persistence
                 session_face_frames.extend(tracked_faces)
                 if audio_frame:
@@ -1675,15 +1811,28 @@ def main():
                 if tracked_faces:
                     e = tracked_faces[0].clean.head_pose_euler
                     euler_str = f" | Pose: P:{e[0]:+4.1f} Y:{e[1]:+4.1f} R:{e[2]:+4.1f}"
-                target_desc = getattr(screen_src, 'target_title', args.window if mode == 'window' else f"Screen ROI {current_roi}")
-                prefix = "[BACKGROUND CAPTURE]" if args.headless else "[DATASET MONITOR]"
-                print(
-                    f"{prefix} Target: '{target_desc[:32]}' | Frame #{global_frame_idx:04d} | State: {conv_state}{euler_str} | "
-                    f"Session: {recorded_frames_count} frames ({session_speech_sec:.1f}s) | "
-                    f"Total: {dataset_report.total_duration_seconds/60.0:.1f} mins | "
-                    f"{dataset_report.readiness_label}",
-                    flush=True
-                )
+                target_desc = getattr(screen_src, 'target_title', active_stream_title[0] if mode in ('file', 'stream') else (args.window if mode == 'window' else f"Screen ROI {current_roi}"))
+                if mode == "file":
+                    prefix = "[TURBO COLLECTOR]"
+                    fps_src = cap.get(cv2.CAP_PROP_FPS) or 30.0
+                    tot_f = cap.get(cv2.CAP_PROP_FRAME_COUNT) or -1
+                    pct_str = f" ({global_frame_idx/max(1, tot_f)*100:.1f}%)" if tot_f > 0 else ""
+                    speed_str = f" | Speed: {fps_ema/fps_src:.1f}x ({fps_ema:.1f} FPS)"
+                    print(
+                        f"{prefix} Target: '{target_desc[:26]}' | Frame #{global_frame_idx:05d}{pct_str}{speed_str} | "
+                        f"State: {conv_state}{euler_str} | Session: {recorded_frames_count} frames ({session_speech_sec:.1f}s) | "
+                        f"Total: {dataset_report.total_duration_seconds/60.0:.1f} mins",
+                        flush=True
+                    )
+                else:
+                    prefix = "[BACKGROUND CAPTURE]" if args.headless else "[DATASET MONITOR]"
+                    print(
+                        f"{prefix} Target: '{target_desc[:32]}' | Frame #{global_frame_idx:04d} | State: {conv_state}{euler_str} | "
+                        f"Session: {recorded_frames_count} frames ({session_speech_sec:.1f}s) | "
+                        f"Total: {dataset_report.total_duration_seconds/60.0:.1f} mins | "
+                        f"{dataset_report.readiness_label}",
+                        flush=True
+                    )
 
                 # Persist live dashboard status to disk for external status checkers
                 try:
@@ -1781,7 +1930,8 @@ def main():
                     mode = "screen"
                     start_screen_mode()
             else:
-                time.sleep(0.015)
+                if mode != "file" and not getattr(args, "turbo", False):
+                    time.sleep(0.015)
 
     finally:
         # Save remaining frames on exit if any
@@ -1811,7 +1961,7 @@ def main():
                     telemetry=session_telemetry
                 )
 
-                if mode == "stream" and canonical_source_url[0]:
+                if (mode in ("stream", "file")) and canonical_source_url[0]:
                     try:
                         stream_registry.record_stream_session(
                             url=canonical_source_url[0],
