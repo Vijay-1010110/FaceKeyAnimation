@@ -97,15 +97,31 @@ def ensure_deno_installed():
     return None
 
 
+def is_authenticated_cookie_file(cookie_path: str) -> bool:
+    """Check if the cookie file contains real authenticated login cookies."""
+    if not os.path.isfile(cookie_path) or os.path.getsize(cookie_path) < 50:
+        return False
+    try:
+        with open(cookie_path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+            auth_markers = ["LOGIN_INFO", "SAPISID", "__Secure-3PAPISID", "SID", "SSID"]
+            return any(marker in content for marker in auth_markers)
+    except Exception:
+        return False
+
+
 def resolve_cookies_file(explicit_path: Optional[str] = None, drive_folder: Optional[str] = None) -> Optional[str]:
-    """Find a valid cookies.txt or cookie.txt file across standard locations to bypass datacenter bot challenges."""
+    """Find a valid, authenticated cookies.txt file to bypass datacenter bot challenges."""
     cookie_names = ["cookies.txt", "cookie.txt", "Cookies.txt", "youtube_cookies.txt", "youtube-cookies.txt", "cookies.netscape.txt"]
     
     search_dirs = []
     if explicit_path:
         if os.path.isfile(explicit_path):
-            print(f"[+] Loaded YouTube cookies file: {os.path.abspath(explicit_path)}")
-            return os.path.abspath(explicit_path)
+            if is_authenticated_cookie_file(explicit_path):
+                print(f"[+] Loaded verified YouTube cookies file: {os.path.abspath(explicit_path)}")
+                return os.path.abspath(explicit_path)
+            else:
+                print(f"[!] Warning: Explicit cookie file '{explicit_path}' lacks active login cookies (missing LOGIN_INFO/SAPISID). Skipping.")
         search_dirs.append(explicit_path)
 
     if drive_folder:
@@ -137,8 +153,11 @@ def resolve_cookies_file(explicit_path: Optional[str] = None, drive_folder: Opti
         for name in cookie_names:
             c = os.path.join(d, name)
             if os.path.isfile(c) and os.path.getsize(c) > 10:
-                print(f"[+] Loaded YouTube cookies file: {os.path.abspath(c)}")
-                return os.path.abspath(c)
+                if is_authenticated_cookie_file(c):
+                    print(f"[+] Loaded verified YouTube cookies file: {os.path.abspath(c)}")
+                    return os.path.abspath(c)
+                else:
+                    print(f"[!] Warning: Found '{os.path.abspath(c)}' but it lacks active login cookies (missing LOGIN_INFO/SAPISID). Skipping.")
 
     # Fallback: scan any directory for any file matching *cookie*.txt
     for d in search_dirs:
@@ -149,8 +168,11 @@ def resolve_cookies_file(explicit_path: Optional[str] = None, drive_folder: Opti
                 if "cookie" in entry.lower() and entry.lower().endswith(".txt"):
                     c = os.path.join(d, entry)
                     if os.path.isfile(c) and os.path.getsize(c) > 10:
-                        print(f"[+] Loaded YouTube cookies file (matched '{entry}'): {os.path.abspath(c)}")
-                        return os.path.abspath(c)
+                        if is_authenticated_cookie_file(c):
+                            print(f"[+] Loaded verified YouTube cookies file (matched '{entry}'): {os.path.abspath(c)}")
+                            return os.path.abspath(c)
+                        else:
+                            print(f"[!] Warning: Found '{os.path.abspath(c)}' but it lacks active login cookies (missing LOGIN_INFO/SAPISID). Skipping.")
         except Exception:
             pass
 
@@ -317,10 +339,15 @@ def worker_process_loop(
                             if "path" in r_cfg:
                                 dl_cmd.extend(["--js-runtimes", f"{r_name}:{r_cfg['path']}"])
                         try:
-                            ret_dl = subprocess.call(dl_cmd, stderr=subprocess.PIPE)
-                            if ret_dl == 0 and os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
+                            proc = subprocess.run(dl_cmd, capture_output=True, text=True, timeout=180)
+                            if proc.returncode == 0 and os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                                 download_success = True
                                 break
+                            else:
+                                err_tail = (proc.stderr or proc.stdout or "").strip()
+                                last_err = err_tail.splitlines()[-1] if err_tail else f"exit {proc.returncode}"
+                                if "bot" in last_err.lower() or "sign in" in last_err.lower():
+                                    print(f"[*] [WORKER {coordinator.worker_id}] Client '{attempt['client']}' flagged by YouTube bot check.")
                         except Exception:
                             pass
 

@@ -30,7 +30,7 @@ if ! command -v ffmpeg &> /dev/null; then
     sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg || true
 fi
 
-# Detect YouTube Cookies for anti-bot bypass
+# Detect YouTube Cookies for anti-bot bypass (must contain real login markers)
 COOKIES_FLAG=""
 for cand in \
     "${STUDIO_DIR}/FaceKeyDataset/www.youtube.com_cookies.txt" \
@@ -46,9 +46,13 @@ for cand in \
     "${DRIVE_DIR}/cookies.txt" \
     "${DRIVE_DIR}/cookie.txt"; do
     if [ -f "$cand" ] && [ -s "$cand" ]; then
-        echo "[+] Found YouTube cookies at: $cand - enabling authenticated mode!"
-        COOKIES_FLAG="--cookies $cand"
-        break
+        if grep -qE "LOGIN_INFO|SAPISID|__Secure-3PAPISID|SID" "$cand" 2>/dev/null; then
+            echo "[+] Found verified logged-in YouTube cookies at: $cand - enabling authenticated mode!"
+            COOKIES_FLAG="--cookies $cand"
+            break
+        else
+            echo "[!] Notice: '$cand' is a guest cookie without login session (missing LOGIN_INFO/SAPISID). Skipping."
+        fi
     fi
 done
 
