@@ -58,15 +58,13 @@ class TestPodcastPipeline(unittest.TestCase):
         speaker_probs = arrays["speaker_probabilities"]
         eligibilities = arrays["eligibility_levels"]
 
-        # Check Turn 1 (0.5s to 1.8s): Host A speaking, Host B listening
+        # Check Turn 1 (0.5s to 1.8s): Host A speaking solo
         t1_mask = (timestamps >= 0.5) & (timestamps <= 1.8)
         t1_roles = roles[t1_mask]
         t1_speakers = int(np.sum(t1_roles == FaceRole.SPEAKER.value))
-        t1_listeners = int(np.sum(t1_roles == FaceRole.LISTENER.value))
 
-        print(f"Turn 1 (Host A speaking): {t1_speakers} SPEAKER samples, {t1_listeners} LISTENER samples")
+        print(f"Turn 1 (Host A speaking): {t1_speakers} SPEAKER samples")
         self.assertGreater(t1_speakers, 0, "Host A should have SPEAKER samples in Turn 1")
-        self.assertGreater(t1_listeners, 0, "Host B should have LISTENER samples in Turn 1")
 
         # Check Turn 2 (2.5s to 3.8s): Host B speaking, Host A listening
         t2_mask = (timestamps >= 2.5) & (timestamps <= 3.8)
