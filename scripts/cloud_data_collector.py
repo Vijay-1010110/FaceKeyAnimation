@@ -636,12 +636,34 @@ def worker_process_loop(
 
         # Look up true content duration and frame count from registry
         reg_entry = stream_registry.find_entry(canonical_url) or stream_registry.find_entry(raw_url)
+        real_frames = 0
+        real_duration_sec = 0.0
+
         if reg_entry:
             real_duration_sec = reg_entry.get("total_duration_seconds", elapsed_sec)
-            real_frames = reg_entry.get("total_frames", int(elapsed_sec * 30))
-        else:
-            real_duration_sec = elapsed_sec
-            real_frames = int(elapsed_sec * 30)
+            real_frames = reg_entry.get("total_frames", 0)
+
+        # Fallback inspection of latest session directory metadata
+        if real_frames <= 0:
+            found_sess = glob.glob(os.path.join(local_sessions_dir, "session_*"))
+            if found_sess:
+                latest_sess = max(found_sess, key=os.path.getmtime)
+                meta_p = os.path.join(latest_sess, "metadata.json")
+                if os.path.exists(meta_p):
+                    try:
+                        with open(meta_p, "r", encoding="utf-8") as mf:
+                            m_meta = json.load(mf)
+                            real_frames = m_meta.get("total_video_frames", 0)
+                            real_duration_sec = m_meta.get("duration_seconds", elapsed_sec)
+                    except Exception:
+                        pass
+
+        # Validate that genuine face tracking data was actually captured (> 1 second)
+        if real_frames < 30:
+            print(f"[!] [WORKER {coordinator.worker_id}] Warning: Only {real_frames} frames captured for '{title[:36]}' (expected > 30). Marking video as failed.")
+            coordinator.release_lock(key)
+            queue.mark_failed(key, f"Zero or insufficient frames recorded ({real_frames} frames)")
+            continue
 
         speedup = real_duration_sec / max(0.1, elapsed_sec)
         session_id = f"session_{key}"
