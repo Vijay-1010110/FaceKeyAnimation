@@ -230,7 +230,8 @@ def worker_process_loop(
     service_account_json: Optional[str] = None,
     folder_id: str = "11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA",
     hf_token: Optional[str] = None,
-    hf_repo: Optional[str] = None
+    hf_repo: Optional[str] = None,
+    proxy: Optional[str] = None
 ):
     """Execution loop for an individual cloud worker."""
     python_exe = sys.executable
@@ -246,6 +247,22 @@ def worker_process_loop(
 
     if not cookies_file:
         cookies_file = resolve_cookies_file(drive_folder=cloud_sync.drive_folder)
+
+    # Auto-detect Cloudflare WARP SOCKS5 proxy on local port 40000 or env vars
+    if not proxy:
+        try:
+            import socket
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.3)
+            if sock.connect_ex(('127.0.0.1', 40000)) == 0:
+                proxy = "socks5://127.0.0.1:40000"
+            sock.close()
+        except Exception:
+            pass
+        if not proxy:
+            proxy = os.environ.get("ALL_PROXY") or os.environ.get("HTTPS_PROXY")
+    if proxy:
+        print(f"[+] [WORKER {worker_id}] Outbound network proxy active: {proxy}")
 
     unpacked_count = 0
     locally_locked_keys = set()
@@ -307,32 +324,38 @@ def worker_process_loop(
                     js_dict = get_js_runtimes()
 
                     # Robust multi-tiered download attempts:
-                    # 1. Android client (works 100% on datacenter IPs without triggering visionos bot detection)
-                    # 2. Android VR client
-                    # 3. Web Safari / TV embedded clients
-                    # Both with and without cookies fallback to ensure bad/expired cookies never stall processing.
+                    # 1. Standard web/mweb clients with authenticated cookies (DO NOT use android client with cookies)
+                    # 2. Unauthenticated clients (default, android, ios, android_vr) through proxy or clean IP
                     download_attempts = []
-                    if cookies_file and os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 10:
-                        download_attempts.append({"client": "android", "use_cookies": True})
+                    if cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file):
+                        download_attempts.append({"client": "default", "use_cookies": True})
+                        download_attempts.append({"client": "web", "use_cookies": True})
+                        download_attempts.append({"client": "mweb", "use_cookies": True})
+                        download_attempts.append({"client": "web_safari", "use_cookies": True})
+
+                    download_attempts.append({"client": "default", "use_cookies": False})
                     download_attempts.append({"client": "android", "use_cookies": False})
+                    download_attempts.append({"client": "ios", "use_cookies": False})
                     download_attempts.append({"client": "android_vr", "use_cookies": False})
-                    if cookies_file and os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 10:
-                        download_attempts.append({"client": "web_safari,tv_embedded", "use_cookies": True})
+                    download_attempts.append({"client": "web", "use_cookies": False})
+                    download_attempts.append({"client": "mweb", "use_cookies": False})
 
                     for attempt in download_attempts:
                         if download_success:
                             break
-                        c_arg = f"youtube:player_client={attempt['client']}"
                         dl_cmd = [
                             sys.executable, "-m", "yt_dlp",
                             "-f", "18/best[height<=480][ext=mp4]/best",
-                            "--extractor-args", c_arg,
                             "--force-ipv4",
                             "--no-warnings",
                             "--sleep-requests", "1",
                             "-o", scratch_video,
                             raw_url
                         ]
+                        if attempt["client"] != "default":
+                            dl_cmd.extend(["--extractor-args", f"youtube:player_client={attempt['client']}"])
+                        if proxy:
+                            dl_cmd.extend(["--proxy", proxy])
                         if attempt["use_cookies"] and cookies_file:
                             dl_cmd.extend(["--cookies", cookies_file])
                         for r_name, r_cfg in js_dict.items():
@@ -351,9 +374,9 @@ def worker_process_loop(
                         except Exception:
                             pass
 
-                    # Fallback Strategy: Python API with android extractor args
+                    # Fallback Strategy: Python API
                     if not download_success:
-                        cookie_try = [True, False] if (cookies_file and os.path.exists(cookies_file)) else [False]
+                        cookie_try = [True, False] if (cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file)) else [False]
                         for use_c in cookie_try:
                             if download_success:
                                 break
@@ -362,7 +385,6 @@ def worker_process_loop(
                                 ydl_opts = {
                                     'format': '18/best[height<=480][ext=mp4]/best',
                                     'outtmpl': scratch_video,
-                                    'extractor_args': {'youtube': {'player_client': ['android', 'android_vr']}},
                                     'js_runtimes': js_dict,
                                     'quiet': True,
                                     'no_warnings': True,
@@ -371,6 +393,10 @@ def worker_process_loop(
                                     'source_address': '0.0.0.0',
                                     'socket_timeout': 30,
                                 }
+                                if not use_c:
+                                    ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios', 'android_vr']}}
+                                if proxy:
+                                    ydl_opts['proxy'] = proxy
                                 if use_c and cookies_file:
                                     ydl_opts['cookiefile'] = cookies_file
                                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -389,14 +415,17 @@ def worker_process_loop(
                             import yt_dlp
                             ydl_s_opts = {
                                 'format': '18/best[height<=480][ext=mp4]/best',
-                                'extractor_args': {'youtube': {'player_client': ['android', 'android_vr']}},
                                 'js_runtimes': js_dict,
                                 'quiet': True,
                                 'skip_download': True,
                                 'source_address': '0.0.0.0',
                             }
-                            if cookies_file and os.path.exists(cookies_file):
+                            if proxy:
+                                ydl_s_opts['proxy'] = proxy
+                            if cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file):
                                 ydl_s_opts['cookiefile'] = cookies_file
+                            else:
+                                ydl_s_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios', 'android_vr']}}
                             info_s = None
                             try:
                                 with yt_dlp.YoutubeDL(ydl_s_opts) as ydl_s:
@@ -436,10 +465,13 @@ def worker_process_loop(
                             t_opts = {
                                 'quiet': True,
                                 'skip_download': True,
-                                'extractor_args': {'youtube': {'player_client': ['android', 'android_vr']}}
                             }
-                            if cookies_file and os.path.exists(cookies_file):
+                            if proxy:
+                                t_opts['proxy'] = proxy
+                            if cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file):
                                 t_opts['cookiefile'] = cookies_file
+                            else:
+                                t_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios', 'android_vr']}}
                             with yt_dlp.YoutubeDL(t_opts) as ydl_t:
                                 t_info = ydl_t.extract_info(raw_url, download=False)
                                 title = t_info.get('title', item_title)
@@ -477,7 +509,9 @@ def worker_process_loop(
                         'socket_timeout': 30,
                         'retries': 5
                     }
-                    if cookies_file and os.path.exists(cookies_file):
+                    if proxy:
+                        ydl_opts['proxy'] = proxy
+                    if cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file):
                         ydl_opts['cookiefile'] = cookies_file
                     info = None
                     try:
@@ -656,7 +690,8 @@ def run_cloud_collector(
     service_account: Optional[str] = None,
     folder_id: str = "11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA",
     hf_token: Optional[str] = None,
-    hf_repo: Optional[str] = None
+    hf_repo: Optional[str] = None,
+    proxy: Optional[str] = None
 ):
     print("=" * 84)
     print(" [CLOUD] FACEKEY TURBO MULTI-WORKER CLOUD COLLECTOR & DISTRIBUTED LOCK MANAGER")
@@ -667,6 +702,20 @@ def run_cloud_collector(
     cloud_sync.mount_google_drive()
     ensure_deno_installed()
     resolved_cookies = resolve_cookies_file(cookies_file, drive_folder=cloud_sync.drive_folder)
+
+    # Auto-detect Cloudflare WARP SOCKS5 proxy on local port 40000 or env vars
+    if not proxy:
+        try:
+            import socket
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.3)
+            if sock.connect_ex(('127.0.0.1', 40000)) == 0:
+                proxy = "socks5://127.0.0.1:40000"
+            sock.close()
+        except Exception:
+            pass
+        if not proxy:
+            proxy = os.environ.get("ALL_PROXY") or os.environ.get("HTTPS_PROXY")
 
     # Auto-detect service account JSON if present
     sa_json = service_account
@@ -766,7 +815,8 @@ def run_cloud_collector(
             service_account_json=sa_json,
             folder_id=folder_id,
             hf_token=active_hf_token,
-            hf_repo=active_hf_repo
+            hf_repo=active_hf_repo,
+            proxy=proxy
         )
     else:
         stop_event = threading.Event()
@@ -791,7 +841,8 @@ def run_cloud_collector(
                     "service_account_json": sa_json,
                     "folder_id": folder_id,
                     "hf_token": active_hf_token,
-                    "hf_repo": active_hf_repo
+                    "hf_repo": active_hf_repo,
+                    "proxy": proxy
                 },
                 name=f"Thread-{sub_id}"
             )
@@ -835,6 +886,7 @@ if __name__ == "__main__":
     parser.add_argument("--folder-id", type=str, default="11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA", help="Target Google Drive Folder ID")
     parser.add_argument("--hf-token", type=str, default=None, help="Hugging Face Write Token for private dataset backup")
     parser.add_argument("--hf-repo", type=str, default="VijayTheOne/facekey-dataset-chunks", help="Hugging Face repository ID")
+    parser.add_argument("--proxy", type=str, default=None, help="HTTP/SOCKS5 proxy URL for yt-dlp (e.g. socks5://127.0.0.1:40000)")
     args = parser.parse_args()
 
     run_cloud_collector(
@@ -851,5 +903,6 @@ if __name__ == "__main__":
         service_account=args.service_account,
         folder_id=args.folder_id,
         hf_token=args.hf_token,
-        hf_repo=args.hf_repo
+        hf_repo=args.hf_repo,
+        proxy=args.proxy
     )
