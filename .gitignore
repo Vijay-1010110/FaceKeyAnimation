@@ -20,6 +20,7 @@ checkpoints/
 
 # Data archives and chunks
 chunks/
+FaceKeyDataset/
 cloud_drive_backup/
 *.tar.gz
 *.tar
