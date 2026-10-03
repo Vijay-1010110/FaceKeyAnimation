@@ -134,6 +134,7 @@ def worker_process_loop(
                         'format': f'bestvideo[height<={quality.replace("p","")}]+bestaudio/best[height<={quality.replace("p","")}]/best',
                         'outtmpl': scratch_video,
                         'merge_output_format': 'mp4',
+                        'js_runtimes': {'node': {}, 'deno': {}},
                         'quiet': True,
                         'no_warnings': True,
                         'noprogress': True,
@@ -152,7 +153,8 @@ def worker_process_loop(
                         print(f"[-] [WORKER {coordinator.worker_id}] yt-dlp notice ({dl_err}). Using fast stream buffer...")
                         try:
                             ydl_s_opts = {
-                                'format': '18/best[ext=mp4]/best',
+                                'format': f'bestvideo[height<={quality.replace("p","")}]+bestaudio/best[height<={quality.replace("p","")}]/best',
+                                'js_runtimes': {'node': {}, 'deno': {}},
                                 'quiet': True,
                                 'skip_download': True,
                                 'source_address': '0.0.0.0',
@@ -196,21 +198,16 @@ def worker_process_loop(
                 import yt_dlp
                 with DOWNLOAD_MUTEX:
                     ydl_opts = {
-                        'format': f'best[height<={quality.replace("p","")}][ext=mp4]/best[height<={quality.replace("p","")}]/best',
+                        'format': f'bestvideo[height<={quality.replace("p","")}]+bestaudio/best[height<={quality.replace("p","")}]/best',
+                        'js_runtimes': {'node': {}, 'deno': {}},
                         'quiet': True,
                         'no_warnings': True,
                         'noprogress': True,
-                        'logger': QuietYtdlLogger(),
                         'skip_download': True,
                         'cachedir': False,
                         'source_address': '0.0.0.0',
                         'socket_timeout': 30,
-                        'retries': 5,
-                        'extractor_args': {
-                            'youtube': {
-                                'player_client': ['android', 'web']
-                            }
-                        }
+                        'retries': 5
                     }
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(raw_url, download=False)

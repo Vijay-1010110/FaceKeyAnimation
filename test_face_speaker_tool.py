@@ -1138,6 +1138,7 @@ def main():
                 }
                 ydl_opts = {
                     'format': fmt_map.get(args.quality, fmt_map["480p"]),
+                    'js_runtimes': {'node': {}, 'deno': {}},
                     'quiet': True,
                     'no_warnings': True,
                     'skip_download': True,
