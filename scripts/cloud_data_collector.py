@@ -157,11 +157,29 @@ def resolve_cookies_file(explicit_path: Optional[str] = None, drive_folder: Opti
     return None
 
 
-def _trigger_auto_upload(chunks_dir: str, sa_json: Optional[str], folder_id: str):
-    """Auto-uploads any packaged chunks to Google Drive and cleans local disk."""
-    if sa_json and os.path.exists(sa_json):
+def _trigger_auto_upload(
+    chunks_dir: str,
+    sa_json: Optional[str] = None,
+    folder_id: str = "11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA",
+    hf_token: Optional[str] = None,
+    hf_repo: Optional[str] = None
+):
+    """Auto-uploads any packaged chunks to cloud (HF Hub or Google Drive) and cleans local disk."""
+    sys.path.insert(0, os.path.dirname(__file__))
+    if hf_token and hf_repo:
         try:
-            sys.path.insert(0, os.path.dirname(__file__))
+            from cloud_drive_uploader import upload_to_hf_hub
+            print(f"[*] [AUTO-UPLOAD] Streaming chunk directly to Hugging Face Private Dataset ({hf_repo})...")
+            upload_to_hf_hub(
+                chunks_dir=chunks_dir,
+                hf_token=hf_token,
+                repo_id=hf_repo,
+                purge_after_upload=True
+            )
+        except Exception as he:
+            print(f"[!] HF auto-upload warning: {he}")
+    elif sa_json and os.path.exists(sa_json):
+        try:
             from cloud_drive_uploader import upload_to_gdrive_service_account
             print(f"[*] [AUTO-UPLOAD] Streaming chunk directly to 5 TB Google Drive ({folder_id})...")
             upload_to_gdrive_service_account(
@@ -188,7 +206,9 @@ def worker_process_loop(
     stop_event: Optional[threading.Event] = None,
     cookies_file: Optional[str] = None,
     service_account_json: Optional[str] = None,
-    folder_id: str = "11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA"
+    folder_id: str = "11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA",
+    hf_token: Optional[str] = None,
+    hf_repo: Optional[str] = None
 ):
     """Execution loop for an individual cloud worker."""
     python_exe = sys.executable
@@ -227,7 +247,7 @@ def worker_process_loop(
                 worker_tag=coordinator.worker_id,
                 purge_local_after_pack=purge_local
             )
-            _trigger_auto_upload(cloud_sync.chunks_dir, service_account_json, folder_id)
+            _trigger_auto_upload(cloud_sync.chunks_dir, service_account_json, folder_id, hf_token, hf_repo)
             print(f"[*] [WORKER {worker_id}] Watching for new links... (Waiting 10s)")
             time.sleep(10)
             continue
@@ -577,7 +597,7 @@ def worker_process_loop(
                 worker_tag=coordinator.worker_id,
                 purge_local_after_pack=purge_local
             )
-            _trigger_auto_upload(cloud_sync.chunks_dir, service_account_json, folder_id)
+            _trigger_auto_upload(cloud_sync.chunks_dir, service_account_json, folder_id, hf_token, hf_repo)
             unpacked_count = 0
 
         time.sleep(1.0)
@@ -595,7 +615,9 @@ def run_cloud_collector(
     num_workers: int = 1,
     cookies_file: Optional[str] = None,
     service_account: Optional[str] = None,
-    folder_id: str = "11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA"
+    folder_id: str = "11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA",
+    hf_token: Optional[str] = None,
+    hf_repo: Optional[str] = None
 ):
     print("=" * 84)
     print(" [CLOUD] FACEKEY TURBO MULTI-WORKER CLOUD COLLECTOR & DISTRIBUTED LOCK MANAGER")
@@ -618,6 +640,10 @@ def run_cloud_collector(
             if os.path.exists(sa_cand):
                 sa_json = os.path.abspath(sa_cand)
                 break
+
+    # Auto-detect Hugging Face token and repo
+    active_hf_token = hf_token or os.environ.get("HF_TOKEN")
+    active_hf_repo = hf_repo or os.environ.get("HF_REPO", "VijayTheOne/facekey-dataset-chunks")
 
     base_worker_id = worker_id or (
         "colab-worker-1" if cloud_sync.is_colab else (
@@ -673,7 +699,9 @@ def run_cloud_collector(
     total_globally_completed = shared_db.get("total_completed", len(shared_db.get("completed", {})))
     total_global_hours = shared_db.get("total_hours", 0.0)
 
-    if sa_json:
+    if active_hf_token:
+        print(f"[*] Hugging Face Auto-Upload : ENABLED (Repo: {active_hf_repo})")
+    elif sa_json:
         print(f"[*] Google Drive Auto-Upload : ENABLED (Folder: {folder_id})")
         print(f"[*] Service Account Key     : {sa_json}")
 
@@ -697,7 +725,9 @@ def run_cloud_collector(
             turbo=turbo,
             cookies_file=resolved_cookies,
             service_account_json=sa_json,
-            folder_id=folder_id
+            folder_id=folder_id,
+            hf_token=active_hf_token,
+            hf_repo=active_hf_repo
         )
     else:
         stop_event = threading.Event()
@@ -720,7 +750,9 @@ def run_cloud_collector(
                     "stop_event": stop_event,
                     "cookies_file": resolved_cookies,
                     "service_account_json": sa_json,
-                    "folder_id": folder_id
+                    "folder_id": folder_id,
+                    "hf_token": active_hf_token,
+                    "hf_repo": active_hf_repo
                 },
                 name=f"Thread-{sub_id}"
             )
@@ -745,8 +777,7 @@ def run_cloud_collector(
         worker_tag=base_worker_id,
         purge_local_after_pack=purge_local
     )
-    if sa_json:
-        _trigger_auto_upload(cloud_sync.chunks_dir, sa_json, folder_id)
+    _trigger_auto_upload(cloud_sync.chunks_dir, sa_json, folder_id, active_hf_token, active_hf_repo)
 
 
 if __name__ == "__main__":
@@ -763,6 +794,8 @@ if __name__ == "__main__":
     parser.add_argument("--cookies", type=str, default=None, help="Path to YouTube cookies.txt file for bot challenge bypass")
     parser.add_argument("--service-account", type=str, default=None, help="Google Service Account JSON for automatic cloud-to-drive upload")
     parser.add_argument("--folder-id", type=str, default="11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA", help="Target Google Drive Folder ID")
+    parser.add_argument("--hf-token", type=str, default=None, help="Hugging Face Write Token for private dataset backup")
+    parser.add_argument("--hf-repo", type=str, default="VijayTheOne/facekey-dataset-chunks", help="Hugging Face repository ID")
     args = parser.parse_args()
 
     run_cloud_collector(
@@ -777,5 +810,7 @@ if __name__ == "__main__":
         num_workers=max(1, args.num_workers),
         cookies_file=args.cookies,
         service_account=args.service_account,
-        folder_id=args.folder_id
+        folder_id=args.folder_id,
+        hf_token=args.hf_token,
+        hf_repo=args.hf_repo
     )
