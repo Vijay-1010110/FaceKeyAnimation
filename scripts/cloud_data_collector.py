@@ -345,10 +345,10 @@ def worker_process_loop(
                             break
                         dl_cmd = [
                             sys.executable, "-m", "yt_dlp",
-                            "-f", "18/best[height<=480][ext=mp4]/best",
-                            "--force-ipv4",
+                            "-f", "18/best[height<=480][ext=mp4]/bestvideo[height<=480]+bestaudio/best[height<=480]/best",
                             "--no-warnings",
                             "--sleep-requests", "1",
+                            "--merge-output-format", "mp4",
                             "-o", scratch_video,
                             raw_url
                         ]
@@ -383,14 +383,13 @@ def worker_process_loop(
                             try:
                                 import yt_dlp
                                 ydl_opts = {
-                                    'format': '18/best[height<=480][ext=mp4]/best',
+                                    'format': '18/best[height<=480][ext=mp4]/bestvideo[height<=480]+bestaudio/best[height<=480]/best',
                                     'outtmpl': scratch_video,
                                     'js_runtimes': js_dict,
                                     'quiet': True,
                                     'no_warnings': True,
                                     'noprogress': True,
                                     'retries': 3,
-                                    'source_address': '0.0.0.0',
                                     'socket_timeout': 30,
                                 }
                                 if not use_c:
@@ -409,7 +408,7 @@ def worker_process_loop(
                             except Exception:
                                 pass
 
-                    # Strategy Buffer stream URL directly via ffmpeg if scratch failed
+                    # Strategy Buffer stream URL directly via curl through proxy if scratch failed
                     if not download_success:
                         try:
                             import yt_dlp
@@ -418,7 +417,6 @@ def worker_process_loop(
                                 'js_runtimes': js_dict,
                                 'quiet': True,
                                 'skip_download': True,
-                                'source_address': '0.0.0.0',
                             }
                             if proxy:
                                 ydl_s_opts['proxy'] = proxy
@@ -442,12 +440,17 @@ def worker_process_loop(
                                 title = info_s.get('title', item_title)
                                 canonical_url = info_s.get('webpage_url') or canonical_url
                                 if s_url:
-                                    ff_cmd = [
-                                        "ffmpeg", "-y", "-i", s_url,
-                                        "-c", "copy", "-t", "3600",
-                                        scratch_video
-                                    ]
-                                    subprocess.call(ff_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                    if proxy:
+                                        p_host = proxy.replace("socks5://", "").replace("socks5h://", "").replace("http://", "").replace("https://", "")
+                                        curl_cmd = [
+                                            "curl", "-s", "-L",
+                                            "--socks5-hostname", p_host,
+                                            "-o", scratch_video,
+                                            s_url
+                                        ]
+                                    else:
+                                        curl_cmd = ["curl", "-s", "-L", "-o", scratch_video, s_url]
+                                    subprocess.run(curl_cmd, timeout=120)
                                     if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                                         download_success = True
                         except Exception:
@@ -493,7 +496,9 @@ def worker_process_loop(
                     "--canonical-url", canonical_url
                 ]
             else:
-                # 100% resilient streaming mode
+                if proxy:
+                    raise RuntimeError(f"Could not download scratch video through proxy for '{raw_url}'. Skipping streaming fallback.")
+                # 100% resilient streaming mode (only for direct/non-proxy environments)
                 import yt_dlp
                 with DOWNLOAD_MUTEX:
                     ydl_opts = {
@@ -505,7 +510,6 @@ def worker_process_loop(
                         'noprogress': True,
                         'skip_download': True,
                         'cachedir': False,
-                        'source_address': '0.0.0.0',
                         'socket_timeout': 30,
                         'retries': 5
                     }

@@ -12,8 +12,8 @@ STUDIO_DIR="/teamspace/studios/this_studio"
 DRIVE_DIR="${STUDIO_DIR}/FaceKeyDataset"
 mkdir -p "${DRIVE_DIR}/chunks" "${DRIVE_DIR}/checkpoints" "${DRIVE_DIR}/locks" "${DRIVE_DIR}/data"
 
-# Upgrade yt-dlp and install dependencies (pinned numpy<2 for media/ML compatibility)
-pip install -q -U "numpy<2" "yt-dlp[default]" mediapipe opencv-python-headless sounddevice mss av scipy huggingface_hub
+# Upgrade yt-dlp and install dependencies (pinned numpy<2 for media/ML compatibility, pysocks for SOCKS5 proxy)
+pip install -q -U "numpy<2" "yt-dlp[default]" mediapipe opencv-python-headless sounddevice mss av scipy huggingface_hub pysocks
 
 # Install Deno JS challenge solver if needed
 if ! command -v deno &> /dev/null; then
@@ -51,6 +51,8 @@ if command -v warp-cli &> /dev/null; then
     if curl -s --socks5-hostname 127.0.0.1:40000 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null | grep -q "warp=on"; then
         echo "[+] Cloudflare WARP SOCKS5 proxy active on 127.0.0.1:40000 (AWS IP masked)!"
         PROXY_FLAG="--proxy socks5://127.0.0.1:40000"
+        export ALL_PROXY="socks5://127.0.0.1:40000"
+        export all_proxy="socks5://127.0.0.1:40000"
     else
         echo "[!] WARP proxy did not connect, continuing with direct connection and authenticated fallbacks."
     fi
