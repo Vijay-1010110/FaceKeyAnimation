@@ -61,6 +61,7 @@ os.makedirs(target_chunks_dir, exist_ok=True)
 sess_dirs = [
     "/teamspace/studios/this_studio/FaceKeyAnimation/sessions",
     "/kaggle/working/FaceKeyAnimation/sessions",
+    "/kaggle/working/sessions",
     "sessions",
     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sessions"),
 ]
