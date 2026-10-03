@@ -200,7 +200,7 @@ if __name__ == "__main__":
     parser.add_argument("--chunks-dir", type=str, default="/kaggle/working/FaceKeyDataset/chunks")
     parser.add_argument("--method", type=str, choices=["gdrive", "hf", "status"], default="status")
     parser.add_argument("--service-account", type=str, help="Path to Google Service Account JSON")
-    parser.add_argument("--folder-id", type=str, help="Target Google Drive Folder ID")
+    parser.add_argument("--folder-id", type=str, default="11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA", help="Target Google Drive Folder ID")
     parser.add_argument("--hf-token", type=str, help="HuggingFace Write Token")
     parser.add_argument("--hf-repo", type=str, help="HuggingFace Repo ID (e.g. username/facekey-chunks)")
     parser.add_argument("--no-purge", action="store_true", help="Keep local files after upload (default is to purge to save disk)")
