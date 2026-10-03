@@ -131,20 +131,15 @@ def worker_process_loop(
                 with DOWNLOAD_MUTEX:
                     import yt_dlp
                     ydl_opts = {
-                        'format': f'best[height<={quality.replace("p","")}][ext=mp4]/best[height<={quality.replace("p","")}]/best',
+                        'format': f'bestvideo[height<={quality.replace("p","")}]+bestaudio/best[height<={quality.replace("p","")}]/best',
                         'outtmpl': scratch_video,
+                        'merge_output_format': 'mp4',
                         'quiet': True,
                         'no_warnings': True,
                         'noprogress': True,
-                        'logger': QuietYtdlLogger(),
                         'retries': 3,
                         'source_address': '0.0.0.0',
                         'socket_timeout': 30,
-                        'extractor_args': {
-                            'youtube': {
-                                'player_client': ['android', 'web']
-                            }
-                        }
                     }
                     try:
                         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -154,13 +149,35 @@ def worker_process_loop(
                         if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                             download_success = True
                     except Exception as dl_err:
-                        print(f"[-] [WORKER {coordinator.worker_id}] Scratch download unavailable. Falling back to resilient direct stream...")
-                        if os.path.exists(scratch_video):
+                        print(f"[-] [WORKER {coordinator.worker_id}] yt-dlp notice ({dl_err}). Using fast stream buffer...")
+                        try:
+                            ydl_s_opts = {
+                                'format': '18/best[ext=mp4]/best',
+                                'quiet': True,
+                                'skip_download': True,
+                                'source_address': '0.0.0.0',
+                            }
+                            with yt_dlp.YoutubeDL(ydl_s_opts) as ydl_s:
+                                info_s = ydl_s.extract_info(raw_url, download=False)
+                                s_url = info_s.get('url')
+                                title = info_s.get('title', item_title)
+                                canonical_url = info_s.get('webpage_url') or canonical_url
+                            if s_url:
+                                ff_cmd = [
+                                    "ffmpeg", "-y", "-i", s_url,
+                                    "-c", "copy", "-t", "3600",
+                                    scratch_video
+                                ]
+                                subprocess.call(ff_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
+                                    download_success = True
+                        except Exception:
+                            pass
+                        if not download_success and os.path.exists(scratch_video):
                             try:
                                 os.remove(scratch_video)
                             except Exception:
                                 pass
-                        download_success = False
 
             if download_success:
                 print(f"[+] [WORKER {coordinator.worker_id}] Scratch file ready ({os.path.getsize(scratch_video)/1e6:.1f} MB). Running Turbo Processing @ 150+ FPS!")

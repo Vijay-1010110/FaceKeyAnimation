@@ -66,6 +66,7 @@ from src.core.capture import ScreenCaptureSource, AudioCaptureSource, WindowCapt
 from src.storage.dataset_tracker import DatasetReadinessTracker, DatasetReadinessReport
 from src.storage.dataset_writer import DatasetWriter
 from src.storage.stream_registry import StreamRegistry
+from src.utils.notifier import notify_user
 def extract_audio_from_file(video_path: str, target_sr: int = 16000) -> Optional[np.ndarray]:
     """Extract audio track from video file as 16kHz mono float32 numpy array.
     Tries ffmpeg first, then PyAV, returns None if video has no audio or tools unavailable.
@@ -1994,10 +1995,13 @@ def main():
             except Exception as e:
                 print(f"[!] Error saving on exit: {e}")
         elif screen_src and getattr(screen_src, "is_completed", False):
-            notify_user(
-                "FaceKey Studio - Video Complete",
-                "Video stream playback finished and processing is complete."
-            )
+            try:
+                notify_user(
+                    "FaceKey Studio - Video Complete",
+                    "Video stream playback finished and processing is complete."
+                )
+            except Exception:
+                pass
 
         if cap:
             cap.release()
