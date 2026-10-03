@@ -228,12 +228,18 @@ class CloudCoordinator:
         self._heartbeat_thread.start()
 
     def _stop_heartbeat_thread(self):
-        """Stop active heartbeat thread."""
-        self._stop_heartbeat.set()
-        if self._heartbeat_thread and self._heartbeat_thread.is_alive():
-            self._heartbeat_thread.join(timeout=2.0)
-        self._heartbeat_thread = None
-        self.active_lock_key = None
+        """Stop active heartbeat thread safely."""
+        try:
+            if hasattr(self, "_stop_heartbeat") and self._stop_heartbeat is not None:
+                self._stop_heartbeat.set()
+            if getattr(self, "_heartbeat_thread", None) is not None and self._heartbeat_thread.is_alive():
+                if self._heartbeat_thread != threading.current_thread():
+                    self._heartbeat_thread.join(timeout=1.0)
+        except Exception:
+            pass
+        finally:
+            self._heartbeat_thread = None
+            self.active_lock_key = None
 
     def release_lock(self, key: str):
         """Release active lock without marking as completed (e.g., if interrupted or failed)."""

@@ -922,11 +922,14 @@ def main():
                     print(f"[*] Matched audio device '{args.audio_device}' -> [{idx}] {dev['name']}")
                     break
 
-    sim_clip_path = "tests/data/podcast_multi_face_test.mp4"
-    if not os.path.exists(sim_clip_path):
-        print("[*] Generating 4-phase single-face gate test video...")
-        from tests.generate_podcast_clip import create_podcast_video
-        create_podcast_video()
+    if args.mode == "video" and not args.video:
+        sim_clip_path = "tests/data/podcast_multi_face_test.mp4"
+        if not os.path.exists(sim_clip_path):
+            try:
+                from tests.generate_podcast_clip import create_podcast_video
+                create_podcast_video()
+            except Exception:
+                pass
 
     config = AppConfig()
     config.speaker.strict_single_face_only = True
