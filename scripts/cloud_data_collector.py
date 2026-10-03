@@ -38,7 +38,7 @@ def run_cloud_collector(
     stale_timeout_sec: int = 1200
 ):
     print("=" * 84)
-    print(" ☁️  FACEKEY MULTI-WORKER CLOUD COLLECTOR & DISTRIBUTED LOCK MANAGER")
+    print(" [CLOUD] FACEKEY MULTI-WORKER CLOUD COLLECTOR & DISTRIBUTED LOCK MANAGER")
     print("=" * 84)
 
     script_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
