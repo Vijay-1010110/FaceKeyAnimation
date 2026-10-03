@@ -24,6 +24,11 @@ import tempfile
 import threading
 from typing import Optional, Dict, Any, List
 
+# Silence TensorFlow & MediaPipe C++ informational logs
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["GLOG_minloglevel"] = "3"
+os.environ["ABSL_LOG_LEVEL"] = "error"
+
 # Ensure workspace root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -32,6 +37,13 @@ from src.storage.cloud_coordinator import CloudCoordinator
 from src.storage.stream_queue import StreamBatchQueue
 from src.storage.stream_registry import StreamRegistry
 from src.utils.notifier import notify_user
+
+
+class QuietYtdlLogger:
+    """Suppresses raw yt-dlp stderr noise so only clean pipeline progress is shown."""
+    def debug(self, msg): pass
+    def warning(self, msg): pass
+    def error(self, msg): pass
 
 
 DOWNLOAD_MUTEX = threading.Lock()
@@ -123,12 +135,14 @@ def worker_process_loop(
                         'outtmpl': scratch_video,
                         'quiet': True,
                         'no_warnings': True,
+                        'noprogress': True,
+                        'logger': QuietYtdlLogger(),
                         'retries': 3,
                         'source_address': '0.0.0.0',
                         'socket_timeout': 30,
                         'extractor_args': {
                             'youtube': {
-                                'player_client': ['mweb', 'ios', 'android']
+                                'player_client': ['android', 'web']
                             }
                         }
                     }
@@ -140,7 +154,7 @@ def worker_process_loop(
                         if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                             download_success = True
                     except Exception as dl_err:
-                        print(f"[-] [WORKER {coordinator.worker_id}] Scratch download 403 or unavailable ({dl_err}). Falling back to resilient direct stream...")
+                        print(f"[-] [WORKER {coordinator.worker_id}] Scratch download unavailable. Falling back to resilient direct stream...")
                         if os.path.exists(scratch_video):
                             try:
                                 os.remove(scratch_video)
@@ -168,6 +182,8 @@ def worker_process_loop(
                         'format': f'best[height<={quality.replace("p","")}][ext=mp4]/best[height<={quality.replace("p","")}]/best',
                         'quiet': True,
                         'no_warnings': True,
+                        'noprogress': True,
+                        'logger': QuietYtdlLogger(),
                         'skip_download': True,
                         'cachedir': False,
                         'source_address': '0.0.0.0',
@@ -175,7 +191,7 @@ def worker_process_loop(
                         'retries': 5,
                         'extractor_args': {
                             'youtube': {
-                                'player_client': ['mweb', 'ios', 'android']
+                                'player_client': ['android', 'web']
                             }
                         }
                     }
@@ -213,10 +229,14 @@ def worker_process_loop(
         ret_code = 1
 
         try:
-            ret_code = subprocess.call(cmd)
+            sub_env = os.environ.copy()
+            sub_env["TF_CPP_MIN_LOG_LEVEL"] = "3"
+            sub_env["GLOG_minloglevel"] = "3"
+            sub_env["ABSL_LOG_LEVEL"] = "error"
+            ret_code = subprocess.call(cmd, env=sub_env)
             elapsed_sec = time.perf_counter() - t_start
         except KeyboardInterrupt:
-            print(f"\n[*] [WORKER {coordinator.worker_id}] Interrupted! Releasing lock for '{key}'...")
+            print(f"\n[*] [WORKER {coordinator.worker_id}] Interrupted by user. Releasing lock for '{key}'...")
             coordinator.release_lock(key)
             if scratch_video and os.path.exists(scratch_video):
                 try:
@@ -244,6 +264,10 @@ def worker_process_loop(
                     pass
 
         if ret_code != 0:
+            if stop_event.is_set() or ret_code in (-2, -9, -15, 130, 2):
+                print(f"[*] [WORKER {coordinator.worker_id}] Worker stopped cleanly by user. Releasing lock for '{key}'...")
+                coordinator.release_lock(key)
+                break
             print(f"[!] [WORKER {coordinator.worker_id}] Process exited with code {ret_code} in {elapsed_sec:.1f}s. Releasing lock and marking as failed!")
             coordinator.release_lock(key)
             queue.mark_failed(key, f"Process exited with code {ret_code}")

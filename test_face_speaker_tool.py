@@ -19,6 +19,12 @@ Displays live facial motion capture data acquisition with:
 
 import os
 import sys
+
+# Silence TensorFlow & MediaPipe C++ informational logs
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["GLOG_minloglevel"] = "3"
+os.environ["ABSL_LOG_LEVEL"] = "error"
+
 import ctypes
 
 # Immediately attach process thread to 'Default' desktop (user's real monitor surface)
@@ -989,8 +995,10 @@ def main():
     config.speaker.inter_syllable_hold_sec = 0.35
     config.speaker.conversational_pause_sec = 1.80
 
+    print("[*] FaceKey AI Pipeline loading MediaPipe face mesh...", flush=True)
     pipeline = FacePipeline(config)
     pipeline.initialize()
+    print("[+] FaceKey AI Pipeline active & tracking!", flush=True)
 
     # Master Atomic Clock & Dataset Readiness Tracker & Writer & Stream Registry
     atomic_clock = MasterAtomicClock()
