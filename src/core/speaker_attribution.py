@@ -192,82 +192,74 @@ class SpeakerAttributionEngine:
             return results
 
         # -----------------------------------------------------------------
-        # CASE 3: Exactly 1 Face Detected -> Careful True-Speaking Verification
+        # CASE 3: Process Faces (1 Face in Single-Face Mode, or All in Multi-Face Mode)
         # -----------------------------------------------------------------
-        fid, motion_score, mean_vel, mouth_range, max_mouth, quality, hit_count = face_metrics[0]
-
-        # Careful articulation test:
-        # 1. Velocity must exceed lip_motion_velocity_threshold
-        # 2. Mouth aperture must dynamically oscillate (mouth_range >= min_mouth_articulation_range)
-        # 3. Peak opening must be non-trivial (max_mouth >= 0.018)
         min_range = getattr(self.config, "min_mouth_articulation_range", 0.012)
-        is_mouth_articulating = (
-            mean_vel >= self.config.lip_motion_velocity_threshold
-            and mouth_range >= min_range
-            and max_mouth >= 0.018
-        )
-
-        if is_mouth_articulating:
-            self.speaking_streak = min(4, self.speaking_streak + 1)
-            if self.speaking_streak >= 2:
-                self.last_verified_speech_time = current_audio.timestamp
-        else:
-            self.speaking_streak = 0
-
-        # Conversational Timing: Syllables -> Between Words -> Conversational Pause -> Silence
         inter_syllable_hold = getattr(self.config, "inter_syllable_hold_sec", 0.25)
         inter_word_hold = getattr(self.config, "inter_word_hold_sec", 0.55)
         conversational_pause_limit = getattr(self.config, "conversational_pause_sec", 1.80)
-        time_since_speech = max(0.0, current_audio.timestamp - self.last_verified_speech_time)
-        self.time_since_speech = time_since_speech
 
-        is_narration = False
         active_speaker_fid: Optional[int] = None
+        is_narration = False
 
-        if (is_mouth_articulating and self.speaking_streak >= 2) or time_since_speech <= inter_syllable_hold:
-            # 1. Active Syllable Articulation
-            role = FaceRole.SPEAKER
-            speaker_prob = round(float(min(0.99, max(0.75, motion_score))), 3)
-            active_speaker_fid = fid
-            self.is_gate_active = True
-            self.conversational_state = "ACTIVE_SPEECH"
-            self.gate_status = "ACTIVE & RECORDING: 1 FACE + VERIFIED SPEAKING"
-            level = EligibilityLevel.LEVEL_4_SPEAKER_PAIRED if quality.is_valid else EligibilityLevel.LEVEL_2_GEOMETRICALLY_USABLE
+        for fid, motion_score, mean_vel, mouth_range, max_mouth, quality, hit_count in face_metrics:
+            is_mouth_articulating = (
+                mean_vel >= self.config.lip_motion_velocity_threshold
+                and mouth_range >= min_range
+                and max_mouth >= 0.018
+            )
 
-        elif time_since_speech <= inter_word_hold:
-            # 2. Natural Inter-Word Transition / Coarticulation / Micro-Pause between words (RECORDED as SPEAKER!)
-            role = FaceRole.SPEAKER
-            speaker_prob = round(float(max(0.70, motion_score * 0.85)), 3)
-            active_speaker_fid = fid
-            self.is_gate_active = True
-            self.conversational_state = "BETWEEN_WORDS"
-            self.gate_status = f"ACTIVE & RECORDING: BETWEEN WORDS / COARTICULATION ({time_since_speech:.2f}s)"
-            level = EligibilityLevel.LEVEL_4_SPEAKER_PAIRED if quality.is_valid else EligibilityLevel.LEVEL_2_GEOMETRICALLY_USABLE
-
-        elif time_since_speech <= conversational_pause_limit:
-            # 3. Natural Conversational Pause / Thinking / Breathing between sentences / clauses (RECORDED as SPEAKER_PAUSE!)
-            role = FaceRole.SPEAKER_PAUSE
-            speaker_prob = round(float(max(0.60, motion_score * 0.75)), 3)
-            active_speaker_fid = fid
-            self.is_gate_active = True
-            self.conversational_state = "CONVERSATIONAL_PAUSE"
-            self.gate_status = f"ACTIVE & RECORDING: CONVERSATIONAL PAUSE / IDLE ({time_since_speech:.1f}s / {conversational_pause_limit:.1f}s)"
-            level = EligibilityLevel.LEVEL_3_ANIMATION_QUALITY if quality.is_valid else EligibilityLevel.LEVEL_2_GEOMETRICALLY_USABLE
-
-        else:
-            # 4. Prolonged Silence (> 1.8s) / Turn Finished / Narration
-            role = FaceRole.LISTENER if quality.is_valid else FaceRole.UNKNOWN
-            speaker_prob = round(float(motion_score * 0.15), 3)
-            self.is_gate_active = False
-            self.conversational_state = "SILENCE"
-            level = EligibilityLevel.LEVEL_2_GEOMETRICALLY_USABLE if quality.is_valid else EligibilityLevel.LEVEL_0_DETECTED
-            if is_speech_active:
-                is_narration = True
-                self.gate_status = "PAUSED: 1 FACE SILENT (Off-Screen Narration / Voiceover)"
+            if is_mouth_articulating:
+                self.speaking_streak = min(4, self.speaking_streak + 1)
+                self.last_verified_speech_time = current_audio.timestamp
             else:
-                self.gate_status = f"PAUSED: 1 FACE SILENT (> {conversational_pause_limit:.1f}s) / NOT SPEAKING"
+                if num_faces == 1:
+                    self.speaking_streak = 0
 
-        results.append((role, speaker_prob, level))
+            time_since_speech = max(0.0, current_audio.timestamp - self.last_verified_speech_time)
+            self.time_since_speech = time_since_speech
+
+            if (is_mouth_articulating and self.speaking_streak >= 1) or (time_since_speech <= inter_syllable_hold and num_faces == 1):
+                role = FaceRole.SPEAKER
+                speaker_prob = round(float(min(0.99, max(0.75, motion_score))), 3)
+                active_speaker_fid = fid
+                self.is_gate_active = True
+                self.conversational_state = "ACTIVE_SPEECH"
+                self.gate_status = "ACTIVE & RECORDING: 1 FACE + VERIFIED SPEAKING"
+                level = EligibilityLevel.LEVEL_4_SPEAKER_PAIRED if quality.is_valid else EligibilityLevel.LEVEL_2_GEOMETRICALLY_USABLE
+
+            elif time_since_speech <= inter_word_hold and num_faces == 1:
+                role = FaceRole.SPEAKER
+                speaker_prob = round(float(max(0.70, motion_score * 0.85)), 3)
+                active_speaker_fid = fid
+                self.is_gate_active = True
+                self.conversational_state = "BETWEEN_WORDS"
+                self.gate_status = f"ACTIVE & RECORDING: BETWEEN WORDS / COARTICULATION ({time_since_speech:.2f}s)"
+                level = EligibilityLevel.LEVEL_4_SPEAKER_PAIRED if quality.is_valid else EligibilityLevel.LEVEL_2_GEOMETRICALLY_USABLE
+
+            elif time_since_speech <= conversational_pause_limit and num_faces == 1:
+                role = FaceRole.SPEAKER_PAUSE
+                speaker_prob = round(float(max(0.60, motion_score * 0.75)), 3)
+                active_speaker_fid = fid
+                self.is_gate_active = True
+                self.conversational_state = "CONVERSATIONAL_PAUSE"
+                self.gate_status = f"ACTIVE & RECORDING: CONVERSATIONAL PAUSE / IDLE ({time_since_speech:.1f}s / {conversational_pause_limit:.1f}s)"
+                level = EligibilityLevel.LEVEL_3_ANIMATION_QUALITY if quality.is_valid else EligibilityLevel.LEVEL_2_GEOMETRICALLY_USABLE
+
+            else:
+                role = FaceRole.LISTENER if quality.is_valid else FaceRole.UNKNOWN
+                speaker_prob = round(float(motion_score * 0.15), 3)
+                level = EligibilityLevel.LEVEL_3_ANIMATION_QUALITY if quality.is_valid else EligibilityLevel.LEVEL_0_DETECTED
+                if num_faces == 1:
+                    self.is_gate_active = False
+                    self.conversational_state = "SILENCE"
+                    if is_speech_active:
+                        is_narration = True
+                        self.gate_status = "PAUSED: 1 FACE SILENT (Off-Screen Narration / Voiceover)"
+                    else:
+                        self.gate_status = f"PAUSED: 1 FACE SILENT (> {conversational_pause_limit:.1f}s) / NOT SPEAKING"
+
+            results.append((role, speaker_prob, level))
 
         current_audio.is_narration = is_narration
         current_audio.active_speaker_face_id = active_speaker_fid

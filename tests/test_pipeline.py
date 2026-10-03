@@ -133,7 +133,8 @@ class TestSpeakerAttribution(unittest.TestCase):
         speech_frame = vad.process_chunk(speech_synth, 0.1)
         self.assertTrue(speech_frame.is_speech)
 
-        engine = SpeakerAttributionEngine(SpeakerAttributionConfig())
+        cfg = SpeakerAttributionConfig(strict_single_face_only=False)
+        engine = SpeakerAttributionEngine(cfg)
         # Track 2 faces: Face 0 talking (rapid jawOpen changes), Face 1 stationary listener
         engine.update_face_dynamics(0, {"jawOpen": 0.1}, 0.0)
         engine.update_face_dynamics(0, {"jawOpen": 0.6}, 0.05)

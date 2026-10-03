@@ -16,6 +16,7 @@ class TestPodcastPipeline(unittest.TestCase):
     def setUpClass(cls):
         cls.config = AppConfig()
         cls.config.max_faces = 4
+        cls.config.speaker.strict_single_face_only = False
         cls.session_manager = SessionManager(cls.config)
         cls.session_manager.initialize()
 

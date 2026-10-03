@@ -952,8 +952,8 @@ def main():
                         help="Screen ROI x,y,w,h (defaults to full 1920x1080 display)")
     parser.add_argument("--audio-device", type=str, default=None,
                         help="Audio device index or name (e.g. 'ASUS', 'VAC', or 8) for internal silent capture")
-    parser.add_argument("--max-faces", type=int, default=2,
-                        help="Maximum faces to track concurrently (default: 2 for low-overhead single-speaker tracking)")
+    parser.add_argument("--max-faces", type=int, default=1,
+                        help="Maximum faces to track concurrently (default: 1 for single-face verified-speaking dataset collection)")
     parser.add_argument("--list-audio-devices", action="store_true", default=False,
                         help="List available audio input/virtual recording devices and exit")
     args = parser.parse_args()
@@ -994,7 +994,7 @@ def main():
                 pass
 
     config = AppConfig()
-    config.max_faces = getattr(args, "max_faces", 2)
+    config.max_faces = getattr(args, "max_faces", 1)
     config.speaker.strict_single_face_only = True
     config.speaker.inter_syllable_hold_sec = 0.35
     config.speaker.conversational_pause_sec = 1.80
