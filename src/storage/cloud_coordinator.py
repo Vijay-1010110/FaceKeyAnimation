@@ -73,6 +73,32 @@ class CloudCoordinator:
                 pass
         return {"version": "1.0", "last_updated": time.strftime("%Y-%m-%d %H:%M:%S"), "completed": {}}
 
+    def purge_corrupted_completed(self, min_duration_sec: float = 15.0) -> int:
+        """Purge any falsely completed entries (e.g. from early crashes with duration < 15s)."""
+        db = self.get_completed_keys()
+        completed = db.get("completed", {})
+        purged = 0
+        valid_completed = {}
+        for k, v in completed.items():
+            dur = v.get("duration_seconds", 0.0)
+            frames = v.get("frame_count", 0)
+            if dur < min_duration_sec or frames < 50:
+                purged += 1
+            else:
+                valid_completed[k] = v
+        if purged > 0:
+            db["completed"] = valid_completed
+            db["total_completed"] = len(valid_completed)
+            db["total_hours"] = round(sum(v.get("duration_seconds", 0.0) for v in valid_completed.values()) / 3600.0, 3)
+            db["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            try:
+                with open(self.completed_db_path, "w", encoding="utf-8") as f:
+                    json.dump(db, f, indent=2, ensure_ascii=False)
+                print(f"[+] Purged {purged} falsely marked completed video(s) (< {min_duration_sec}s) from Google Drive registry!")
+            except Exception as e:
+                print(f"[!] Warning purging corrupted completed entries: {e}")
+        return purged
+
     def is_already_completed(self, key_or_url: str) -> bool:
         """Check if a video key or URL has already been processed by any worker."""
         _, yt_id = normalize_stream_url(key_or_url)
@@ -81,9 +107,15 @@ class CloudCoordinator:
         db = self.get_completed_keys()
         completed = db.get("completed", {})
         if key in completed:
+            dur = completed[key].get("duration_seconds", 0.0)
+            if dur < 15.0:
+                return False
             return True
         for comp_key, comp_val in completed.items():
             if comp_val.get("video_id") == key or comp_val.get("canonical_url") == key_or_url:
+                dur = comp_val.get("duration_seconds", 0.0)
+                if dur < 15.0:
+                    return False
                 return True
         return False
 

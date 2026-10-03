@@ -65,6 +65,9 @@ def run_cloud_collector(
     if stale_cleaned > 0:
         print(f"[+] Auto-reclaimed {stale_cleaned} stale lock(s) from terminated/expired sessions!")
 
+    # 3b. Auto-purge any falsely completed entries from early crashes (< 15s)
+    coordinator.purge_corrupted_completed(min_duration_sec=15.0)
+
     # 4. Resolve URL file
     if urls_file and os.path.exists(urls_file):
         target_urls_file = os.path.abspath(urls_file)
@@ -88,6 +91,7 @@ def run_cloud_collector(
     # Initialize batch queue for tracking state
     queue = StreamBatchQueue(project_root=script_dir, urls_file=target_urls_file)
     queue.reset_interrupted_to_pending()
+    queue.purge_corrupted_completed(min_duration_sec=15.0)
     new_added, completed, pending = queue.sync_from_file()
 
     shared_db = coordinator.get_completed_keys()

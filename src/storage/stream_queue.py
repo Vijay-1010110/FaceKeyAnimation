@@ -139,6 +139,24 @@ class StreamBatchQueue:
             self._save()
         return reset_count
 
+    def purge_corrupted_completed(self, min_duration_sec: float = 15.0) -> int:
+        """Reset any items falsely marked completed/failed with duration < 15s back to pending."""
+        reset_count = 0
+        for it in self.state.get("items", {}).values():
+            status = it.get("status")
+            dur = it.get("duration_seconds", 0.0)
+            if status in ("completed", "failed") and dur < min_duration_sec:
+                it["status"] = "pending"
+                it["completed_at"] = None
+                it["session_id"] = None
+                it["frame_count"] = 0
+                it["duration_seconds"] = 0.0
+                it["error_message"] = None
+                reset_count += 1
+        if reset_count > 0:
+            self._save()
+        return reset_count
+
     def get_next_pending(self) -> Optional[Dict[str, Any]]:
         """Return the next pending item in insertion order."""
         items = self.state.get("items", {})
