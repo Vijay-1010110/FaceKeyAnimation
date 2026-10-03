@@ -65,6 +65,27 @@ def upload_to_gdrive_service_account(
         from googleapiclient.http import MediaFileUpload
 
     if not os.path.exists(service_account_json):
+        # Auto-search in /kaggle/working and /kaggle/input for any service account json key
+        candidate_files = []
+        for search_dir in ["/kaggle/working", "/kaggle/input", "."]:
+            if os.path.isdir(search_dir):
+                for root, _, files in os.walk(search_dir):
+                    for f in files:
+                        if f.endswith(".json"):
+                            candidate_files.append(os.path.join(root, f))
+
+        for cand in candidate_files:
+            try:
+                with open(cand, "r", encoding="utf-8") as jf:
+                    content_peek = jf.read(500)
+                    if '"type": "service_account"' in content_peek or '"project_id"' in content_peek:
+                        print(f"[+] Auto-detected Google Service Account JSON key: {cand}")
+                        service_account_json = cand
+                        break
+            except Exception:
+                pass
+
+    if not os.path.exists(service_account_json):
         print("\n" + "=" * 75)
         print(" [!] NOTICE: Service Account JSON not found at:")
         print(f"     {service_account_json}")
