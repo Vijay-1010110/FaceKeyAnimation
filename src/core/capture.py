@@ -24,7 +24,12 @@ def ensure_input_desktop():
 ensure_input_desktop()
 
 import numpy as np
-import mss
+
+try:
+    import mss
+    HAS_MSS = True
+except ImportError:
+    HAS_MSS = False
 
 try:
     import win32gui
@@ -117,6 +122,9 @@ class ScreenCaptureSource:
 
     def _capture_worker(self, callback: Callable[[float, np.ndarray], None]):
         ensure_input_desktop()
+        if not HAS_MSS:
+            print("[!] Error: 'mss' package is not installed for screen capture.")
+            return
         sct = mss.mss()
         interval = 1.0 / max(1, self.target_fps)
         session_start_time = time.perf_counter()

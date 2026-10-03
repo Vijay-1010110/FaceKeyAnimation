@@ -189,7 +189,7 @@ def run_cloud_collector(
         ]
 
         try:
-            subprocess.call(cmd)
+            ret_code = subprocess.call(cmd)
             elapsed_sec = time.perf_counter() - t_start
         except KeyboardInterrupt:
             print(f"\n[*] Interrupted! Releasing lock for '{key}'...")
@@ -199,6 +199,13 @@ def run_cloud_collector(
             print(f"[!] Subprocess error: {e}. Releasing lock...")
             coordinator.release_lock(key)
             queue.mark_failed(key, str(e))
+            continue
+
+        if ret_code != 0 or elapsed_sec < 5.0:
+            print(f"[!] Process failed or exited too quickly (exit code {ret_code}, duration {elapsed_sec:.1f}s). Releasing lock and marking as failed!")
+            coordinator.release_lock(key)
+            queue.mark_failed(key, f"Process exited with code {ret_code} in {elapsed_sec:.1f}s")
+            time.sleep(2)
             continue
 
         # Register completion in both global coordinator and local queue
