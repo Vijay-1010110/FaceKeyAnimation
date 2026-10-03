@@ -320,26 +320,71 @@ def sync_hf_to_gdrive(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Cloud-to-Cloud Dataset Uploader (0 MB Local Data)")
-    parser.add_argument("--chunks-dir", type=str, default="/kaggle/working/FaceKeyDataset/chunks")
+    parser.add_argument("--chunks-dir", type=str, default=None, help="Directory containing .tar.gz chunks")
     parser.add_argument("--method", type=str, choices=["gdrive", "hf", "sync-hf", "status"], default="status")
     parser.add_argument("--service-account", type=str, help="Path to Google Service Account JSON")
     parser.add_argument("--folder-id", type=str, default="11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA", help="Target Google Drive Folder ID")
-    parser.add_argument("--hf-token", type=str, help="HuggingFace Write Token")
-    parser.add_argument("--hf-repo", type=str, help="HuggingFace Repo ID (e.g. username/facekey-chunks)")
+    parser.add_argument("--hf-token", type=str, default=None, help="HuggingFace Write Token")
+    parser.add_argument("--hf-repo", type=str, default=None, help="HuggingFace Repo ID (defaults to VijayTheOne/facekey-dataset-chunks)")
     parser.add_argument("--no-purge", action="store_true", help="Keep local files after upload (default is to purge to save disk)")
 
     args = parser.parse_args()
 
+    # Auto-resolve chunks_dir if not specified or doesn't exist
+    resolved_chunks_dir = args.chunks_dir
+    if not resolved_chunks_dir or not os.path.exists(resolved_chunks_dir):
+        candidate_dirs = [
+            "/teamspace/studios/this_studio/FaceKeyDataset/chunks",
+            "/kaggle/working/FaceKeyDataset/chunks",
+            "/content/drive/MyDrive/FaceKeyDataset/chunks",
+            os.path.abspath("FaceKeyDataset/chunks"),
+            os.path.abspath("chunks"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "FaceKeyDataset", "chunks"),
+        ]
+        for cd in candidate_dirs:
+            if os.path.exists(cd):
+                resolved_chunks_dir = cd
+                break
+        if not resolved_chunks_dir:
+            resolved_chunks_dir = "/teamspace/studios/this_studio/FaceKeyDataset/chunks" if os.path.exists("/teamspace/studios/this_studio") else (
+                "/kaggle/working/FaceKeyDataset/chunks" if os.path.exists("/kaggle/working") else "FaceKeyDataset/chunks"
+            )
+
+    # Auto-resolve HF Token if not passed
+    resolved_hf_token = args.hf_token or os.environ.get("HF_TOKEN")
+    if not resolved_hf_token:
+        token_cands = [
+            "/teamspace/studios/this_studio/hf_token.txt",
+            "/teamspace/studios/this_studio/FaceKeyDataset/hf_token.txt",
+            "/kaggle/working/hf_token.txt",
+            os.path.expanduser("~/.cache/huggingface/token"),
+            "hf_token.txt",
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hf_token.txt"),
+        ]
+        for tc in token_cands:
+            if os.path.isfile(tc) and os.path.getsize(tc) > 5:
+                try:
+                    with open(tc, "r", encoding="utf-8") as tf:
+                        tok = tf.read().strip()
+                        if tok.startswith("hf_"):
+                            resolved_hf_token = tok
+                            break
+                except Exception:
+                    pass
+
+    # Auto-resolve HF repo ID
+    resolved_hf_repo = args.hf_repo or os.environ.get("HF_REPO") or "VijayTheOne/facekey-dataset-chunks"
+
     if args.method == "status":
-        info = get_disk_usage_summary(os.path.dirname(os.path.dirname(args.chunks_dir)))
+        info = get_disk_usage_summary(os.path.dirname(os.path.dirname(resolved_chunks_dir)))
         print("\n" + "=" * 60)
-        print(" [KAGGLE STORAGE MONITOR] DISK & CHUNKS SUMMARY")
+        print(" [CLOUD STORAGE MONITOR] DISK & CHUNKS SUMMARY")
         print("=" * 60)
         print(f" Total Disk Quota : {info['disk_total_gb']} GB")
         print(f" Used Disk Space  : {info['disk_used_gb']} GB ({info['disk_used_pct']}%)")
         print(f" Free Disk Space  : {info['disk_free_gb']} GB")
         print(f" Chunks on Disk   : {info['chunks_count']} file(s) ({info['chunks_size_mb']} MB)")
-        print(f" Chunks Location  : {info['chunks_dir']}")
+        print(f" Chunks Location  : {resolved_chunks_dir}")
         print("=" * 60 + "\n")
 
     elif args.method == "gdrive":
@@ -347,29 +392,29 @@ if __name__ == "__main__":
             print("[!] Error: --service-account and --folder-id are required for gdrive upload.")
             sys.exit(1)
         upload_to_gdrive_service_account(
-            chunks_dir=args.chunks_dir,
+            chunks_dir=resolved_chunks_dir,
             service_account_json=args.service_account,
             folder_id=args.folder_id,
             purge_after_upload=not args.no_purge
         )
 
     elif args.method == "hf":
-        if not args.hf_token or not args.hf_repo:
-            print("[!] Error: --hf-token and --hf-repo are required for hf upload.")
+        if not resolved_hf_token:
+            print("[!] Error: Hugging Face token not found! Provide via --hf-token, HF_TOKEN env, or hf_token.txt")
             sys.exit(1)
         upload_to_hf_hub(
-            chunks_dir=args.chunks_dir,
-            hf_token=args.hf_token,
-            repo_id=args.hf_repo,
+            chunks_dir=resolved_chunks_dir,
+            hf_token=resolved_hf_token,
+            repo_id=resolved_hf_repo,
             purge_after_upload=not args.no_purge
         )
 
     elif args.method == "sync-hf":
-        if not args.hf_token or not args.hf_repo:
-            print("[!] Error: --hf-token and --hf-repo are required for sync-hf.")
+        if not resolved_hf_token:
+            print("[!] Error: Hugging Face token not found! Provide via --hf-token, HF_TOKEN env, or hf_token.txt")
             sys.exit(1)
         sync_hf_to_gdrive(
-            repo_id=args.hf_repo,
-            hf_token=args.hf_token,
-            target_chunks_dir=args.chunks_dir
+            repo_id=resolved_hf_repo,
+            hf_token=resolved_hf_token,
+            target_chunks_dir=resolved_chunks_dir
         )
