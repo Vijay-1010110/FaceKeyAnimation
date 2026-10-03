@@ -35,6 +35,7 @@ cloud_drive_backup/
 *.mp3
 
 # Runtime state and transient flags
+data/*.json
 stop.flag
 switch.flag
 live_status.json
