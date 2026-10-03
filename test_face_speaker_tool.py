@@ -992,6 +992,7 @@ def main():
                 pass
 
     config = AppConfig()
+    config.max_faces = 2
     config.speaker.strict_single_face_only = True
     config.speaker.inter_syllable_hold_sec = 0.35
     config.speaker.conversational_pause_sec = 1.80

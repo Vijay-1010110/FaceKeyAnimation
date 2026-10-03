@@ -63,7 +63,7 @@ class AppConfig:
     model_path: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "face_landmarker.task")
     sessions_dir: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sessions")
     target_fps: int = 30
-    max_faces: int = 4
+    max_faces: int = 2
     ring_buffer_seconds: float = 2.0
     queue_max_size: int = 60
     debug_mode: bool = False
