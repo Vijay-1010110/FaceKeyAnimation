@@ -137,7 +137,8 @@ def run_batch_queue(watch_continuous: bool = True):
         try:
             import yt_dlp
             ydl_opts = {
-                'format': 'best[height<=480]/bestvideo[height<=480]/best',
+                'format': '18/best[height<=480]/bestvideo[height<=480]/best',
+                'extractor_args': {'youtube': {'player_client': ['android', 'ios']}},
                 'quiet': True,
                 'no_warnings': True,
                 'skip_download': True,

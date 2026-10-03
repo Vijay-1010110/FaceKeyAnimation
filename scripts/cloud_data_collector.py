@@ -175,11 +175,11 @@ def worker_process_loop(
 
                 with DOWNLOAD_MUTEX:
                     js_dict = get_js_runtimes()
-                    # Strategy A: Use python -m yt_dlp CLI directly (highest compatibility with ffmpeg/deno)
+                    # Strategy A: Use Android Player API (fastest, immune to 403 on Colab/datacenter IPs, format 18 MP4)
                     dl_cmd = [
                         sys.executable, "-m", "yt_dlp",
-                        "-f", f"bestvideo[height<={quality.replace('p','')}]+bestaudio/best[height<={quality.replace('p','')}][ext=mp4]/best",
-                        "--merge-output-format", "mp4",
+                        "-f", "18/best[height<=480][ext=mp4]/best",
+                        "--extractor-args", "youtube:player_client=android",
                         "--force-ipv4",
                         "--no-warnings",
                         "--quiet",
@@ -197,14 +197,35 @@ def worker_process_loop(
                     except Exception:
                         pass
 
-                    # Strategy B: If CLI did not succeed, try yt-dlp Python API with android client
+                    # Strategy B: Fallback to ios, android, web clients if needed
+                    if not download_success:
+                        dl_cmd_b = [
+                            sys.executable, "-m", "yt_dlp",
+                            "-f", "18/best[height<=480][ext=mp4]/best",
+                            "--extractor-args", "youtube:player_client=ios,android,web",
+                            "--force-ipv4",
+                            "--no-warnings",
+                            "--quiet",
+                            "-o", scratch_video,
+                            raw_url
+                        ]
+                        for r_name, r_cfg in js_dict.items():
+                            if "path" in r_cfg:
+                                dl_cmd_b.extend(["--js-runtimes", f"{r_name}:{r_cfg['path']}"])
+                        try:
+                            ret_b = subprocess.call(dl_cmd_b)
+                            if ret_b == 0 and os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
+                                download_success = True
+                        except Exception:
+                            pass
+
+                    # Strategy C: yt-dlp Python API with android extractor args
                     if not download_success:
                         try:
                             import yt_dlp
                             ydl_opts = {
-                                'format': f'bestvideo[height<={quality.replace("p","")}]+bestaudio/best[height<={quality.replace("p","")}]/best',
+                                'format': '18/best[height<=480]/best',
                                 'outtmpl': scratch_video,
-                                'merge_output_format': 'mp4',
                                 'js_runtimes': js_dict,
                                 'quiet': True,
                                 'no_warnings': True,
@@ -214,7 +235,7 @@ def worker_process_loop(
                                 'socket_timeout': 30,
                                 'extractor_args': {
                                     'youtube': {
-                                        'player_client': ['android', 'web']
+                                        'player_client': ['android', 'ios']
                                     }
                                 }
                             }
@@ -224,15 +245,16 @@ def worker_process_loop(
                                 canonical_url = info.get('webpage_url') or canonical_url
                             if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                                 download_success = True
-                        except Exception as dl_err:
-                            print(f"[-] [WORKER {coordinator.worker_id}] Fast download notice ({dl_err}). Trying stream buffer...")
+                        except Exception:
+                            pass
 
-                    # Strategy C: If download failed, fetch stream URL and buffer via ffmpeg
+                    # Strategy D: Buffer stream URL directly via ffmpeg
                     if not download_success:
                         try:
                             import yt_dlp
                             ydl_s_opts = {
                                 'format': '18/best[height<=480]/best',
+                                'extractor_args': {'youtube': {'player_client': ['android', 'ios']}},
                                 'js_runtimes': js_dict,
                                 'quiet': True,
                                 'skip_download': True,
@@ -262,6 +284,17 @@ def worker_process_loop(
                             except Exception:
                                 pass
 
+                    # Extract title and canonical_url if not yet resolved
+                    if download_success and (not title or title == item_title or title == "Pending Resolution"):
+                        try:
+                            import yt_dlp
+                            with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True, 'extractor_args': {'youtube': {'player_client': ['android']}}}) as ydl_t:
+                                t_info = ydl_t.extract_info(raw_url, download=False)
+                                title = t_info.get('title', item_title)
+                                canonical_url = t_info.get('webpage_url') or canonical_url
+                        except Exception:
+                            pass
+
             if download_success:
                 print(f"[+] [WORKER {coordinator.worker_id}] Scratch file ready ({os.path.getsize(scratch_video)/1e6:.1f} MB). Running Turbo Processing @ 150+ FPS!")
                 cmd = [
@@ -275,11 +308,12 @@ def worker_process_loop(
                     "--canonical-url", canonical_url
                 ]
             else:
-                # 100% resilient streaming mode (never 403s on Google Colab)
+                # 100% resilient streaming mode (uses android player client to prevent 403)
                 import yt_dlp
                 with DOWNLOAD_MUTEX:
                     ydl_opts = {
                         'format': '18/best[height<=480]/best',
+                        'extractor_args': {'youtube': {'player_client': ['android', 'ios']}},
                         'js_runtimes': get_js_runtimes(),
                         'quiet': True,
                         'no_warnings': True,
