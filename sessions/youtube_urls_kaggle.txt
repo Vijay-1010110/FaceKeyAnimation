@@ -1,8 +1,66 @@
 # ==============================================================================
 # 🎬 FACEKEY DEDICATED QUEUE: KAGGLE (worker: kaggle-worker-1)
-# 117 Unique Curated Speech Videos
+# 175 Unique Curated Speech Videos
 # ==============================================================================
 
+https://www.youtube.com/watch?v=YrHlHbtiSM0
+https://www.youtube.com/watch?v=kAv5pahIevE
+https://www.youtube.com/watch?v=FX4C-JpTFgY
+https://www.youtube.com/watch?v=yjBerM5jWsc
+https://www.youtube.com/watch?v=0oBJN8F616U
+https://www.youtube.com/watch?v=oo1ZZlvT2LQ
+https://www.youtube.com/watch?v=MsIvs_6vC38
+https://www.youtube.com/watch?v=ggWYkes-n6E
+https://www.youtube.com/watch?v=8o5Cmfpeo6g
+https://www.youtube.com/watch?v=2qxY859dzzQ
+https://www.youtube.com/watch?v=ghjOS7Q82s0
+https://www.youtube.com/watch?v=2IdtqGM6KWU
+https://www.youtube.com/watch?v=Unzc731iCUY
+https://www.youtube.com/watch?v=13r9QY6cmjc
+https://www.youtube.com/watch?v=UdEX0E9lIQM
+https://www.youtube.com/watch?v=k6U-i4gXkLM
+https://www.youtube.com/watch?v=eSRLIYaPPA0
+https://www.youtube.com/watch?v=nykOeWgQcHM
+https://www.youtube.com/watch?v=0jljZRnHwOI
+https://www.youtube.com/watch?v=xAcTmDO6NTI
+https://www.youtube.com/watch?v=z8HKWUWS-lA
+https://www.youtube.com/watch?v=jk0jWzlvA5w
+https://www.youtube.com/watch?v=Bbyp4VRbmyY
+https://www.youtube.com/watch?v=L3LMbpZIKhQ
+https://www.youtube.com/watch?v=_NYsYuzMLs0
+https://www.youtube.com/watch?v=sbpCTjmw85g
+https://www.youtube.com/watch?v=0fEJFRKJN4U
+https://www.youtube.com/watch?v=qp05AtXbOP0
+https://www.youtube.com/watch?v=lOVeyrvjpRI
+https://www.youtube.com/watch?v=VPZD_aij8H0
+https://www.youtube.com/watch?v=3S4cNfl0YF0
+https://www.youtube.com/watch?v=-J_xL4IGhJA
+https://www.youtube.com/watch?v=-DP1i2ZU9gk
+https://www.youtube.com/watch?v=HTlf3KNNez0
+https://www.youtube.com/watch?v=_NLHFoVNlbg
+https://www.youtube.com/watch?v=jGwO_UgTS7I
+https://www.youtube.com/watch?v=AuZoDsNmG_s
+https://www.youtube.com/watch?v=9vM4p9NN0Ts
+https://www.youtube.com/watch?v=PySo_6S4ZAg
+https://www.youtube.com/watch?v=k1njvbBmfsw
+https://www.youtube.com/watch?v=het9HFqo1TQ
+https://www.youtube.com/watch?v=dyb_cFywuik
+https://www.youtube.com/watch?v=733m6qBH-jI
+https://www.youtube.com/watch?v=5p248yoa3oE
+https://www.youtube.com/watch?v=UNhC6Ox0T0o
+https://www.youtube.com/watch?v=4b4MUYve_U8
+https://www.youtube.com/watch?v=Ub3GoFaUcds
+https://www.youtube.com/watch?v=DATnpGoGhM8
+https://www.youtube.com/watch?v=NJg0CtLd4BU
+https://www.youtube.com/watch?v=2fq9wYslV0A
+https://www.youtube.com/watch?v=QFu5nuc-S0s
+https://www.youtube.com/watch?v=iDnKK4G-K1U
+https://www.youtube.com/watch?v=9ukK19Fh-hQ
+https://www.youtube.com/watch?v=HAnw168huqA
+https://www.youtube.com/watch?v=uxoCnxlxpIk
+https://www.youtube.com/watch?v=dZxbVGhpEkI
+https://www.youtube.com/watch?v=NOAgplgTxfc
+https://www.youtube.com/watch?v=xBpGn3BDcOY
 https://www.youtube.com/watch?v=Y0Oa4Lp5fLE
 https://www.youtube.com/watch?v=eQZO-MPpbJg
 https://www.youtube.com/watch?v=Fsr4yrSAIAQ

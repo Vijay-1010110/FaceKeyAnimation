@@ -7,8 +7,6 @@ __pycache__/
 sessions/*
 !sessions/youtubeURLtoProcess.txt
 !sessions/youtube_urls_colab.txt
-!sessions/youtube_urls_colab_1.txt
-!sessions/youtube_urls_colab_2.txt
 !sessions/youtube_urls_kaggle.txt
 !sessions/.gitkeep
 

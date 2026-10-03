@@ -56,8 +56,6 @@ class CloudDriveSync:
         self.manifest_path = os.path.join(self.drive_folder, "dataset_manifest.json")
 
         # Standard URL queue file paths
-        self.colab_1_urls_path = os.path.join(self.drive_folder, "youtube_urls_colab_1.txt")
-        self.colab_2_urls_path = os.path.join(self.drive_folder, "youtube_urls_colab_2.txt")
         self.colab_urls_path = os.path.join(self.drive_folder, "youtube_urls_colab.txt")
         self.kaggle_urls_path = os.path.join(self.drive_folder, "youtube_urls_kaggle.txt")
         self.shared_urls_path = os.path.join(self.drive_folder, "youtubeURLtoProcess.txt")
@@ -92,29 +90,10 @@ class CloudDriveSync:
     def setup_drive_queue_files(self):
         """Ensure default URL queue files exist on Google Drive for Colab, Kaggle, and Shared."""
         local_sessions = os.path.join(self.project_root, "sessions")
-        local_shared = os.path.join(local_sessions, "youtubeURLtoProcess.txt")
-        local_colab_1 = os.path.join(local_sessions, "youtube_urls_colab_1.txt")
-        local_colab_2 = os.path.join(local_sessions, "youtube_urls_colab_2.txt")
         local_colab = os.path.join(local_sessions, "youtube_urls_colab.txt")
         local_kaggle = os.path.join(local_sessions, "youtube_urls_kaggle.txt")
 
-        # 1. Colab 1 Queue file
-        if not os.path.exists(self.colab_1_urls_path):
-            if os.path.exists(local_colab_1):
-                try:
-                    shutil.copy2(local_colab_1, self.colab_1_urls_path)
-                except Exception:
-                    pass
-
-        # 2. Colab 2 Queue file
-        if not os.path.exists(self.colab_2_urls_path):
-            if os.path.exists(local_colab_2):
-                try:
-                    shutil.copy2(local_colab_2, self.colab_2_urls_path)
-                except Exception:
-                    pass
-
-        # 3. Colab Legacy Dedicated URL file
+        # 1. Colab Dedicated URL file
         if not os.path.exists(self.colab_urls_path):
             if os.path.exists(local_colab):
                 try:
@@ -122,7 +101,7 @@ class CloudDriveSync:
                 except Exception:
                     pass
 
-        # 4. Kaggle Dedicated URL file
+        # 2. Kaggle Dedicated URL file
         if not os.path.exists(self.kaggle_urls_path):
             if os.path.exists(local_kaggle):
                 try:
@@ -130,7 +109,7 @@ class CloudDriveSync:
                 except Exception:
                     pass
 
-        # 5. Shared Master URL file
+        # 3. Shared Master URL file
         if not os.path.exists(self.shared_urls_path):
             if os.path.exists(local_shared):
                 try:

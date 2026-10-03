@@ -1,373 +1,181 @@
-# =============================================================================
-#  FaceKey Studio - Google Colab Dedicated YouTube Stream Queue
-# =============================================================================
-# Optimized for Google Colab Free Tier (NVIDIA T4 16GB GPU)
-# Runs silently in headless 480p SD mode, packs chunks into Google Drive (5 TB)
-# Categories: Big Think, Huberman Lab, TED/TEDx, Talks at Google, CS50
-# =============================================================================
+# ==============================================================================
+# 🎬 FACEKEY DEDICATED QUEUE: GOOGLE COLAB (worker: colab-worker-1)
+# 176 Unique Curated Speech Videos
+# ==============================================================================
 
-# -----------------------------------------------------------------------------
-# 📁 CATEGORY: Big Think - Solo Expert Lectures (38 videos)
-#    Studio front-facing lectures with expert thinkers, clean lavalier audio, zero background music
-# -----------------------------------------------------------------------------
-# Title: How to live an intellectual life | Zena Hitz | Big Think [5m 13s]
 https://www.youtube.com/watch?v=APCWOBUZNjc
-# Title: Maria Konnikova: Unclutter Your Brain Attic Like Sherlock Holmes | Big Think [4m 51s]
 https://www.youtube.com/watch?v=whPIzfm-Xng
-# Title: Jeffrey Brenzel: The Essential Value of a Classic Education | Big Think [56m 42s]
 https://www.youtube.com/watch?v=cVLpdzhcU0g
-# Title: The Science of Spontaneity: Mastering Wu-Wei | Edward Slingerland | Big Think [9m 33s]
 https://www.youtube.com/watch?v=mq10ZvZgxy4
-# Title: Big Think Interview With Stephen Fry | Big Think [61m 24s]
 https://www.youtube.com/watch?v=9fpztV4oMd4
-# Title: Is consciousness an illusion? 5 experts explain [43m 53s]
 https://www.youtube.com/watch?v=BjmPvovl-V4
-# Title: The 4 biggest ideas in philosophy, with legend Daniel Dennett for Big Think+ [11m 32s]
 https://www.youtube.com/watch?v=nGrRf1wD320
-# Title: Consciousness Is a Narrative Created by Your Unconscious Mind | Dean Buonomano | Big Think [4m 20s]
 https://www.youtube.com/watch?v=mMJQVxkBCBA
-# Title: Slavoj Žižek | Why Be Happy When You Could Be Interesting? | Big Think [2m 1s]
 https://www.youtube.com/watch?v=U88jj6PSD7w
-# Title: The problem with pretending quantum mechanics makes sense | Sean Carroll [50m 19s]
 https://www.youtube.com/watch?v=u9YiM7LZ6b0
-# Title: 3 Brain Tricks That Will Help You Make Better Decisions | Dean Buonomano | Big Think [6m 56s]
 https://www.youtube.com/watch?v=9OcdV27iDxE
-# Title: Steven Pinker on Human Nature | Big Think [15m 12s]
 https://www.youtube.com/watch?v=nwOW3thvw-E
-# Title: How tiny actions grow into sustained happiness | Tal Ben-Shahar: Full Interview [82m 33s]
 https://www.youtube.com/watch?v=yzNzjg1c0V4
-# Title: How to Deal With a Panic Attack  | Big Think [3m 23s]
 https://www.youtube.com/watch?v=MiDhosleZA4
-# Title: Big Think Interview With Robert McKee | Big Think [60m 39s]
 https://www.youtube.com/watch?v=MMrPdxLqIlU
-# Title: ‘The Art of War’: The greatest strategy book ever written | Roger Martin [8m 18s]
 https://www.youtube.com/watch?v=g_tmTYznG3o
-# Title: Sean Carroll explains the biggest ideas in the universe | Full Interview [86m 40s]
 https://www.youtube.com/watch?v=_TBNJyztai0
-# Title: A neuroscientist’s guide to protecting your brain, in 58 minutes | Lisa Genova: Full Interview [58m 46s]
 https://www.youtube.com/watch?v=LViE-cD_WJQ
-# Title: Larry Wall: Computer Programming in 5 Minutes | Big Think [5m 23s]
 https://www.youtube.com/watch?v=UScm9avQM1Y
-# Title: 3 experts explain everything you need to know about loneliness [6m 45s]
 https://www.youtube.com/watch?v=Q8QxTRI72js
-# Title: 3 experts reveal how psychedelics can expand the walls of perception [5m 54s]
 https://www.youtube.com/watch?v=vnT8FCqy9B4
-# Title: The political philosophy that changed the world | Jonathan Rauch: Full Interview [90m 17s]
 https://www.youtube.com/watch?v=fzol1qf9qTo
-# Title: Body language expert: 7 cues that make you instantly more likable | Full Interview [57m 10s]
 https://www.youtube.com/watch?v=d_YZWaSeHws
-# Title: What 85 years of research says is the real key to happiness | Robert Waldinger: Full Interview [61m 38s]
 https://www.youtube.com/watch?v=_CxmzkYPvsg
-# Title: Berkeley professor explains gender theory | Judith Butler [13m 24s]
 https://www.youtube.com/watch?v=UD9IOllUR4k
-# Title: What is life? A Nobel Prize-winning scientist answers | Paul Nurse Full Interview [43m 56s]
 https://www.youtube.com/watch?v=ZhZvMbNT_qc
-# Title: Modern physics is forcing us to rethink existence | Michelle Thaller: Full Interview [76m 43s]
 https://www.youtube.com/watch?v=RGbZsE7qFgw
-# Title: A neuroscientist’s guide to reclaiming your brain | Nicole Vignola [6m 25s]
 https://www.youtube.com/watch?v=tcbxIoERm6w
-# Title: Why loneliness feels so real, even when it’s not | Kasley Killam [8m 0s]
 https://www.youtube.com/watch?v=DC9-StcwNFU
-# Title: Harvard negotiator explains how to argue | Dan Shapiro [4m 36s]
 https://www.youtube.com/watch?v=IDj1OBG5Tpw
-# Title: Harvard professor debunks the biggest exercise myths | Daniel Lieberman [4m 35s]
 https://www.youtube.com/watch?v=n6AwsVGJDOY
-# Title: Your habits are quietly deciding who you become | Tal Ben-Shahar [17m 6s]
 https://www.youtube.com/watch?v=iVJDwHZFWY8
-# Title: 3 Ways to Express Your Thoughts So That Everyone Will Understand You | Alan Alda | Big Think [4m 57s]
 https://www.youtube.com/watch?v=rrOnk0JnXW4
-# Title: Physicist Brian Cox explains quantum physics in 22 minutes [22m 19s]
 https://www.youtube.com/watch?v=BHEhxPuMmQI
-# Title: How to enter ‘flow state’ on command | Steven Kotler for Big Think [7m 12s]
 https://www.youtube.com/watch?v=znwUCNrjpD4
-# Title: The psychology of persuasion, as told by an Ivy League professor | Jonah Berger for Big Think+ [6m 24s]
 https://www.youtube.com/watch?v=UXFRgMb9TTw
-# Title: Don’t chase happiness. Become antifragile | Tal Ben-Shahar | Big Think [7m 14s]
 https://www.youtube.com/watch?v=e-or_D-qNqM
-# Title: Why the ultra rich get rich, explained in two charts | Brian Klaas [6m 25s]
 https://www.youtube.com/watch?v=_pUxqKqnMlQ
-
-# -----------------------------------------------------------------------------
-# 📁 CATEGORY: Huberman Lab - Solo Masterclasses (26 videos)
-#    Static studio camera, front-facing Andrew Huberman, broadcast SM7B mic, dry acoustics, zero background music
-# -----------------------------------------------------------------------------
-# Title: Maximize Productivity, Physical & Mental Health With Daily Tools | Huberman Lab Essentials [31m 53s]
 https://www.youtube.com/watch?v=Pmd6knanPKw
-# Title: How to Set & Achieve Goals | Huberman Lab Essentials [33m 18s]
 https://www.youtube.com/watch?v=zYuw-8pwnp8
-# Title: Optimal Protocols for Studying & Learning [101m 39s]
 https://www.youtube.com/watch?v=ddq8JIMhz7c
-# Title: Erasing Fears & Traumas Using Modern Neuroscience | Huberman Lab Essentials [35m 5s]
 https://www.youtube.com/watch?v=tpntW9Tte4M
-# Title: How to Increase Motivation & Drive | Huberman Lab Essentials [34m 8s]
 https://www.youtube.com/watch?v=OLQRAMZi--c
-# Title: How to Build Immense Inner Strength | David Goggins [157m 35s]
 https://www.youtube.com/watch?v=nDLb8_wgX50
-# Title: The Science of Making & Breaking Habits [110m 39s]
 https://www.youtube.com/watch?v=Wcs2PFz5q6g
-# Title: Improve Your Baseline Dopamine for Motivation & Drive | Dr. Andrew Huberman [8m 4s]
 https://www.youtube.com/watch?v=35lS7gJVTyA
-# Title: How to Breathe Correctly for Optimal Health, Mood, Learning & Performance [138m 50s]
 https://www.youtube.com/watch?v=x4m_PdFbu-s
-# Title: Your Top Health Questions Answered [104m 15s]
 https://www.youtube.com/watch?v=ssP31IenzYA
-# Title: How to Focus to Change Your Brain [89m 43s]
 https://www.youtube.com/watch?v=LG53Vxum0as
-# Title: The Science of Setting & Achieving Goals [114m 23s]
 https://www.youtube.com/watch?v=t1F7EEGPQwo
-# Title: Controlling Your Dopamine For Motivation, Focus & Satisfaction [136m 32s]
 https://www.youtube.com/watch?v=QmOF0crdyRU
-# Title: How to Learn Skills Faster [112m 15s]
 https://www.youtube.com/watch?v=xJ0IBzCjEPk
-# Title: A Science-Supported Journaling Protocol to Improve Mental & Physical Health [98m 22s]
 https://www.youtube.com/watch?v=wAZn9dF3XTo
-# Title: How to Quit Video Game, Pornography & Social Media Addiction | Dr. Andrew Huberman [9m 55s]
 https://www.youtube.com/watch?v=XXYNvwrVKdE
-# Title: Using Play to Rewire & Improve Your Brain | Huberman Lab Essentials [31m 49s]
 https://www.youtube.com/watch?v=BRG4_KfTxbs
-# Title: How to Control Your Cortisol & Overcome Burnout [136m 16s]
 https://www.youtube.com/watch?v=Ibj1k3IZTNU
-# Title: How to Properly Hydrate & How Much Water to Drink Each Day | Dr. Andrew Huberman [11m 19s]
 https://www.youtube.com/watch?v=lwOPaNMTGh8
-# Title: How to Increase Your Willpower & Tenacity | Huberman Lab Podcast [127m 59s]
 https://www.youtube.com/watch?v=cwakOgHIT0E
-# Title: Science-Based Tools for Increasing Happiness [143m 44s]
 https://www.youtube.com/watch?v=LTGGyQS1fZE
-# Title: The Science of Emotions & Relationships [101m 2s]
 https://www.youtube.com/watch?v=hcuMLQVAgEg
-# Title: Optimize Your Learning & Creativity With Science-Based Tools [90m 35s]
 https://www.youtube.com/watch?v=uuP-1ioh4LY
-# Title: How & Why to Get Weekly "Zone 2" Cardio Workouts | Dr. Andrew Huberman [5m 37s]
 https://www.youtube.com/watch?v=L5J6sgQLvuE
-# Title: How to Control Your Metabolism by Thyroid & Growth Hormone [106m 1s]
 https://www.youtube.com/watch?v=x7qbJeRxWGw
-# Title: Why Drinkers Can’t Stand Non-Drinkers - Andrew Huberman [14m 51s]
 https://www.youtube.com/watch?v=QlBh0Gqq77Q
-
-# -----------------------------------------------------------------------------
-# 📁 CATEGORY: TED & TEDx - Solo Keynote Talks (38 videos)
-#    Single speaker on stage, front-facing camera, lavalier microphone, auditorium acoustics, no music
-# -----------------------------------------------------------------------------
-# Title: How to sound smart in your TEDx Talk | Will Stephen | TEDxNewYork [5m 56s]
 https://www.youtube.com/watch?v=8S0FDjFBj8o
-# Title: How to Make Learning as Addictive as Social Media | Duolingo's Luis Von Ahn | TED [12m 55s]
 https://www.youtube.com/watch?v=P6FORpg0KVo
-# Title: 6 Tips on Being a Successful Entrepreneur | John Mullins | TED [15m 20s]
 https://www.youtube.com/watch?v=eHJnEHyyN1Y
-# Title: The surprising habits of original thinkers | Adam Grant | TED [15m 25s]
 https://www.youtube.com/watch?v=fxbCHn6gE3U
-# Title: The “Hot Shot Rule” To Help You Become a Better Leader | Kat Cole | TED [7m 49s]
 https://www.youtube.com/watch?v=lKsvLGdoIH8
-# Title: The Trick to Powerful Public Speaking | Lawrence Bernstein | TED [14m 39s]
 https://www.youtube.com/watch?v=bsxJVgb6Kls
-# Title: Thoughts on humanity, fame and love | Shah Rukh Khan | TED [17m 52s]
 https://www.youtube.com/watch?v=0NV1KdWRHck
-# Title: How Great Leaders Inspire Action | Simon Sinek | TED [18m 35s]
 https://www.youtube.com/watch?v=qp0HIF3SfI4
-# Title: Who are you, really? The puzzle of personality | Brian Little | TED [15m 16s]
 https://www.youtube.com/watch?v=qYvXk_bqlBk
-# Title: The Art of Marketing — for Good | Raja Rajamannar | TED [13m 40s]
 https://www.youtube.com/watch?v=yHGRBTZI6w0
-# Title: His Holiness Pope Francis | Why the only future worth building includes everyone | TED Talks [17m 52s]
 https://www.youtube.com/watch?v=36zrJfAFcuc
-# Title: How to stay calm when you know you'll be stressed | Daniel Levitin | TED [12m 21s]
 https://www.youtube.com/watch?v=8jPQjjsBbIc
-# Title: How to Claim Your Leadership Power | Michael Timms | TED [11m 27s]
 https://www.youtube.com/watch?v=dIYmzf21d1g
-# Title: What really matters at the end of life | BJ Miller | TED [19m 8s]
 https://www.youtube.com/watch?v=apbSsILLh28
-# Title: The secrets of learning a new language | Lýdia Machová | TED [10m 46s]
 https://www.youtube.com/watch?v=o_XVt5rdpFY
-# Title: Do You Talk to Yourself? Here’s How to Harness Your Inner Voice | Ethan Kross | TED [12m 53s]
 https://www.youtube.com/watch?v=xb0nLpdWttA
-# Title: Why We Do What We Do | TED Talks | Tony Robbins [23m 13s]
 https://www.youtube.com/watch?v=BwFOwyoH-3g
-# Title: What it takes to be a great leader | Roselinde Torres | TED [9m 20s]
 https://www.youtube.com/watch?v=aUYSDEYdmzw
-# Title: This Talk is Literally Brain Science! | Sophie Scott | TEDxNewcastle [15m 13s]
 https://www.youtube.com/watch?v=UsV9K6eZZLE
-# Title: Think Like a Lawyer | Adam Lange | TEDxGrinnellCollege [12m 54s]
 https://www.youtube.com/watch?v=YnuQwMp0oxU
-# Title: A one minute TEDx Talk for the digital age | Woody Roseland | TEDxMileHigh [1m 21s]
 https://www.youtube.com/watch?v=1aA1WGON49E
-# Title: The psychology of self-motivation | Scott Geller | TEDxVirginiaTech [15m 54s]
 https://www.youtube.com/watch?v=7sxpKhIbr0E
-# Title: How to stop screwing yourself over | Mel Robbins | TEDxSF [21m 40s]
 https://www.youtube.com/watch?v=Lp7E973zozc
-# Title: Live for Yourself! | Chetan Bhagat | TEDxGraphicEraUniversity [16m 59s]
 https://www.youtube.com/watch?v=Yk983AQG7rA
-# Title: The Secret To Achieving the "Impossible" | Ravi Dubey | TEDxGGDSDCollege [18m 30s]
 https://www.youtube.com/watch?v=iQaiMoUn-zc
-# Title: Extreme Ownership | Jocko Willink | TEDxUniversityofNevada [13m 50s]
 https://www.youtube.com/watch?v=ljqra3BcqWM
-# Title: Great leadership starts with self-leadership | Lars Sudmann | TEDxUCLouvain [12m 47s]
 https://www.youtube.com/watch?v=vlpKyLklDDY
-# Title: How to talk to the worst parts of yourself | Karen Faith | TEDxKC [14m 32s]
 https://www.youtube.com/watch?v=gUV5DJb6KGs
-# Title: The art of being yourself | Caroline McHugh | TEDxMiltonKeynesWomen [26m 23s]
 https://www.youtube.com/watch?v=veEQQ-N9xWU
-# Title: How to Talk Like a Native Speaker | Marc Green | TEDxHeidelberg [17m 38s]
 https://www.youtube.com/watch?v=Ti_gFEe1XNY
-# Title: The skill of self confidence | Dr. Ivan Joseph | TEDxRyersonU [13m 21s]
 https://www.youtube.com/watch?v=w-HYZv6HzAs
-# Title: What no one ever told you about people who are single | Bella DePaulo | TEDxUHasselt [18m 0s]
 https://www.youtube.com/watch?v=lyZysfafOAs
-# Title: How to Achieve Your Most Ambitious Goals | Stephen Duneier | TEDxTucson [17m 53s]
 https://www.youtube.com/watch?v=TQMbvJNRpLE
-# Title: Life is easy. Why do we make it so hard? | Jon Jandai | TEDxDoiSuthep [15m 10s]
 https://www.youtube.com/watch?v=21j_OCNLuYg
-# Title: Why you should speak to strangers | Praveen Wadalkar | TEDxIESMCRC [12m 50s]
 https://www.youtube.com/watch?v=g6HnOku6KUs
-# Title: Master Shi Heng Yi – 5 hindrances to self-mastery | Shi Heng YI | TEDxVitosha [18m 37s]
 https://www.youtube.com/watch?v=4-079YIasck
-# Title: My philosophy for a happy life | Sam Berns | TEDxMidAtlantic [12m 45s]
 https://www.youtube.com/watch?v=36m1o-tM05g
-# Title: The 7 secrets of the greatest speakers in history | Richard Greene | TEDxOrangeCoast [18m 25s]
 https://www.youtube.com/watch?v=i0a61wFaF8A
-
-# -----------------------------------------------------------------------------
-# 📁 CATEGORY: Talks at Google - Solo Presentations (36 videos)
-#    Single presenter at lectern/studio, clear speech, no background soundtrack
-# -----------------------------------------------------------------------------
-# Title: Talk to Me | James Vlahos | Talks at Google [38m 20s]
 https://www.youtube.com/watch?v=BjVG3l3PeBk
-# Title: The Art of Generous Listening | Krista Tippett | Talks at Google [71m 34s]
 https://www.youtube.com/watch?v=J5W36VWNd9E
-# Title: The Lean Startup | Eric Ries | Talks at Google [58m 9s]
 https://www.youtube.com/watch?v=fEvKo90qBns
-# Title: The Sociology of Connection | Eric Klinenberg | Talks at Google [64m 49s]
 https://www.youtube.com/watch?v=jzcMjFUujT8
-# Title: For Single Mothers Working as Train Conductors | Laura Wolfson | Talks at Google [40m 54s]
 https://www.youtube.com/watch?v=knU_JzbgQHs
-# Title: How to Accept Yourself in a World Striving for Perfection | Haemin Sunim | Talks at Google [45m 34s]
 https://www.youtube.com/watch?v=g5DMrrCd_cQ
-# Title: Simon Sinek | Building Optimism | Talks at Google [57m 6s]
 https://www.youtube.com/watch?v=Wq6cv7V0cTo
-# Title: Fixing Failed States | Ashraf Ghani & Clare Lockhart | Talks at Google [60m 14s]
 https://www.youtube.com/watch?v=mplebSY9xM4
-# Title: The Simple Path to Wealth | JL Collins | Talks at Google [57m 45s]
 https://www.youtube.com/watch?v=T71ibcZAX3I
-# Title: Stop Being Lonely | Kira Asatryan | Talks at Google [42m 12s]
 https://www.youtube.com/watch?v=yx3G2wMuHjQ
-# Title: The Power of the Highly Sensitive Person | Andre Sólo & Jenn Granneman | Talks at Google [44m 46s]
 https://www.youtube.com/watch?v=7ZrGP4qlgrw
-# Title: Read This Before Our Next Meeting | Al Pittampali | Talks At Google [40m 32s]
 https://www.youtube.com/watch?v=Mn-q529ExFw
-# Title: Life After College | Jenny Blake | Talks at Google [38m 7s]
 https://www.youtube.com/watch?v=Y_TrCPZyd5g
-# Title: Now & Again | Julia Turshen | Talks at Google [35m 1s]
 https://www.youtube.com/watch?v=1qObDH0uYh4
-# Title: Disucssing The Martian & Artemis | Andy Weir | Talks at Google [47m 17s]
 https://www.youtube.com/watch?v=gU8ERXvUk-8
-# Title: Outrageous Openness | Tosha Silver | Talks at Google [50m 55s]
 https://www.youtube.com/watch?v=Fv03TwMLvwk
-# Title: Carlo Rovelli | Helgoland: Making Sense of the Quantum Revolution | Talks at Google [61m 9s]
 https://www.youtube.com/watch?v=gpWf2wyGQ0Q
-# Title: Barbara Oakley | Learning How to Learn | Talks at Google [68m 42s]
 https://www.youtube.com/watch?v=vd2dtkMINIw
-# Title: The Evolution of a Value Investor | Tom Gayner | Talks at Google [58m 39s]
 https://www.youtube.com/watch?v=2sG91e1Wh4I
-# Title: Thinking, Fast and Slow | Daniel Kahneman | Talks at Google [62m 27s]
 https://www.youtube.com/watch?v=CjVQJdIrDJ0
-# Title: Robert Greene | The Laws of Human Nature | Talks at Google [83m 23s]
 https://www.youtube.com/watch?v=KcaVhMt71qE
-# Title: Consciousness in Artificial Intelligence | John Searle | Talks at Google [70m 38s]
 https://www.youtube.com/watch?v=rHKwIYsPXLg
-# Title: Democracy at Work: Curing Capitalism | Richard Wolff | Talks at Google [85m 34s]
 https://www.youtube.com/watch?v=ynbgMKclWWc
-# Title: Contagious: Why Things Catch On | Jonah Berger | Talks at Google [40m 48s]
 https://www.youtube.com/watch?v=FN4eDk1pq6U
-# Title: Social Intelligence | Daniel Goleman | Talks at Google [55m 53s]
 https://www.youtube.com/watch?v=-hoo_dIOP8k
-# Title: So Good They Can't Ignore You | Cal Newport | Talks at Google [40m 24s]
 https://www.youtube.com/watch?v=qwOdU02SE0w
-# Title: Essentialism | Greg McKeown | Talks at Google [42m 32s]
 https://www.youtube.com/watch?v=sQKrt1-IDaE
-# Title: The Most Important Thing - Origins and Inspirations | Howard Marks | Talks at Google [69m 3s]
 https://www.youtube.com/watch?v=6WroiiaVhGo
-# Title: I Will Teach You to Be Rich | Ramit Sethi | Talks at Google [49m 51s]
 https://www.youtube.com/watch?v=BmAwa1nnB6w
-# Title: Where Does Growth Come From? | Clayton Christensen | Talks at Google [81m 5s]
 https://www.youtube.com/watch?v=rHdS_4GsKmg
-# Title: Understanding Linguistics | Noam Chomsky | Talks at Google [62m 42s]
 https://www.youtube.com/watch?v=Y3PwG4UoJ0Y
-# Title: Sadhguru | Developing an Inclusive Consciousness | Talks at Google [66m 20s]
 https://www.youtube.com/watch?v=QQn8X4FbpTM
-# Title: Storytelling with Data | Cole Nussbaumer Knaflic | Talks at Google [53m 15s]
 https://www.youtube.com/watch?v=8EMW7io4rSI
-# Title: Valuation in Four Lessons | Aswath Damodaran | Talks at Google [61m 30s]
 https://www.youtube.com/watch?v=Z5chrxMuBoo
-# Title: Antifragille: Things That Gain from Disorder | Nassim Nicholas Taleb | Talks at Google [55m 40s]
 https://www.youtube.com/watch?v=S3REdLZ8Xis
-# Title: Social Physics: How Good Ideas Spread | Sandy Pentland | Talks at Google [54m 47s]
 https://www.youtube.com/watch?v=HMBl0ttu-Ow
-
-# -----------------------------------------------------------------------------
-# 📁 CATEGORY: Harvard CS50 - David J. Malan Lectures (32 videos)
-#    Dynamic front-facing single lecturer, crisp vocal delivery, professional theater audio, zero music
-# -----------------------------------------------------------------------------
-# Title: CS50x 2023 - Lecture 0 - Scratch [129m 30s]
 https://www.youtube.com/watch?v=IDDmrzzB14M
-# Title: Hack Club AMA with David J. Malan (Harvard's CS50 Instructor) [66m 2s]
 https://www.youtube.com/watch?v=Vvcuk_uGCuY
-# Title: CS50 Cybersecurity - Lecture 0 - Securing Accounts [73m 7s]
 https://www.youtube.com/watch?v=kUovJpWqEMk
-# Title: Visitas Thinks Big 2017 - Harvard University - David J. Malan [17m 54s]
 https://www.youtube.com/watch?v=GZUrPayHvvo
-# Title: CS50 Fall 2023 - Lecture 4 - Memory (live, unedited) [168m 15s]
 https://www.youtube.com/watch?v=kY7wcPMqKtA
-# Title: CS50 Explained: Behind the Pedagogy - CS50 Educator Workshop 2023 [81m 46s]
 https://www.youtube.com/watch?v=qBeX4kOtaf8
-# Title: lecture 1 - CS50 2023 - C Programming with Harvard – Full Computer Science University Course. [148m 2s]
 https://www.youtube.com/watch?v=ixJMF3mWKsw
-# Title: CS50 Cybersecurity - Lecture 4 - Preserving Privacy [78m 13s]
 https://www.youtube.com/watch?v=6IeqJtudKnk
-# Title: This is CS50x 2023 [1m 15s]
 https://www.youtube.com/watch?v=WHcgVxTYIyc
-# Title: CS50 Cybersecurity - Lecture 1 - Securing Data [115m 22s]
 https://www.youtube.com/watch?v=X3DVaMnl5n8
-# Title: Office Hours @ Harvard Bio-Labs - 10/12/2023 [35m 41s]
 https://www.youtube.com/watch?v=rmjpzHMOhNM
-# Title: lecture 2 - CS50 2023 - Arrays -  Harvard – Full Computer Science University Course. [143m 23s]
 https://www.youtube.com/watch?v=H77sVaP1e68
-# Title: CS50 - Lecture 8 - Python | Harvard | David Malan [88m 13s]
 https://www.youtube.com/watch?v=r0tf1rhsUVg
-# Title: CS50x 2023 - Lecture 5 - Data Structures [136m 12s]
 https://www.youtube.com/watch?v=X8h4dq9Hzq8
-# Title: Why You SHOULD NOT Take Harvard CS50 in 2026 [8m 1s]
 https://www.youtube.com/watch?v=btG--vz2jrk
-# Title: Is Harvard CS50 the Best Beginner Programming Course in 2024? [12m 57s]
 https://www.youtube.com/watch?v=kBCm8bf1IsI
-# Title: Harvard Cooks - CS50 Fair 2024 at Harvard [2m 36s]
 https://www.youtube.com/watch?v=ZsS23y7TWSM
-# Title: CS50 2024 | HTML, CSS, JavaScript (Aula 8) - Curso de Introdução à Ciência da Computação de Harvard [149m 29s]
 https://www.youtube.com/watch?v=poUd7uEwzQE
-# Title: Bananagram Lab - CS50 Fair 2024 at Yale [2m 51s]
 https://www.youtube.com/watch?v=_LkG71cqUFg
-# Title: CS50 2024 | Memória (Aula 4) - Curso de Introdução à Ciência da Computação de Harvard [137m 23s]
 https://www.youtube.com/watch?v=VVFoSzk_rsg
-# Title: AI Powered Pivot Camera - CS50 Fair 2024 at Yale [2m 0s]
 https://www.youtube.com/watch?v=Ew5Dcmccf5w
-# Title: CS50 2024 | Python (Aula 6) - Curso de Introdução à Ciência da Computação de Harvard [129m 3s]
 https://www.youtube.com/watch?v=z_BVOj-s0V8
-# Title: CS50 2024 | Scratch (Aula 0) - Curso de Introdução à Ciência da Computação de Harvard [124m 55s]
 https://www.youtube.com/watch?v=mR6jktYAOqs
-# Title: CS50 2024 | C (Aula 1) - Curso de Introdução à Ciência da Computação de Harvard [147m 41s]
 https://www.youtube.com/watch?v=fPYL-UDMSug
-# Title: CS50 2024 | Estruturas de dados (Aula 5) - Curso de Introdução à Ciência da Computação de Harvard [122m 49s]
 https://www.youtube.com/watch?v=2VacoMXp39g
-# Title: CS50 2024 | Flask (Aula 9) - Curso de Introdução à Ciência da Computação de Harvard [148m 37s]
 https://www.youtube.com/watch?v=3ZlkWgEnHmE
-# Title: CS50 2024 | Inteligência Artificial (Aula 6.5) - Introdução à Ciência da Computação [55m 57s]
 https://www.youtube.com/watch?v=hAkBFRbthtc
-# Title: CS50 2024 | Algoritmos (Aula 3) - Curso de Introdução à Ciência da Computação de Harvard [122m 12s]
 https://www.youtube.com/watch?v=kfky8NaCfR8
-# Title: Harvard University Python Final Project  "InstaInsight Analyzer" [2m 16s]
 https://www.youtube.com/watch?v=m4Galm84xjo
-# Title: CS50 2024 | Cibersegurança (Aula 10) - Introdução à Ciência da Computação [91m 17s]
 https://www.youtube.com/watch?v=yYXVHSw25P4
-# Title: CS50 Filter Solution 2024 - Week 4 Problem Set - Filter-less Solution 2024. (Beginners Guide) [30m 43s]
 https://www.youtube.com/watch?v=M79wIRZ9FmM
-# Title: CS50 2024  на русском L-0 [124m 25s]
 https://www.youtube.com/watch?v=CiWbjh5jpQ0
-
+https://www.youtube.com/watch?v=lUUte2o2Sn8
+https://www.youtube.com/watch?v=osEADxaIKIc
+https://www.youtube.com/watch?v=J7DzL2_Na80
+https://www.youtube.com/watch?v=cdZnhQjJu4I
+https://www.youtube.com/watch?v=QVKj3LADCnA
+https://www.youtube.com/watch?v=7UJ4CFRGd-U
