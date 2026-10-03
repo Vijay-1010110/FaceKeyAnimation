@@ -284,41 +284,58 @@ def worker_process_loop(
                 with DOWNLOAD_MUTEX:
                     js_dict = get_js_runtimes()
 
-                    if cookies_file:
-                        # -------------------------------------------------------------
-                        # Authenticated Mode with Cookies (Web / VisionOS / iOS / TV)
-                        # NOTE: Do NOT set player_client=android when cookies are passed
-                        # because yt-dlp skips android when cookies are provided.
-                        # -------------------------------------------------------------
+                    # Robust multi-tiered download attempts:
+                    # 1. Android client (works 100% on datacenter IPs without triggering visionos bot detection)
+                    # 2. Android VR client
+                    # 3. Web Safari / TV embedded clients
+                    # Both with and without cookies fallback to ensure bad/expired cookies never stall processing.
+                    download_attempts = []
+                    if cookies_file and os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 10:
+                        download_attempts.append({"client": "android", "use_cookies": True})
+                    download_attempts.append({"client": "android", "use_cookies": False})
+                    download_attempts.append({"client": "android_vr", "use_cookies": False})
+                    if cookies_file and os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 10:
+                        download_attempts.append({"client": "web_safari,tv_embedded", "use_cookies": True})
+
+                    for attempt in download_attempts:
+                        if download_success:
+                            break
+                        c_arg = f"youtube:player_client={attempt['client']}"
                         dl_cmd = [
                             sys.executable, "-m", "yt_dlp",
-                            "--cookies", cookies_file,
-                            "-f", "bestvideo[height<=480]+bestaudio/best[height<=480]/18/best",
-                            "--merge-output-format", "mp4",
+                            "-f", "18/best[height<=480][ext=mp4]/best",
+                            "--extractor-args", c_arg,
                             "--force-ipv4",
                             "--no-warnings",
                             "--sleep-requests", "1",
                             "-o", scratch_video,
                             raw_url
                         ]
+                        if attempt["use_cookies"] and cookies_file:
+                            dl_cmd.extend(["--cookies", cookies_file])
                         for r_name, r_cfg in js_dict.items():
                             if "path" in r_cfg:
                                 dl_cmd.extend(["--js-runtimes", f"{r_name}:{r_cfg['path']}"])
                         try:
-                            ret_dl = subprocess.call(dl_cmd)
+                            ret_dl = subprocess.call(dl_cmd, stderr=subprocess.PIPE)
                             if ret_dl == 0 and os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                                 download_success = True
+                                break
                         except Exception:
                             pass
 
-                        # Fallback for cookies: Python API
-                        if not download_success:
+                    # Fallback Strategy: Python API with android extractor args
+                    if not download_success:
+                        cookie_try = [True, False] if (cookies_file and os.path.exists(cookies_file)) else [False]
+                        for use_c in cookie_try:
+                            if download_success:
+                                break
                             try:
                                 import yt_dlp
                                 ydl_opts = {
-                                    'format': 'bestvideo[height<=480]+bestaudio/best[height<=480]/18/best',
+                                    'format': '18/best[height<=480][ext=mp4]/best',
                                     'outtmpl': scratch_video,
-                                    'cookiefile': cookies_file,
+                                    'extractor_args': {'youtube': {'player_client': ['android', 'android_vr']}},
                                     'js_runtimes': js_dict,
                                     'quiet': True,
                                     'no_warnings': True,
@@ -327,39 +344,15 @@ def worker_process_loop(
                                     'source_address': '0.0.0.0',
                                     'socket_timeout': 30,
                                 }
+                                if use_c and cookies_file:
+                                    ydl_opts['cookiefile'] = cookies_file
                                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                                     info = ydl.extract_info(raw_url, download=True)
                                     title = info.get('title', item_title)
                                     canonical_url = info.get('webpage_url') or canonical_url
                                 if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                                     download_success = True
-                            except Exception:
-                                pass
-                    else:
-                        # -------------------------------------------------------------
-                        # Unauthenticated Cloud Mode (Google Colab / Kaggle)
-                        # Uses Android / Android VR player API for direct format 18
-                        # -------------------------------------------------------------
-                        for client_arg in ["youtube:player_client=android", "youtube:player_client=android_vr"]:
-                            if download_success:
-                                break
-                            dl_cmd = [
-                                sys.executable, "-m", "yt_dlp",
-                                "-f", "18/best[height<=480][ext=mp4]/best",
-                                "--extractor-args", client_arg,
-                                "--force-ipv4",
-                                "--no-warnings",
-                                "--sleep-requests", "1",
-                                "-o", scratch_video,
-                                raw_url
-                            ]
-                            for r_name, r_cfg in js_dict.items():
-                                if "path" in r_cfg:
-                                    dl_cmd.extend(["--js-runtimes", f"{r_name}:{r_cfg['path']}"])
-                            try:
-                                ret_dl = subprocess.call(dl_cmd, stderr=subprocess.PIPE)
-                                if ret_dl == 0 and os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
-                                    download_success = True
+                                    break
                             except Exception:
                                 pass
 
@@ -368,32 +361,39 @@ def worker_process_loop(
                         try:
                             import yt_dlp
                             ydl_s_opts = {
-                                'format': 'bestvideo[height<=480]+bestaudio/best[height<=480]/18/best',
+                                'format': '18/best[height<=480][ext=mp4]/best',
+                                'extractor_args': {'youtube': {'player_client': ['android', 'android_vr']}},
                                 'js_runtimes': js_dict,
                                 'quiet': True,
                                 'skip_download': True,
                                 'source_address': '0.0.0.0',
                             }
-                            if cookies_file:
+                            if cookies_file and os.path.exists(cookies_file):
                                 ydl_s_opts['cookiefile'] = cookies_file
-                            else:
-                                ydl_s_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'android_vr']}}
-                            with yt_dlp.YoutubeDL(ydl_s_opts) as ydl_s:
-                                info_s = ydl_s.extract_info(raw_url, download=False)
+                            info_s = None
+                            try:
+                                with yt_dlp.YoutubeDL(ydl_s_opts) as ydl_s:
+                                    info_s = ydl_s.extract_info(raw_url, download=False)
+                            except Exception:
+                                if cookies_file:
+                                    ydl_s_opts.pop('cookiefile', None)
+                                    with yt_dlp.YoutubeDL(ydl_s_opts) as ydl_s:
+                                        info_s = ydl_s.extract_info(raw_url, download=False)
+                            if info_s:
                                 s_url = info_s.get('url')
                                 if not s_url and info_s.get('requested_formats'):
                                     s_url = info_s['requested_formats'][0].get('url')
                                 title = info_s.get('title', item_title)
                                 canonical_url = info_s.get('webpage_url') or canonical_url
-                            if s_url:
-                                ff_cmd = [
-                                    "ffmpeg", "-y", "-i", s_url,
-                                    "-c", "copy", "-t", "3600",
-                                    scratch_video
-                                ]
-                                subprocess.call(ff_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                                if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
-                                    download_success = True
+                                if s_url:
+                                    ff_cmd = [
+                                        "ffmpeg", "-y", "-i", s_url,
+                                        "-c", "copy", "-t", "3600",
+                                        scratch_video
+                                    ]
+                                    subprocess.call(ff_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                    if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
+                                        download_success = True
                         except Exception:
                             pass
                         if not download_success and os.path.exists(scratch_video):
@@ -406,11 +406,13 @@ def worker_process_loop(
                     if download_success and (not title or title == item_title or title == "Pending Resolution"):
                         try:
                             import yt_dlp
-                            t_opts = {'quiet': True, 'skip_download': True}
-                            if cookies_file:
+                            t_opts = {
+                                'quiet': True,
+                                'skip_download': True,
+                                'extractor_args': {'youtube': {'player_client': ['android', 'android_vr']}}
+                            }
+                            if cookies_file and os.path.exists(cookies_file):
                                 t_opts['cookiefile'] = cookies_file
-                            else:
-                                t_opts['extractor_args'] = {'youtube': {'player_client': ['android']}}
                             with yt_dlp.YoutubeDL(t_opts) as ydl_t:
                                 t_info = ydl_t.extract_info(raw_url, download=False)
                                 title = t_info.get('title', item_title)
@@ -436,7 +438,8 @@ def worker_process_loop(
                 import yt_dlp
                 with DOWNLOAD_MUTEX:
                     ydl_opts = {
-                        'format': 'bestvideo[height<=480]+bestaudio/best[height<=480]/18/best',
+                        'format': '18/best[height<=480][ext=mp4]/best',
+                        'extractor_args': {'youtube': {'player_client': ['android', 'android_vr']}},
                         'js_runtimes': get_js_runtimes(),
                         'quiet': True,
                         'no_warnings': True,
@@ -447,17 +450,26 @@ def worker_process_loop(
                         'socket_timeout': 30,
                         'retries': 5
                     }
-                    if cookies_file:
+                    if cookies_file and os.path.exists(cookies_file):
                         ydl_opts['cookiefile'] = cookies_file
-                    else:
-                        ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'android_vr']}}
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(raw_url, download=False)
-                        stream_url = info.get('url')
-                        if not stream_url and info.get('requested_formats'):
-                            stream_url = info['requested_formats'][0].get('url')
-                        title = info.get('title', item_title)
-                        canonical_url = info.get('webpage_url') or canonical_url
+                    info = None
+                    try:
+                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                            info = ydl.extract_info(raw_url, download=False)
+                    except Exception:
+                        if cookies_file:
+                            ydl_opts.pop('cookiefile', None)
+                            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                                info = ydl.extract_info(raw_url, download=False)
+                        else:
+                            raise
+                    if not info:
+                        raise RuntimeError(f"Could not extract info for '{raw_url}'")
+                    stream_url = info.get('url')
+                    if not stream_url and info.get('requested_formats'):
+                        stream_url = info['requested_formats'][0].get('url')
+                    title = info.get('title', item_title)
+                    canonical_url = info.get('webpage_url') or canonical_url
 
                 if not stream_url:
                     raise RuntimeError(f"Could not resolve playable stream URL for '{raw_url}'")
