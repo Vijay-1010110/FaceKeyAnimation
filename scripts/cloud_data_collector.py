@@ -49,6 +49,24 @@ class QuietYtdlLogger:
 DOWNLOAD_MUTEX = threading.Lock()
 
 
+def get_js_runtimes() -> Dict[str, Any]:
+    """Auto-detect available JavaScript runtimes (Deno, Node) with absolute executable paths."""
+    runtimes = {}
+    for name, candidate_paths in [
+        ("deno", ["/usr/local/bin/deno", "/root/.deno/bin/deno", os.path.expanduser("~/.deno/bin/deno")]),
+        ("node", ["/usr/bin/node", "/usr/local/bin/node", "/bin/node"])
+    ]:
+        bin_path = shutil.which(name)
+        if not bin_path:
+            for p in candidate_paths:
+                if os.path.exists(p):
+                    bin_path = p
+                    break
+        if bin_path:
+            runtimes[name] = {"path": bin_path}
+    return runtimes
+
+
 def worker_process_loop(
     worker_id: str,
     cloud_sync: CloudDriveSync,
@@ -134,7 +152,7 @@ def worker_process_loop(
                         'format': f'bestvideo[height<={quality.replace("p","")}]+bestaudio/best[height<={quality.replace("p","")}]/best',
                         'outtmpl': scratch_video,
                         'merge_output_format': 'mp4',
-                        'js_runtimes': {'node': {}, 'deno': {}},
+                        'js_runtimes': get_js_runtimes(),
                         'quiet': True,
                         'no_warnings': True,
                         'noprogress': True,
@@ -150,11 +168,11 @@ def worker_process_loop(
                         if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                             download_success = True
                     except Exception as dl_err:
-                        print(f"[-] [WORKER {coordinator.worker_id}] yt-dlp notice ({dl_err}). Using fast stream buffer...")
+                        print(f"[-] [WORKER {coordinator.worker_id}] yt-dlp direct download ({dl_err}). Trying fast stream buffer...")
                         try:
                             ydl_s_opts = {
-                                'format': f'bestvideo[height<={quality.replace("p","")}]+bestaudio/best[height<={quality.replace("p","")}]/best',
-                                'js_runtimes': {'node': {}, 'deno': {}},
+                                'format': '18/best[height<=480]/best',
+                                'js_runtimes': get_js_runtimes(),
                                 'quiet': True,
                                 'skip_download': True,
                                 'source_address': '0.0.0.0',
@@ -162,6 +180,8 @@ def worker_process_loop(
                             with yt_dlp.YoutubeDL(ydl_s_opts) as ydl_s:
                                 info_s = ydl_s.extract_info(raw_url, download=False)
                                 s_url = info_s.get('url')
+                                if not s_url and info_s.get('requested_formats'):
+                                    s_url = info_s['requested_formats'][0].get('url')
                                 title = info_s.get('title', item_title)
                                 canonical_url = info_s.get('webpage_url') or canonical_url
                             if s_url:
@@ -198,8 +218,8 @@ def worker_process_loop(
                 import yt_dlp
                 with DOWNLOAD_MUTEX:
                     ydl_opts = {
-                        'format': f'bestvideo[height<={quality.replace("p","")}]+bestaudio/best[height<={quality.replace("p","")}]/best',
-                        'js_runtimes': {'node': {}, 'deno': {}},
+                        'format': '18/best[height<=480]/best',
+                        'js_runtimes': get_js_runtimes(),
                         'quiet': True,
                         'no_warnings': True,
                         'noprogress': True,
@@ -212,8 +232,13 @@ def worker_process_loop(
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(raw_url, download=False)
                         stream_url = info.get('url')
+                        if not stream_url and info.get('requested_formats'):
+                            stream_url = info['requested_formats'][0].get('url')
                         title = info.get('title', item_title)
                         canonical_url = info.get('webpage_url') or canonical_url
+
+                if not stream_url:
+                    raise RuntimeError(f"Could not resolve playable stream URL for '{raw_url}'")
 
                 print(f"[*] [WORKER {coordinator.worker_id}] Streaming live frames from YouTube CDN without 403...")
                 cmd = [
