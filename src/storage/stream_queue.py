@@ -59,17 +59,19 @@ class StreamBatchQueue:
 
     def _save(self):
         """Save persistent queue state to JSON atomically."""
-        self.state["last_synced"] = time.strftime("%Y-%m-%d %H:%M:%S")
-        tmp_path = self.db_path + ".tmp"
-        try:
-            with open(tmp_path, "w", encoding="utf-8") as f:
-                json.dump(self.state, f, indent=2, ensure_ascii=False)
-            if os.path.exists(self.db_path):
-                os.replace(tmp_path, self.db_path)
-            else:
-                os.rename(tmp_path, self.db_path)
-        except Exception as e:
-            print(f"[!] Warning saving queue state: {e}")
+        with self._lock:
+            self.state["last_synced"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+            tmp_path = self.db_path + ".tmp"
+            try:
+                with open(tmp_path, "w", encoding="utf-8") as f:
+                    json.dump(self.state, f, indent=2, ensure_ascii=False)
+                if os.path.exists(self.db_path):
+                    os.replace(tmp_path, self.db_path)
+                else:
+                    os.rename(tmp_path, self.db_path)
+            except Exception as e:
+                print(f"[!] Warning saving queue state: {e}")
 
     def sync_from_file(self) -> Tuple[int, int, int]:
         """Read 'sessions/youtubeURLtoProcess.txt', discover new links, and append to queue.
