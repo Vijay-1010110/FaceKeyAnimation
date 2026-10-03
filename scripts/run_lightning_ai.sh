@@ -25,13 +25,23 @@ fi
 export PATH="$HOME/.deno/bin:$PATH"
 
 COOKIES_FLAG=""
-if [ -f "cookies.txt" ]; then
-    echo "[+] Found local cookies.txt - enabling authenticated mode for Lightning.ai"
-    COOKIES_FLAG="--cookies cookies.txt"
-elif [ -f "${DRIVE_DIR}/cookies.txt" ]; then
-    echo "[+] Found cookies.txt in dataset directory"
-    COOKIES_FLAG="--cookies ${DRIVE_DIR}/cookies.txt"
-fi
+for cand in \
+    "${STUDIO_DIR}/FaceKeyDataset/cookie.txt" \
+    "${STUDIO_DIR}/FaceKeyDataset/cookies.txt" \
+    "${STUDIO_DIR}/facekeydataset/cookie.txt" \
+    "${STUDIO_DIR}/facekeydataset/cookies.txt" \
+    "${STUDIO_DIR}/cookie.txt" \
+    "${STUDIO_DIR}/cookies.txt" \
+    "cookie.txt" \
+    "cookies.txt" \
+    "${DRIVE_DIR}/cookie.txt" \
+    "${DRIVE_DIR}/cookies.txt"; do
+    if [ -f "$cand" ] && [ -s "$cand" ]; then
+        echo "[+] Found YouTube cookies at: $cand - enabling authenticated mode!"
+        COOKIES_FLAG="--cookies $cand"
+        break
+    fi
+done
 
 # Run Collector on Lightning's 4 CPU cores
 python scripts/cloud_data_collector.py \

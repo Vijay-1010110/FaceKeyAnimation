@@ -98,23 +98,62 @@ def ensure_deno_installed():
 
 
 def resolve_cookies_file(explicit_path: Optional[str] = None, drive_folder: Optional[str] = None) -> Optional[str]:
-    """Find a valid cookies.txt file across standard locations to bypass datacenter bot challenges."""
-    candidates = []
+    """Find a valid cookies.txt or cookie.txt file across standard locations to bypass datacenter bot challenges."""
+    cookie_names = ["cookies.txt", "cookie.txt", "Cookies.txt", "youtube_cookies.txt", "youtube-cookies.txt", "cookies.netscape.txt"]
+    
+    search_dirs = []
     if explicit_path:
-        candidates.append(explicit_path)
+        if os.path.isfile(explicit_path):
+            print(f"[+] Loaded YouTube cookies file: {os.path.abspath(explicit_path)}")
+            return os.path.abspath(explicit_path)
+        search_dirs.append(explicit_path)
+
     if drive_folder:
-        candidates.append(os.path.join(drive_folder, "cookies.txt"))
-        candidates.append(os.path.join(drive_folder, "data", "cookies.txt"))
-    candidates.extend([
-        os.path.join(os.getcwd(), "cookies.txt"),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "cookies.txt"),
-        os.path.expanduser("~/.config/yt-dlp/cookies.txt"),
-        os.path.expanduser("~/cookies.txt"),
+        search_dirs.extend([
+            drive_folder,
+            os.path.join(drive_folder, "data"),
+            drive_folder.lower(),
+            drive_folder.upper()
+        ])
+
+    search_dirs.extend([
+        os.getcwd(),
+        os.path.dirname(os.path.abspath(__file__)),
+        os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
+        "/teamspace/studios/this_studio",
+        "/teamspace/studios/this_studio/FaceKeyDataset",
+        "/teamspace/studios/this_studio/facekeydataset",
+        "/teamspace/studios/this_studio/FaceKeyAnimation",
+        "/kaggle/working",
+        "/content",
+        os.path.expanduser("~"),
+        os.path.expanduser("~/.config/yt-dlp"),
     ])
-    for c in candidates:
-        if c and os.path.exists(c) and os.path.getsize(c) > 10:
-            print(f"[+] Loaded YouTube cookies file: {os.path.abspath(c)}")
-            return os.path.abspath(c)
+
+    # Check direct name matches
+    for d in search_dirs:
+        if not d or not os.path.exists(d):
+            continue
+        for name in cookie_names:
+            c = os.path.join(d, name)
+            if os.path.isfile(c) and os.path.getsize(c) > 10:
+                print(f"[+] Loaded YouTube cookies file: {os.path.abspath(c)}")
+                return os.path.abspath(c)
+
+    # Fallback: scan any directory for any file matching *cookie*.txt
+    for d in search_dirs:
+        if not d or not os.path.isdir(d):
+            continue
+        try:
+            for entry in os.listdir(d):
+                if "cookie" in entry.lower() and entry.lower().endswith(".txt"):
+                    c = os.path.join(d, entry)
+                    if os.path.isfile(c) and os.path.getsize(c) > 10:
+                        print(f"[+] Loaded YouTube cookies file (matched '{entry}'): {os.path.abspath(c)}")
+                        return os.path.abspath(c)
+        except Exception:
+            pass
+
     return None
 
 
