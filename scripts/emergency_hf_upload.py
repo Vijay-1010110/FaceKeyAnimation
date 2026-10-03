@@ -52,8 +52,43 @@ if not token:
 # 2. Target Repo
 repo_id = os.environ.get("HF_REPO", "VijayTheOne/facekey-dataset-chunks")
 
-# 3. Locate Chunks
+# 3. Auto-pack unarchived raw session folders into chunks
+target_chunks_dir = "/teamspace/studios/this_studio/FaceKeyDataset/chunks" if os.path.exists("/teamspace/studios/this_studio") else (
+    "/kaggle/working/FaceKeyDataset/chunks" if os.path.exists("/kaggle/working") else os.path.abspath("FaceKeyDataset/chunks")
+)
+os.makedirs(target_chunks_dir, exist_ok=True)
+
+sess_dirs = [
+    "/teamspace/studios/this_studio/FaceKeyAnimation/sessions",
+    "/kaggle/working/FaceKeyAnimation/sessions",
+    "sessions",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sessions"),
+]
+
+for sd in sess_dirs:
+    if os.path.isdir(sd):
+        raw_sess = sorted(glob.glob(os.path.join(sd, "session_*")))
+        if raw_sess:
+            print(f"[*] Found {len(raw_sess)} raw session folder(s) in {sd}. Packaging into chunks...")
+            try:
+                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                from src.storage.cloud_sync import CloudDriveSync
+                cs = CloudDriveSync(drive_folder=os.path.dirname(target_chunks_dir))
+                while True:
+                    packed = cs.pack_sessions_into_chunk(
+                        sessions_dir=sd,
+                        worker_tag="lightning_sync",
+                        max_sessions_per_chunk=5,
+                        purge_local_after_pack=True
+                    )
+                    if not packed:
+                        break
+            except Exception as pack_err:
+                print(f"[!] Packaging note: {pack_err}")
+
+# 4. Locate Chunks
 search_dirs = [
+    target_chunks_dir,
     "/teamspace/studios/this_studio/FaceKeyDataset/chunks",
     "/kaggle/working/FaceKeyDataset/chunks",
     "/content/drive/MyDrive/FaceKeyDataset/chunks",
