@@ -302,6 +302,7 @@ def worker_process_loop(
                     "--mode", "file",
                     "--video-file", scratch_video,
                     "--quality", quality,
+                    "--max-faces", "2",
                     "--turbo",
                     "--headless",
                     "--stream-title", title,
@@ -341,6 +342,7 @@ def worker_process_loop(
                     "--mode", "stream",
                     "--stream-url", stream_url,
                     "--quality", quality,
+                    "--max-faces", "2",
                     "--headless",
                     "--stream-title", title,
                     "--canonical-url", canonical_url
