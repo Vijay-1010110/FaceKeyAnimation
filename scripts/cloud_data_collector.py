@@ -67,6 +67,33 @@ def get_js_runtimes() -> Dict[str, Any]:
     return runtimes
 
 
+def ensure_deno_installed():
+    """Ensure Deno JavaScript engine is installed on Linux cloud backends."""
+    if sys.platform.startswith("linux"):
+        for p in ("/usr/local/bin/deno", "/root/.deno/bin/deno", os.path.expanduser("~/.deno/bin/deno")):
+            if os.path.exists(p):
+                d = os.path.dirname(p)
+                if d not in os.environ.get("PATH", ""):
+                    os.environ["PATH"] = d + ":" + os.environ.get("PATH", "")
+                return p
+        print("[*] Cloud backend detected. Auto-installing Deno JS engine for YouTube solver...")
+        try:
+            subprocess.call(
+                "curl -fsSL https://deno.land/install.sh | sh > /dev/null 2>&1 && ln -sf /root/.deno/bin/deno /usr/local/bin/deno",
+                shell=True
+            )
+            for p in ("/usr/local/bin/deno", "/root/.deno/bin/deno"):
+                if os.path.exists(p):
+                    d = os.path.dirname(p)
+                    if d not in os.environ.get("PATH", ""):
+                        os.environ["PATH"] = d + ":" + os.environ.get("PATH", "")
+                    print("[+] Deno JS engine ready!")
+                    return p
+        except Exception as e:
+            print(f"[!] Warning installing Deno: {e}")
+    return None
+
+
 def worker_process_loop(
     worker_id: str,
     cloud_sync: CloudDriveSync,
@@ -147,32 +174,66 @@ def worker_process_loop(
                 print(f"[*] [WORKER {coordinator.worker_id}] Attempting fast 480p scratch download to: {scratch_video}...")
 
                 with DOWNLOAD_MUTEX:
-                    import yt_dlp
-                    ydl_opts = {
-                        'format': f'bestvideo[height<={quality.replace("p","")}]+bestaudio/best[height<={quality.replace("p","")}]/best',
-                        'outtmpl': scratch_video,
-                        'merge_output_format': 'mp4',
-                        'js_runtimes': get_js_runtimes(),
-                        'quiet': True,
-                        'no_warnings': True,
-                        'noprogress': True,
-                        'retries': 3,
-                        'source_address': '0.0.0.0',
-                        'socket_timeout': 30,
-                    }
+                    js_dict = get_js_runtimes()
+                    # Strategy A: Use python -m yt_dlp CLI directly (highest compatibility with ffmpeg/deno)
+                    dl_cmd = [
+                        sys.executable, "-m", "yt_dlp",
+                        "-f", f"bestvideo[height<={quality.replace('p','')}]+bestaudio/best[height<={quality.replace('p','')}][ext=mp4]/best",
+                        "--merge-output-format", "mp4",
+                        "--force-ipv4",
+                        "--no-warnings",
+                        "--quiet",
+                        "-o", scratch_video,
+                        raw_url
+                    ]
+                    for r_name, r_cfg in js_dict.items():
+                        if "path" in r_cfg:
+                            dl_cmd.extend(["--js-runtimes", f"{r_name}:{r_cfg['path']}"])
+
                     try:
-                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                            info = ydl.extract_info(raw_url, download=True)
-                            title = info.get('title', item_title)
-                            canonical_url = info.get('webpage_url') or canonical_url
-                        if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
+                        ret_dl = subprocess.call(dl_cmd)
+                        if ret_dl == 0 and os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                             download_success = True
-                    except Exception as dl_err:
-                        print(f"[-] [WORKER {coordinator.worker_id}] yt-dlp direct download ({dl_err}). Trying fast stream buffer...")
+                    except Exception:
+                        pass
+
+                    # Strategy B: If CLI did not succeed, try yt-dlp Python API with android client
+                    if not download_success:
                         try:
+                            import yt_dlp
+                            ydl_opts = {
+                                'format': f'bestvideo[height<={quality.replace("p","")}]+bestaudio/best[height<={quality.replace("p","")}]/best',
+                                'outtmpl': scratch_video,
+                                'merge_output_format': 'mp4',
+                                'js_runtimes': js_dict,
+                                'quiet': True,
+                                'no_warnings': True,
+                                'noprogress': True,
+                                'retries': 3,
+                                'source_address': '0.0.0.0',
+                                'socket_timeout': 30,
+                                'extractor_args': {
+                                    'youtube': {
+                                        'player_client': ['android', 'web']
+                                    }
+                                }
+                            }
+                            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                                info = ydl.extract_info(raw_url, download=True)
+                                title = info.get('title', item_title)
+                                canonical_url = info.get('webpage_url') or canonical_url
+                            if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
+                                download_success = True
+                        except Exception as dl_err:
+                            print(f"[-] [WORKER {coordinator.worker_id}] Fast download notice ({dl_err}). Trying stream buffer...")
+
+                    # Strategy C: If download failed, fetch stream URL and buffer via ffmpeg
+                    if not download_success:
+                        try:
+                            import yt_dlp
                             ydl_s_opts = {
                                 'format': '18/best[height<=480]/best',
-                                'js_runtimes': get_js_runtimes(),
+                                'js_runtimes': js_dict,
                                 'quiet': True,
                                 'skip_download': True,
                                 'source_address': '0.0.0.0',
@@ -376,6 +437,7 @@ def run_cloud_collector(
     script_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     cloud_sync = CloudDriveSync(project_root=script_dir, drive_folder=drive_dir)
     cloud_sync.mount_google_drive()
+    ensure_deno_installed()
 
     base_worker_id = worker_id or (
         "colab-worker-1" if cloud_sync.is_colab else ("kaggle-worker-1" if cloud_sync.is_kaggle else "pc-worker-1")
