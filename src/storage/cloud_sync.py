@@ -32,6 +32,7 @@ class CloudDriveSync:
         # Detect environment
         self.is_colab = os.path.exists("/content") and ("google.colab" in sys.modules or os.path.exists("/content/sample_data"))
         self.is_kaggle = os.path.exists("/kaggle")
+        self.is_lightning = "LIGHTNING_STUDIO_ID" in os.environ or os.path.exists("/teamspace")
 
         # Drive root folder path
         if drive_folder:
@@ -46,6 +47,8 @@ class CloudDriveSync:
                 self.drive_folder = "/kaggle/working/google_drive/FaceKeyDataset"
             else:
                 self.drive_folder = "/kaggle/working/FaceKeyDataset"
+        elif self.is_lightning:
+            self.drive_folder = "/teamspace/studios/this_studio/FaceKeyDataset" if os.path.exists("/teamspace") else os.path.join(self.project_root, "FaceKeyDataset")
         else:
             self.drive_folder = os.path.join(self.project_root, "cloud_drive_backup")
 
@@ -58,6 +61,7 @@ class CloudDriveSync:
         # Standard URL queue file paths
         self.colab_urls_path = os.path.join(self.drive_folder, "youtube_urls_colab.txt")
         self.kaggle_urls_path = os.path.join(self.drive_folder, "youtube_urls_kaggle.txt")
+        self.lightning_urls_path = os.path.join(self.drive_folder, "youtube_urls_lightning.txt")
         self.shared_urls_path = os.path.join(self.drive_folder, "youtubeURLtoProcess.txt")
 
     def mount_google_drive(self) -> bool:
@@ -92,6 +96,7 @@ class CloudDriveSync:
         local_sessions = os.path.join(self.project_root, "sessions")
         local_colab = os.path.join(local_sessions, "youtube_urls_colab.txt")
         local_kaggle = os.path.join(local_sessions, "youtube_urls_kaggle.txt")
+        local_lightning = os.path.join(local_sessions, "youtube_urls_lightning.txt")
 
         # 1. Colab Dedicated URL file
         if not os.path.exists(self.colab_urls_path):
@@ -106,6 +111,14 @@ class CloudDriveSync:
             if os.path.exists(local_kaggle):
                 try:
                     shutil.copy2(local_kaggle, self.kaggle_urls_path)
+                except Exception:
+                    pass
+
+        # 3. Lightning.ai Dedicated URL file
+        if not os.path.exists(self.lightning_urls_path):
+            if os.path.exists(local_lightning):
+                try:
+                    shutil.copy2(local_lightning, self.lightning_urls_path)
                 except Exception:
                     pass
 

@@ -8,6 +8,7 @@ sessions/*
 !sessions/youtubeURLtoProcess.txt
 !sessions/youtube_urls_colab.txt
 !sessions/youtube_urls_kaggle.txt
+!sessions/youtube_urls_lightning.txt
 !sessions/.gitkeep
 
 # Checkpoints and Model Weights (Saved in Google Drive)

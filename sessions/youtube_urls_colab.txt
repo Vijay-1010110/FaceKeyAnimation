@@ -1,6 +1,6 @@
 # ==============================================================================
 # 🎬 FACEKEY DEDICATED QUEUE: GOOGLE COLAB (worker: colab-worker-1)
-# 176 Unique Curated Speech Videos
+# 117 Unique Curated Speech Videos
 # ==============================================================================
 
 https://www.youtube.com/watch?v=APCWOBUZNjc
@@ -120,62 +120,3 @@ https://www.youtube.com/watch?v=Mn-q529ExFw
 https://www.youtube.com/watch?v=Y_TrCPZyd5g
 https://www.youtube.com/watch?v=1qObDH0uYh4
 https://www.youtube.com/watch?v=gU8ERXvUk-8
-https://www.youtube.com/watch?v=Fv03TwMLvwk
-https://www.youtube.com/watch?v=gpWf2wyGQ0Q
-https://www.youtube.com/watch?v=vd2dtkMINIw
-https://www.youtube.com/watch?v=2sG91e1Wh4I
-https://www.youtube.com/watch?v=CjVQJdIrDJ0
-https://www.youtube.com/watch?v=KcaVhMt71qE
-https://www.youtube.com/watch?v=rHKwIYsPXLg
-https://www.youtube.com/watch?v=ynbgMKclWWc
-https://www.youtube.com/watch?v=FN4eDk1pq6U
-https://www.youtube.com/watch?v=-hoo_dIOP8k
-https://www.youtube.com/watch?v=qwOdU02SE0w
-https://www.youtube.com/watch?v=sQKrt1-IDaE
-https://www.youtube.com/watch?v=6WroiiaVhGo
-https://www.youtube.com/watch?v=BmAwa1nnB6w
-https://www.youtube.com/watch?v=rHdS_4GsKmg
-https://www.youtube.com/watch?v=Y3PwG4UoJ0Y
-https://www.youtube.com/watch?v=QQn8X4FbpTM
-https://www.youtube.com/watch?v=8EMW7io4rSI
-https://www.youtube.com/watch?v=Z5chrxMuBoo
-https://www.youtube.com/watch?v=S3REdLZ8Xis
-https://www.youtube.com/watch?v=HMBl0ttu-Ow
-https://www.youtube.com/watch?v=IDDmrzzB14M
-https://www.youtube.com/watch?v=Vvcuk_uGCuY
-https://www.youtube.com/watch?v=kUovJpWqEMk
-https://www.youtube.com/watch?v=GZUrPayHvvo
-https://www.youtube.com/watch?v=kY7wcPMqKtA
-https://www.youtube.com/watch?v=qBeX4kOtaf8
-https://www.youtube.com/watch?v=ixJMF3mWKsw
-https://www.youtube.com/watch?v=6IeqJtudKnk
-https://www.youtube.com/watch?v=WHcgVxTYIyc
-https://www.youtube.com/watch?v=X3DVaMnl5n8
-https://www.youtube.com/watch?v=rmjpzHMOhNM
-https://www.youtube.com/watch?v=H77sVaP1e68
-https://www.youtube.com/watch?v=r0tf1rhsUVg
-https://www.youtube.com/watch?v=X8h4dq9Hzq8
-https://www.youtube.com/watch?v=btG--vz2jrk
-https://www.youtube.com/watch?v=kBCm8bf1IsI
-https://www.youtube.com/watch?v=ZsS23y7TWSM
-https://www.youtube.com/watch?v=poUd7uEwzQE
-https://www.youtube.com/watch?v=_LkG71cqUFg
-https://www.youtube.com/watch?v=VVFoSzk_rsg
-https://www.youtube.com/watch?v=Ew5Dcmccf5w
-https://www.youtube.com/watch?v=z_BVOj-s0V8
-https://www.youtube.com/watch?v=mR6jktYAOqs
-https://www.youtube.com/watch?v=fPYL-UDMSug
-https://www.youtube.com/watch?v=2VacoMXp39g
-https://www.youtube.com/watch?v=3ZlkWgEnHmE
-https://www.youtube.com/watch?v=hAkBFRbthtc
-https://www.youtube.com/watch?v=kfky8NaCfR8
-https://www.youtube.com/watch?v=m4Galm84xjo
-https://www.youtube.com/watch?v=yYXVHSw25P4
-https://www.youtube.com/watch?v=M79wIRZ9FmM
-https://www.youtube.com/watch?v=CiWbjh5jpQ0
-https://www.youtube.com/watch?v=lUUte2o2Sn8
-https://www.youtube.com/watch?v=osEADxaIKIc
-https://www.youtube.com/watch?v=J7DzL2_Na80
-https://www.youtube.com/watch?v=cdZnhQjJu4I
-https://www.youtube.com/watch?v=QVKj3LADCnA
-https://www.youtube.com/watch?v=7UJ4CFRGd-U
