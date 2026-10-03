@@ -56,6 +56,8 @@ class CloudDriveSync:
         self.manifest_path = os.path.join(self.drive_folder, "dataset_manifest.json")
 
         # Standard URL queue file paths
+        self.colab_1_urls_path = os.path.join(self.drive_folder, "youtube_urls_colab_1.txt")
+        self.colab_2_urls_path = os.path.join(self.drive_folder, "youtube_urls_colab_2.txt")
         self.colab_urls_path = os.path.join(self.drive_folder, "youtube_urls_colab.txt")
         self.kaggle_urls_path = os.path.join(self.drive_folder, "youtube_urls_kaggle.txt")
         self.shared_urls_path = os.path.join(self.drive_folder, "youtubeURLtoProcess.txt")
@@ -91,10 +93,44 @@ class CloudDriveSync:
         """Ensure default URL queue files exist on Google Drive for Colab, Kaggle, and Shared."""
         local_sessions = os.path.join(self.project_root, "sessions")
         local_shared = os.path.join(local_sessions, "youtubeURLtoProcess.txt")
+        local_colab_1 = os.path.join(local_sessions, "youtube_urls_colab_1.txt")
+        local_colab_2 = os.path.join(local_sessions, "youtube_urls_colab_2.txt")
         local_colab = os.path.join(local_sessions, "youtube_urls_colab.txt")
         local_kaggle = os.path.join(local_sessions, "youtube_urls_kaggle.txt")
 
-        # 1. Shared Master URL file
+        # 1. Colab 1 Queue file
+        if not os.path.exists(self.colab_1_urls_path):
+            if os.path.exists(local_colab_1):
+                try:
+                    shutil.copy2(local_colab_1, self.colab_1_urls_path)
+                except Exception:
+                    pass
+
+        # 2. Colab 2 Queue file
+        if not os.path.exists(self.colab_2_urls_path):
+            if os.path.exists(local_colab_2):
+                try:
+                    shutil.copy2(local_colab_2, self.colab_2_urls_path)
+                except Exception:
+                    pass
+
+        # 3. Colab Legacy Dedicated URL file
+        if not os.path.exists(self.colab_urls_path):
+            if os.path.exists(local_colab):
+                try:
+                    shutil.copy2(local_colab, self.colab_urls_path)
+                except Exception:
+                    pass
+
+        # 4. Kaggle Dedicated URL file
+        if not os.path.exists(self.kaggle_urls_path):
+            if os.path.exists(local_kaggle):
+                try:
+                    shutil.copy2(local_kaggle, self.kaggle_urls_path)
+                except Exception:
+                    pass
+
+        # 5. Shared Master URL file
         if not os.path.exists(self.shared_urls_path):
             if os.path.exists(local_shared):
                 try:
@@ -104,34 +140,6 @@ class CloudDriveSync:
             else:
                 with open(self.shared_urls_path, "w", encoding="utf-8") as f:
                     f.write("# FaceKey Master YouTube Stream Queue (Shared Across All Workers)\n\n")
-
-        # 2. Colab Dedicated URL file
-        if not os.path.exists(self.colab_urls_path):
-            if os.path.exists(local_colab):
-                try:
-                    shutil.copy2(local_colab, self.colab_urls_path)
-                except Exception:
-                    pass
-            elif os.path.exists(self.shared_urls_path):
-                # Copy shared URLs to colab queue as initial base
-                try:
-                    shutil.copy2(self.shared_urls_path, self.colab_urls_path)
-                except Exception:
-                    pass
-
-        # 3. Kaggle Dedicated URL file
-        if not os.path.exists(self.kaggle_urls_path):
-            if os.path.exists(local_kaggle):
-                try:
-                    shutil.copy2(local_kaggle, self.kaggle_urls_path)
-                except Exception:
-                    pass
-            elif os.path.exists(self.shared_urls_path):
-                # Copy shared URLs to kaggle queue as initial base
-                try:
-                    shutil.copy2(self.shared_urls_path, self.kaggle_urls_path)
-                except Exception:
-                    pass
 
     def load_manifest(self) -> Dict[str, Any]:
         """Load manifest of all packaged dataset chunks from Google Drive."""
