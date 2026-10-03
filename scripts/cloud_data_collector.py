@@ -157,6 +157,23 @@ def resolve_cookies_file(explicit_path: Optional[str] = None, drive_folder: Opti
     return None
 
 
+def _trigger_auto_upload(chunks_dir: str, sa_json: Optional[str], folder_id: str):
+    """Auto-uploads any packaged chunks to Google Drive and cleans local disk."""
+    if sa_json and os.path.exists(sa_json):
+        try:
+            sys.path.insert(0, os.path.dirname(__file__))
+            from cloud_drive_uploader import upload_to_gdrive_service_account
+            print(f"[*] [AUTO-UPLOAD] Streaming chunk directly to 5 TB Google Drive ({folder_id})...")
+            upload_to_gdrive_service_account(
+                chunks_dir=chunks_dir,
+                service_account_json=sa_json,
+                folder_id=folder_id,
+                purge_after_upload=True
+            )
+        except Exception as ue:
+            print(f"[!] Auto-upload warning: {ue}")
+
+
 def worker_process_loop(
     worker_id: str,
     cloud_sync: CloudDriveSync,
@@ -169,7 +186,9 @@ def worker_process_loop(
     stale_timeout_sec: int = 1200,
     turbo: bool = True,
     stop_event: Optional[threading.Event] = None,
-    cookies_file: Optional[str] = None
+    cookies_file: Optional[str] = None,
+    service_account_json: Optional[str] = None,
+    folder_id: str = "11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA"
 ):
     """Execution loop for an individual cloud worker."""
     python_exe = sys.executable
@@ -208,6 +227,7 @@ def worker_process_loop(
                 worker_tag=coordinator.worker_id,
                 purge_local_after_pack=purge_local
             )
+            _trigger_auto_upload(cloud_sync.chunks_dir, service_account_json, folder_id)
             print(f"[*] [WORKER {worker_id}] Watching for new links... (Waiting 10s)")
             time.sleep(10)
             continue
@@ -557,6 +577,7 @@ def worker_process_loop(
                 worker_tag=coordinator.worker_id,
                 purge_local_after_pack=purge_local
             )
+            _trigger_auto_upload(cloud_sync.chunks_dir, service_account_json, folder_id)
             unpacked_count = 0
 
         time.sleep(1.0)
@@ -572,7 +593,9 @@ def run_cloud_collector(
     stale_timeout_sec: int = 1200,
     turbo: bool = True,
     num_workers: int = 1,
-    cookies_file: Optional[str] = None
+    cookies_file: Optional[str] = None,
+    service_account: Optional[str] = None,
+    folder_id: str = "11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA"
 ):
     print("=" * 84)
     print(" [CLOUD] FACEKEY TURBO MULTI-WORKER CLOUD COLLECTOR & DISTRIBUTED LOCK MANAGER")
@@ -583,6 +606,18 @@ def run_cloud_collector(
     cloud_sync.mount_google_drive()
     ensure_deno_installed()
     resolved_cookies = resolve_cookies_file(cookies_file, drive_folder=cloud_sync.drive_folder)
+
+    # Auto-detect service account JSON if present
+    sa_json = service_account
+    if not sa_json:
+        for sa_cand in [
+            "/kaggle/working/service_account.json",
+            os.path.join(script_dir, "service_account.json"),
+            "service_account.json"
+        ]:
+            if os.path.exists(sa_cand):
+                sa_json = os.path.abspath(sa_cand)
+                break
 
     base_worker_id = worker_id or (
         "colab-worker-1" if cloud_sync.is_colab else (
@@ -638,6 +673,10 @@ def run_cloud_collector(
     total_globally_completed = shared_db.get("total_completed", len(shared_db.get("completed", {})))
     total_global_hours = shared_db.get("total_hours", 0.0)
 
+    if sa_json:
+        print(f"[*] Google Drive Auto-Upload : ENABLED (Folder: {folder_id})")
+        print(f"[*] Service Account Key     : {sa_json}")
+
     print("-" * 84)
     print(f"[*] Queue File Status  : {summary['queue_total']} Total | {summary['queue_completed']} Done | {summary['queue_pending']} Pending")
     print(f"[*] Global Multi-Cloud : {total_globally_completed} Videos Completed ({total_global_hours:.2f} hrs across all workers)")
@@ -656,7 +695,9 @@ def run_cloud_collector(
             purge_local=purge_local,
             stale_timeout_sec=stale_timeout_sec,
             turbo=turbo,
-            cookies_file=resolved_cookies
+            cookies_file=resolved_cookies,
+            service_account_json=sa_json,
+            folder_id=folder_id
         )
     else:
         stop_event = threading.Event()
@@ -677,7 +718,9 @@ def run_cloud_collector(
                     "stale_timeout_sec": stale_timeout_sec,
                     "turbo": turbo,
                     "stop_event": stop_event,
-                    "cookies_file": resolved_cookies
+                    "cookies_file": resolved_cookies,
+                    "service_account_json": sa_json,
+                    "folder_id": folder_id
                 },
                 name=f"Thread-{sub_id}"
             )
@@ -694,6 +737,17 @@ def run_cloud_collector(
             for t in threads:
                 t.join(timeout=3)
 
+    # Final pass: pack and upload any leftover sessions
+    local_sessions_dir = os.path.join(script_dir, "sessions")
+    print("\n[*] Performing final pass for any remaining sessions...")
+    cloud_sync.pack_sessions_into_chunk(
+        sessions_dir=local_sessions_dir,
+        worker_tag=base_worker_id,
+        purge_local_after_pack=purge_local
+    )
+    if sa_json:
+        _trigger_auto_upload(cloud_sync.chunks_dir, sa_json, folder_id)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Multi-Worker Cloud Batch YouTube Collector & Distributed Lock Manager")
@@ -707,6 +761,8 @@ if __name__ == "__main__":
     parser.add_argument("--no-turbo", action="store_true", default=False, help="Disable turbo scratch download mode")
     parser.add_argument("--num-workers", type=int, default=1, help="Number of concurrent parallel collection workers")
     parser.add_argument("--cookies", type=str, default=None, help="Path to YouTube cookies.txt file for bot challenge bypass")
+    parser.add_argument("--service-account", type=str, default=None, help="Google Service Account JSON for automatic cloud-to-drive upload")
+    parser.add_argument("--folder-id", type=str, default="11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA", help="Target Google Drive Folder ID")
     args = parser.parse_args()
 
     run_cloud_collector(
@@ -719,5 +775,7 @@ if __name__ == "__main__":
         stale_timeout_sec=args.stale_timeout,
         turbo=not args.no_turbo,
         num_workers=max(1, args.num_workers),
-        cookies_file=args.cookies
+        cookies_file=args.cookies,
+        service_account=args.service_account,
+        folder_id=args.folder_id
     )
