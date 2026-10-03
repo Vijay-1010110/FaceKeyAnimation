@@ -143,6 +143,18 @@ class StreamBatchQueue:
             self._save()
         return reset_count
 
+    def reset_failed_to_pending(self) -> int:
+        """Reset any 'failed' items back to 'pending' to allow clean re-trying."""
+        reset_count = 0
+        for it in self.state.get("items", {}).values():
+            if it.get("status") == "failed":
+                it["status"] = "pending"
+                it["error_message"] = None
+                reset_count += 1
+        if reset_count > 0:
+            self._save()
+        return reset_count
+
     def purge_corrupted_completed(self, min_duration_sec: float = 15.0) -> int:
         """Reset any items falsely marked completed/failed with duration < 15s back to pending."""
         reset_count = 0

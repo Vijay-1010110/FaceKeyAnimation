@@ -70,27 +70,51 @@ def get_js_runtimes() -> Dict[str, Any]:
 def ensure_deno_installed():
     """Ensure Deno JavaScript engine is installed on Linux cloud backends."""
     if sys.platform.startswith("linux"):
-        for p in ("/usr/local/bin/deno", "/root/.deno/bin/deno", os.path.expanduser("~/.deno/bin/deno")):
-            if os.path.exists(p):
+        candidate_paths = [
+            shutil.which("deno"),
+            os.path.expanduser("~/.deno/bin/deno"),
+            "/usr/local/bin/deno",
+            "/root/.deno/bin/deno"
+        ]
+        for p in candidate_paths:
+            if p and os.path.exists(p):
                 d = os.path.dirname(p)
-                if d not in os.environ.get("PATH", ""):
+                if d not in os.environ.get("PATH", "").split(":"):
                     os.environ["PATH"] = d + ":" + os.environ.get("PATH", "")
                 return p
         print("[*] Cloud backend detected. Auto-installing Deno JS engine for YouTube solver...")
         try:
-            subprocess.call(
-                "curl -fsSL https://deno.land/install.sh | sh > /dev/null 2>&1 && ln -sf /root/.deno/bin/deno /usr/local/bin/deno",
-                shell=True
-            )
-            for p in ("/usr/local/bin/deno", "/root/.deno/bin/deno"):
+            subprocess.call("curl -fsSL https://deno.land/install.sh | sh > /dev/null 2>&1", shell=True)
+            for p in (os.path.expanduser("~/.deno/bin/deno"), "/root/.deno/bin/deno", "/usr/local/bin/deno"):
                 if os.path.exists(p):
                     d = os.path.dirname(p)
-                    if d not in os.environ.get("PATH", ""):
+                    if d not in os.environ.get("PATH", "").split(":"):
                         os.environ["PATH"] = d + ":" + os.environ.get("PATH", "")
                     print("[+] Deno JS engine ready!")
                     return p
         except Exception as e:
             print(f"[!] Warning installing Deno: {e}")
+    return None
+
+
+def resolve_cookies_file(explicit_path: Optional[str] = None, drive_folder: Optional[str] = None) -> Optional[str]:
+    """Find a valid cookies.txt file across standard locations to bypass datacenter bot challenges."""
+    candidates = []
+    if explicit_path:
+        candidates.append(explicit_path)
+    if drive_folder:
+        candidates.append(os.path.join(drive_folder, "cookies.txt"))
+        candidates.append(os.path.join(drive_folder, "data", "cookies.txt"))
+    candidates.extend([
+        os.path.join(os.getcwd(), "cookies.txt"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "cookies.txt"),
+        os.path.expanduser("~/.config/yt-dlp/cookies.txt"),
+        os.path.expanduser("~/cookies.txt"),
+    ])
+    for c in candidates:
+        if c and os.path.exists(c) and os.path.getsize(c) > 10:
+            print(f"[+] Loaded YouTube cookies file: {os.path.abspath(c)}")
+            return os.path.abspath(c)
     return None
 
 
@@ -105,7 +129,8 @@ def worker_process_loop(
     purge_local: bool = True,
     stale_timeout_sec: int = 1200,
     turbo: bool = True,
-    stop_event: Optional[threading.Event] = None
+    stop_event: Optional[threading.Event] = None,
+    cookies_file: Optional[str] = None
 ):
     """Execution loop for an individual cloud worker."""
     python_exe = sys.executable
@@ -119,8 +144,12 @@ def worker_process_loop(
         stale_timeout_sec=stale_timeout_sec
     )
 
+    if not cookies_file:
+        cookies_file = resolve_cookies_file(drive_folder=cloud_sync.drive_folder)
+
     unpacked_count = 0
     locally_locked_keys = set()
+    consecutive_bot_challenges = 0
 
     while stop_event is None or not stop_event.is_set():
         # Sync newly added links from file
@@ -175,51 +204,74 @@ def worker_process_loop(
 
                 with DOWNLOAD_MUTEX:
                     js_dict = get_js_runtimes()
-                    # Strategy A: Use Android Player API (fastest, immune to 403 on Colab/datacenter IPs, format 18 MP4)
+                    cookie_flags = ["--cookies", cookies_file] if cookies_file else []
+
+                    # Strategy A: Use Android Player API (fastest direct MP4)
                     dl_cmd = [
                         sys.executable, "-m", "yt_dlp",
                         "-f", "18/best[height<=480][ext=mp4]/best",
                         "--extractor-args", "youtube:player_client=android",
                         "--force-ipv4",
                         "--no-warnings",
-                        "--quiet",
+                        "--sleep-requests", "1",
                         "-o", scratch_video,
                         raw_url
-                    ]
+                    ] + cookie_flags
                     for r_name, r_cfg in js_dict.items():
                         if "path" in r_cfg:
                             dl_cmd.extend(["--js-runtimes", f"{r_name}:{r_cfg['path']}"])
 
                     try:
-                        ret_dl = subprocess.call(dl_cmd)
+                        ret_dl = subprocess.call(dl_cmd, stderr=subprocess.PIPE if not cookies_file else None)
                         if ret_dl == 0 and os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                             download_success = True
                     except Exception:
                         pass
 
-                    # Strategy B: Fallback to ios, android, web clients if needed
+                    # Strategy B: Android VR Client (high success on cloud/datacenter IPs)
                     if not download_success:
                         dl_cmd_b = [
                             sys.executable, "-m", "yt_dlp",
                             "-f", "18/best[height<=480][ext=mp4]/best",
-                            "--extractor-args", "youtube:player_client=ios,android,web",
+                            "--extractor-args", "youtube:player_client=android_vr",
                             "--force-ipv4",
                             "--no-warnings",
-                            "--quiet",
+                            "--sleep-requests", "1",
                             "-o", scratch_video,
                             raw_url
-                        ]
+                        ] + cookie_flags
                         for r_name, r_cfg in js_dict.items():
                             if "path" in r_cfg:
                                 dl_cmd_b.extend(["--js-runtimes", f"{r_name}:{r_cfg['path']}"])
                         try:
-                            ret_b = subprocess.call(dl_cmd_b)
+                            ret_b = subprocess.call(dl_cmd_b, stderr=subprocess.PIPE if not cookies_file else None)
                             if ret_b == 0 and os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                                 download_success = True
                         except Exception:
                             pass
 
-                    # Strategy C: yt-dlp Python API with android extractor args
+                    # Strategy C: Default yt-dlp resolution (JS challenge solver via Deno)
+                    if not download_success:
+                        dl_cmd_c = [
+                            sys.executable, "-m", "yt_dlp",
+                            "-f", "18/best[height<=480][ext=mp4]/best",
+                            "--force-ipv4",
+                            "--no-warnings",
+                            "--sleep-requests", "1",
+                            "-o", scratch_video,
+                            raw_url
+                        ] + cookie_flags
+                        for r_name, r_cfg in js_dict.items():
+                            if "path" in r_cfg:
+                                dl_cmd_c.extend(["--js-runtimes", f"{r_name}:{r_cfg['path']}"])
+                        try:
+                            ret_c = subprocess.call(dl_cmd_c, stderr=subprocess.PIPE if not cookies_file else None)
+                            if ret_c == 0 and os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
+                                download_success = True
+                        except Exception:
+                            pass
+
+                    # Strategy D: yt-dlp Python API with fallback clients
                     if not download_success:
                         try:
                             import yt_dlp
@@ -235,10 +287,12 @@ def worker_process_loop(
                                 'socket_timeout': 30,
                                 'extractor_args': {
                                     'youtube': {
-                                        'player_client': ['android', 'ios']
+                                        'player_client': ['android', 'android_vr']
                                     }
                                 }
                             }
+                            if cookies_file:
+                                ydl_opts['cookiefile'] = cookies_file
                             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                                 info = ydl.extract_info(raw_url, download=True)
                                 title = info.get('title', item_title)
@@ -248,18 +302,20 @@ def worker_process_loop(
                         except Exception:
                             pass
 
-                    # Strategy D: Buffer stream URL directly via ffmpeg
+                    # Strategy E: Buffer stream URL directly via ffmpeg
                     if not download_success:
                         try:
                             import yt_dlp
                             ydl_s_opts = {
                                 'format': '18/best[height<=480]/best',
-                                'extractor_args': {'youtube': {'player_client': ['android', 'ios']}},
+                                'extractor_args': {'youtube': {'player_client': ['android', 'android_vr']}},
                                 'js_runtimes': js_dict,
                                 'quiet': True,
                                 'skip_download': True,
                                 'source_address': '0.0.0.0',
                             }
+                            if cookies_file:
+                                ydl_s_opts['cookiefile'] = cookies_file
                             with yt_dlp.YoutubeDL(ydl_s_opts) as ydl_s:
                                 info_s = ydl_s.extract_info(raw_url, download=False)
                                 s_url = info_s.get('url')
@@ -288,7 +344,10 @@ def worker_process_loop(
                     if download_success and (not title or title == item_title or title == "Pending Resolution"):
                         try:
                             import yt_dlp
-                            with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True, 'extractor_args': {'youtube': {'player_client': ['android']}}}) as ydl_t:
+                            t_opts = {'quiet': True, 'skip_download': True, 'extractor_args': {'youtube': {'player_client': ['android']}}}
+                            if cookies_file:
+                                t_opts['cookiefile'] = cookies_file
+                            with yt_dlp.YoutubeDL(t_opts) as ydl_t:
                                 t_info = ydl_t.extract_info(raw_url, download=False)
                                 title = t_info.get('title', item_title)
                                 canonical_url = t_info.get('webpage_url') or canonical_url
@@ -309,12 +368,12 @@ def worker_process_loop(
                     "--canonical-url", canonical_url
                 ]
             else:
-                # 100% resilient streaming mode (uses android player client to prevent 403)
+                # 100% resilient streaming mode
                 import yt_dlp
                 with DOWNLOAD_MUTEX:
                     ydl_opts = {
                         'format': '18/best[height<=480]/best',
-                        'extractor_args': {'youtube': {'player_client': ['android', 'ios']}},
+                        'extractor_args': {'youtube': {'player_client': ['android', 'android_vr']}},
                         'js_runtimes': get_js_runtimes(),
                         'quiet': True,
                         'no_warnings': True,
@@ -325,6 +384,8 @@ def worker_process_loop(
                         'socket_timeout': 30,
                         'retries': 5
                     }
+                    if cookies_file:
+                        ydl_opts['cookiefile'] = cookies_file
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(raw_url, download=False)
                         stream_url = info.get('url')
@@ -348,17 +409,38 @@ def worker_process_loop(
                     "--canonical-url", canonical_url
                 ]
         except Exception as e:
-            err = f"Extraction/Stream resolution error: {e}"
-            print(f"[!] [WORKER {coordinator.worker_id}] {err}")
-            coordinator.release_lock(key)
-            queue.mark_failed(key, err)
-            if scratch_video and os.path.exists(scratch_video):
-                try:
-                    os.remove(scratch_video)
-                except Exception:
-                    pass
-            time.sleep(2)
-            continue
+            err = str(e)
+            is_bot_check = "Sign in to confirm you’re not a bot" in err or "confirm you're not a bot" in err.lower() or "bot" in err.lower()
+            if is_bot_check:
+                consecutive_bot_challenges += 1
+                print(f"[!] [WORKER {coordinator.worker_id}] YouTube anti-bot verification requested on datacenter IP: {key}")
+                coordinator.release_lock(key)
+                locally_locked_keys.add(key)
+                if consecutive_bot_challenges >= 3:
+                    print("=" * 80)
+                    print(f" [!] NOTICE: YouTube anti-bot challenge is active on this datacenter IP ({coordinator.worker_id}).")
+                    print(" [!] To resolve on this machine:")
+                    print(" [!]   1. Export 'cookies.txt' from your browser and place it in this folder or Google Drive.")
+                    print(" [!]   2. OR run this queue on Google Colab or Kaggle (hosted on Google Cloud, 0 bot checks).")
+                    print(" [!] Releasing locks cleanly and sleeping 60 seconds to avoid IP rate-limiting...")
+                    print("=" * 80)
+                    time.sleep(60)
+                else:
+                    time.sleep(2)
+                continue
+            else:
+                consecutive_bot_challenges = 0
+                err_msg = f"Extraction/Stream resolution error: {err}"
+                print(f"[!] [WORKER {coordinator.worker_id}] {err_msg}")
+                coordinator.release_lock(key)
+                queue.mark_failed(key, err_msg)
+                if scratch_video and os.path.exists(scratch_video):
+                    try:
+                        os.remove(scratch_video)
+                    except Exception:
+                        pass
+                time.sleep(2)
+                continue
 
         print(f"[*] [WORKER {coordinator.worker_id}] Running Turbo Processing: '{title}' ({quality})")
         t_start = time.perf_counter()
@@ -464,7 +546,8 @@ def run_cloud_collector(
     purge_local: bool = True,
     stale_timeout_sec: int = 1200,
     turbo: bool = True,
-    num_workers: int = 1
+    num_workers: int = 1,
+    cookies_file: Optional[str] = None
 ):
     print("=" * 84)
     print(" [CLOUD] FACEKEY TURBO MULTI-WORKER CLOUD COLLECTOR & DISTRIBUTED LOCK MANAGER")
@@ -474,6 +557,7 @@ def run_cloud_collector(
     cloud_sync = CloudDriveSync(project_root=script_dir, drive_folder=drive_dir)
     cloud_sync.mount_google_drive()
     ensure_deno_installed()
+    resolved_cookies = resolve_cookies_file(cookies_file, drive_folder=cloud_sync.drive_folder)
 
     base_worker_id = worker_id or (
         "colab-worker-1" if cloud_sync.is_colab else (
@@ -515,10 +599,13 @@ def run_cloud_collector(
     print(f"[*] Turbo Mode        : {'ENABLED (Offline scratch decoding @ 150+ FPS)' if turbo else 'DISABLED (Real-time stream)'}")
     print(f"[*] Google Drive Root : {cloud_sync.drive_folder}")
     print(f"[*] Active URLs Queue : {target_urls_file}")
+    if resolved_cookies:
+        print(f"[*] YouTube Cookies   : {resolved_cookies}")
 
     queue = StreamBatchQueue(project_root=script_dir, urls_file=target_urls_file)
     queue.reset_interrupted_to_pending()
     queue.purge_corrupted_completed(min_duration_sec=15.0)
+    queue.reset_failed_to_pending()
     queue.sync_from_file()
 
     summary = queue.get_progress_summary()
@@ -543,7 +630,8 @@ def run_cloud_collector(
             quality=quality,
             purge_local=purge_local,
             stale_timeout_sec=stale_timeout_sec,
-            turbo=turbo
+            turbo=turbo,
+            cookies_file=resolved_cookies
         )
     else:
         stop_event = threading.Event()
@@ -563,7 +651,8 @@ def run_cloud_collector(
                     "purge_local": purge_local,
                     "stale_timeout_sec": stale_timeout_sec,
                     "turbo": turbo,
-                    "stop_event": stop_event
+                    "stop_event": stop_event,
+                    "cookies_file": resolved_cookies
                 },
                 name=f"Thread-{sub_id}"
             )
@@ -592,6 +681,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-purge", action="store_true", default=False, help="Do not delete local sessions after chunking")
     parser.add_argument("--no-turbo", action="store_true", default=False, help="Disable turbo scratch download mode")
     parser.add_argument("--num-workers", type=int, default=1, help="Number of concurrent parallel collection workers")
+    parser.add_argument("--cookies", type=str, default=None, help="Path to YouTube cookies.txt file for bot challenge bypass")
     args = parser.parse_args()
 
     run_cloud_collector(
@@ -603,5 +693,6 @@ if __name__ == "__main__":
         purge_local=not args.no_purge,
         stale_timeout_sec=args.stale_timeout,
         turbo=not args.no_turbo,
-        num_workers=max(1, args.num_workers)
+        num_workers=max(1, args.num_workers),
+        cookies_file=args.cookies
     )
