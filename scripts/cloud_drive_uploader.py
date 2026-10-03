@@ -113,7 +113,23 @@ def upload_to_gdrive_service_account(
         service_account_json,
         scopes=["https://www.googleapis.com/auth/drive"]
     )
-    service = build("drive", "v3", credentials=creds)
+    try:
+        folder_info = service.files().get(fileId=folder_id, fields="id, name", supportsAllDrives=True).execute()
+        print(f"[+] Connected to Google Drive target folder: '{folder_info.get('name')}' (ID: {folder_id})")
+    except Exception as fe:
+        print("\n" + "!" * 75)
+        print(" [!] PERMISSION / SHARING ERROR ON GOOGLE DRIVE FOLDER:")
+        print(f"     Target Folder ID: {folder_id}")
+        print(f"     Error           : {fe}")
+        print("-" * 75)
+        print(" To fix this, you must share your Google Drive folder with the Service Account:")
+        print("   1. Open: https://drive.google.com/drive/u/0/folders/11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA")
+        print("   2. Click the 'Share' button at top right.")
+        print(f"   3. Paste this exact email: {getattr(creds, 'service_account_email', 'your service account email')}")
+        print("   4. Set role to 'Editor'.")
+        print("   5. Click 'Share' (if prompted 'Share anyway', click 'Share anyway').")
+        print("!" * 75 + "\n")
+        return 0
 
     chunk_files = sorted(glob.glob(os.path.join(chunks_dir, "*.tar.gz")))
     if not chunk_files:
@@ -138,7 +154,8 @@ def upload_to_gdrive_service_account(
             uploaded_file = service.files().create(
                 body=file_metadata,
                 media_body=media,
-                fields="id"
+                fields="id",
+                supportsAllDrives=True
             ).execute()
 
             print(f"[DONE - File ID: {uploaded_file.get('id')}]")
