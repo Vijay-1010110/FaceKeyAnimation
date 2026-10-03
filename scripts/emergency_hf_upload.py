@@ -22,10 +22,24 @@ except ImportError:
 
 # 1. Resolve HF Token
 token = os.environ.get("HF_TOKEN")
+
+# Check CLI argument
+for idx, arg in enumerate(sys.argv):
+    if arg in ("--token", "--hf-token") and idx + 1 < len(sys.argv):
+        token = sys.argv[idx + 1]
+
+if not token:
+    try:
+        from kaggle_secrets import UserSecretsClient
+        token = UserSecretsClient().get_secret("HF_TOKEN")
+    except Exception:
+        pass
+
 token_paths = [
     "/teamspace/studios/this_studio/hf_token.txt",
     "/teamspace/studios/this_studio/FaceKeyDataset/hf_token.txt",
     "/kaggle/working/hf_token.txt",
+    "/content/drive/MyDrive/FaceKeyDataset/hf_token.txt",
     os.path.expanduser("~/.cache/huggingface/token"),
     "hf_token.txt",
     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hf_token.txt")
