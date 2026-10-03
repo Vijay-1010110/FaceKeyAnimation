@@ -13,8 +13,8 @@ STUDIO_DIR="/teamspace/studios/this_studio"
 DRIVE_DIR="${STUDIO_DIR}/FaceKeyDataset"
 mkdir -p "${DRIVE_DIR}/chunks" "${DRIVE_DIR}/checkpoints" "${DRIVE_DIR}/locks" "${DRIVE_DIR}/data"
 
-# Install lightweight dependencies
-pip install -q -U --pre "yt-dlp[default]" mediapipe opencv-python-headless numpy sounddevice mss av scipy huggingface_hub
+# Install lightweight dependencies (pinned numpy<2 for media/ML compatibility)
+pip install -q -U "numpy<2" --pre "yt-dlp[default]" mediapipe opencv-python-headless sounddevice mss av scipy huggingface_hub
 
 # Install Deno JS solver if needed
 if ! command -v deno &> /dev/null; then

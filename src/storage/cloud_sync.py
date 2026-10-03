@@ -94,6 +94,7 @@ class CloudDriveSync:
     def setup_drive_queue_files(self):
         """Ensure default URL queue files exist on Google Drive for Colab, Kaggle, and Shared."""
         local_sessions = os.path.join(self.project_root, "sessions")
+        local_shared = os.path.join(local_sessions, "youtubeURLtoProcess.txt")
         local_colab = os.path.join(local_sessions, "youtube_urls_colab.txt")
         local_kaggle = os.path.join(local_sessions, "youtube_urls_kaggle.txt")
         local_lightning = os.path.join(local_sessions, "youtube_urls_lightning.txt")

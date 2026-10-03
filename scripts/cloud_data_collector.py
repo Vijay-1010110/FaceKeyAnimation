@@ -476,7 +476,11 @@ def run_cloud_collector(
     ensure_deno_installed()
 
     base_worker_id = worker_id or (
-        "colab-worker-1" if cloud_sync.is_colab else ("kaggle-worker-1" if cloud_sync.is_kaggle else "pc-worker-1")
+        "colab-worker-1" if cloud_sync.is_colab else (
+            "kaggle-worker-1" if cloud_sync.is_kaggle else (
+                "lightning-worker-1" if getattr(cloud_sync, "is_lightning", False) else "pc-worker-1"
+            )
+        )
     )
 
     # Initial coordinator to clean stale locks & purge corrupted entries
@@ -499,6 +503,8 @@ def run_cloud_collector(
         target_urls_file = cloud_sync.colab_urls_path
     elif cloud_sync.is_kaggle and os.path.exists(cloud_sync.kaggle_urls_path):
         target_urls_file = cloud_sync.kaggle_urls_path
+    elif getattr(cloud_sync, "is_lightning", False) and os.path.exists(getattr(cloud_sync, "lightning_urls_path", "")):
+        target_urls_file = cloud_sync.lightning_urls_path
     elif os.path.exists(cloud_sync.shared_urls_path):
         target_urls_file = cloud_sync.shared_urls_path
     else:
