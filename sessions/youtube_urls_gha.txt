@@ -1,105 +1,65 @@
 # =============================================================================
-#  FaceKey Studio - Dedicated Queue for GitHub Actions Multi-Runner Matrix
-#  Assigned Videos: 50 | Partition: GHA (Zero Overlap)
+#  FaceKey Studio - Dedicated Queue for GitHub Actions Multi-Runner Swarm
+#  Assigned New Videos: 30 (100% Unique, Zero Overlap)
 # =============================================================================
 
-# Title: Big Think Interview With Stephen Fry | Big Think [61m 24s]
-https://www.youtube.com/watch?v=9fpztV4oMd4
-# Title: Steven Pinker on Human Nature | Big Think [15m 12s]
-https://www.youtube.com/watch?v=nwOW3thvw-E
-# Title: Larry Wall: Computer Programming in 5 Minutes | Big Think [5m 23s]
-https://www.youtube.com/watch?v=UScm9avQM1Y
-# Title: What is life? A Nobel Prize-winning scientist answers | Paul Nurse Full Interview [43m 56s]
-https://www.youtube.com/watch?v=ZhZvMbNT_qc
-# Title: 3 Ways to Express Your Thoughts So That Everyone Will Understand You | Alan Alda | Big Think [4m 57s]
-https://www.youtube.com/watch?v=rrOnk0JnXW4
-# Title: How to Set & Achieve Goals | Huberman Lab Essentials [33m 18s]
-https://www.youtube.com/watch?v=zYuw-8pwnp8
-# Title: How to Breathe Correctly for Optimal Health, Mood, Learning & Performance [138m 50s]
-https://www.youtube.com/watch?v=x4m_PdFbu-s
-# Title: How to Quit Video Game, Pornography & Social Media Addiction | Dr. Andrew Huberman [9m 55s]
-https://www.youtube.com/watch?v=XXYNvwrVKdE
-# Title: Optimize Your Learning & Creativity With Science-Based Tools [90m 35s]
-https://www.youtube.com/watch?v=uuP-1ioh4LY
-# Title: The surprising habits of original thinkers | Adam Grant | TED [15m 25s]
-https://www.youtube.com/watch?v=fxbCHn6gE3U
-# Title: His Holiness Pope Francis | Why the only future worth building includes everyone | TED Talks [17m 52s]
-https://www.youtube.com/watch?v=36zrJfAFcuc
-# Title: What it takes to be a great leader | Roselinde Torres | TED [9m 20s]
-https://www.youtube.com/watch?v=aUYSDEYdmzw
-# Title: The Secret To Achieving the "Impossible" | Ravi Dubey | TEDxGGDSDCollege [18m 30s]
-https://www.youtube.com/watch?v=iQaiMoUn-zc
-# Title: What no one ever told you about people who are single | Bella DePaulo | TEDxUHasselt [18m 0s]
-https://www.youtube.com/watch?v=lyZysfafOAs
-# Title: Talk to Me | James Vlahos | Talks at Google [38m 20s]
-https://www.youtube.com/watch?v=BjVG3l3PeBk
-# Title: Fixing Failed States | Ashraf Ghani & Clare Lockhart | Talks at Google [60m 14s]
-https://www.youtube.com/watch?v=mplebSY9xM4
-# Title: Disucssing The Martian & Artemis | Andy Weir | Talks at Google [47m 17s]
-https://www.youtube.com/watch?v=gU8ERXvUk-8
-# Title: Consciousness in Artificial Intelligence | John Searle | Talks at Google [70m 38s]
-https://www.youtube.com/watch?v=rHKwIYsPXLg
-# Title: I Will Teach You to Be Rich | Ramit Sethi | Talks at Google [49m 51s]
-https://www.youtube.com/watch?v=BmAwa1nnB6w
-# Title: Social Physics: How Good Ideas Spread | Sandy Pentland | Talks at Google [54m 47s]
-https://www.youtube.com/watch?v=HMBl0ttu-Ow
-# Title: lecture 1 - CS50 2023 - C Programming with Harvard – Full Computer Science University Course. [148m 2s]
-https://www.youtube.com/watch?v=ixJMF3mWKsw
-# Title: CS50x 2023 - Lecture 5 - Data Structures [136m 12s]
-https://www.youtube.com/watch?v=X8h4dq9Hzq8
-# Title: AI Powered Pivot Camera - CS50 Fair 2024 at Yale [2m 0s]
-https://www.youtube.com/watch?v=Ew5Dcmccf5w
-# Title: CS50 2024 | Algoritmos (Aula 3) - Curso de Introdução à Ciência da Computação de Harvard [122m 12s]
-https://www.youtube.com/watch?v=kfky8NaCfR8
-# Title: 1. The Geometry of Linear Equations [39m 49s]
-https://www.youtube.com/watch?v=J7DzL2_Na80
-# Title: 9. Independence, Basis, and Dimension [50m 14s]
-https://www.youtube.com/watch?v=yjBerM5jWsc
-# Title: Overview of Differential Equations [14m 4s]
-https://www.youtube.com/watch?v=ghjOS7Q82s0
-# Title: 1. What is Computation? [43m 6s]
-https://www.youtube.com/watch?v=nykOeWgQcHM
-# Title: Lecture 2: Contradiction and Induction [79m 38s]
-https://www.youtube.com/watch?v=_NYsYuzMLs0
-# Title: Lecture 1A: Overview and Introduction to Lisp [72m 56s]
-https://www.youtube.com/watch?v=-J_xL4IGhJA
-# Title: Stanford CS230: Deep Learning | Autumn 2018 | Lecture 1 - Class Introduction & Logistics, Andrew Ng [67m 52s]
-https://www.youtube.com/watch?v=PySo_6S4ZAg
-# Title: Stanford CS229: Machine Learning - Linear Regression and Gradient Descent |  Lecture 2 (Autumn 2018) [78m 17s]
-https://www.youtube.com/watch?v=4b4MUYve_U8
-# Title: I Took Andrew Ng's Updated Machine Learning Specialization (2022) - Honest Review [7m 21s]
-https://www.youtube.com/watch?v=9ukK19Fh-hQ
-# Title: Last Lecture Series: “How to Win Without Crushing Your Soul” - Graham Weaver [34m 1s]
-https://www.youtube.com/watch?v=eQZO-MPpbJg
-# Title: Cosmology Lecture 1 [95m 47s]
-https://www.youtube.com/watch?v=P-medYaqVak
-# Title: Could Our Universe Be a Fake? | Episode 110 | Closer To Truth [26m 47s]
-https://www.youtube.com/watch?v=X6lbwcCI8TA
-# Title: What is Information? | Episode 1403 | Closer To Truth [26m 47s]
-https://www.youtube.com/watch?v=ekfG-PCk25g
-# Title: Does Philosophy Help Science? | Episode 1612 | Closer To Truth [26m 48s]
-https://www.youtube.com/watch?v=opkiJFUyeMs
-# Title: Is Consciousness the Ultimate Reality? | Swami Sarvapriyananda [14m 2s]
-https://www.youtube.com/watch?v=REagyz1_9Cc
-# Title: What is Extended Mind? | Episode 1811 | Closer To Truth [26m 48s]
-https://www.youtube.com/watch?v=rSngHyD44OY
-# Title: 2+2=5 in Java [3m 26s]
-https://www.youtube.com/watch?v=amXXYgu0eFY
-# Title: Rick Rubin “The Creative Act” Area of Thought 05. Reading & Reflection. [10m 50s]
-https://www.youtube.com/watch?v=OeH2qZI-49E
-# Title: Don't Let Them WIN | Best Lex Fridman Motivation [6m 27s]
-https://www.youtube.com/watch?v=jTsetgSIMmY
-# Title: Lex Fridman reacts to Bang Bang from Louis CK [10m 15s]
-https://www.youtube.com/watch?v=pHPytdI-LAY
-# Title: Lex Friedman - Audition for Ms. [2m 1s]
-https://www.youtube.com/watch?v=cVgVPfPgKpM
-# Title: Monty Hall Problem - Numberphile [5m 30s]
-https://www.youtube.com/watch?v=4Lb-6rxZxx0
-# Title: Fix a Wobbly Table (with Math) [7m 22s]
-https://www.youtube.com/watch?v=OuF-WB7mD6k
-# Title: Introductory Calculus: Oxford Mathematics 1st Year Student Lecture [58m 3s]
-https://www.youtube.com/watch?v=I3GWzXRectE
-# Title: Dr Shashi Tharoor MP - Britain Does Owe Reparations [15m 29s]
-https://www.youtube.com/watch?v=f7CW7S0zxv4
-# Title: Oxford University Law Interview - Law Faculty [25m 57s]
-https://www.youtube.com/watch?v=2AO5DyNC-Yg
+# Title: Quantum Fields: The Real Building Blocks of the Universe - with David Tong [60m 18s]
+https://www.youtube.com/watch?v=zNVQfWC_evg
+# Title: Fashion, Faith and Fantasy in Physics - with Roger Penrose [63m 51s]
+https://www.youtube.com/watch?v=iH4XJHJ8AOw
+# Title: How forensic scientists solve a murder | with Sue Black | CHRISTMAS LECTURES 2022 | 2/3 [58m 48s]
+https://www.youtube.com/watch?v=yIFcRjCq0TQ
+# Title: Christmas Lectures 2018: Where Do I Come From? - Alice Roberts and Aoife McLysaght [59m 40s]
+https://www.youtube.com/watch?v=bBgnqVLQm5s
+# Title: Why Everything You Thought You Knew About Quantum Physics is Different - with Philip Ball [42m 47s]
+https://www.youtube.com/watch?v=q7v5NtV8v6I
+# Title: Cosmic inflation: is it how the universe began? - with David Mulryne [67m 18s]
+https://www.youtube.com/watch?v=ZmkHQ9zNm8k
+# Title: The mind-bending reality of quantum mechanics - with Jim Al Khalili [61m 27s]
+https://www.youtube.com/watch?v=k-0pky806Fo
+# Title: 20. The Good Life: Happiness [47m 36s]
+https://www.youtube.com/watch?v=7dep9KPWp3g
+# Title: 11. Stocks [74m 15s]
+https://www.youtube.com/watch?v=Wj1GnT8xlj4
+# Title: 21. Thermodynamics [71m 28s]
+https://www.youtube.com/watch?v=mb8LqNlHeLY
+# Title: Graphs, Vectors and Machine Learning - Computerphile [23m 8s]
+https://www.youtube.com/watch?v=w0rOvNJW58o
+# Title: Von Neumann Architecture - Computerphile [16m 20s]
+https://www.youtube.com/watch?v=Ml3-kVYLNr8
+# Title: X & the Book Code - Computerphile [20m 0s]
+https://www.youtube.com/watch?v=JZ-qjmZZE4g
+# Title: Error Correction & International Book Codes - Computerphile [21m 13s]
+https://www.youtube.com/watch?v=bqtE6Q79PPs
+# Title: Analysis III - Integration: Oxford Mathematics 1st Year Student Lecture [54m 29s]
+https://www.youtube.com/watch?v=z_WsUNs6-iw
+# Title: Multivariable Calculus Lecture 4 - Oxford Mathematics 1st Year Student Lecture [48m 3s]
+https://www.youtube.com/watch?v=8UgL2fQfDNI
+# Title: 2016 Science Festival Keynote Address - Prof Tim Flannery [64m 33s]
+https://www.youtube.com/watch?v=gUuon4alGsQ
+# Title: The Moth and the World Science Festival Present Jim Gates: Go Tell It on the Mountain [20m 40s]
+https://www.youtube.com/watch?v=1yZ_m2PD3_g
+# Title: Watch "Science And Story" Highlights With Cory Doctorow, Joyce Carol Oates, And More [4m 55s]
+https://www.youtube.com/watch?v=6ocDZDbisYo
+# Title: Next in Science: Epidemiology | Part 1 || Radcliffe Institute [83m 47s]
+https://www.youtube.com/watch?v=OjkUwrKrydA
+# Title: 2026 Harvard Medical School and Harvard School of Dental Medicine Class Day: R.J. Russel [10m 41s]
+https://www.youtube.com/watch?v=cYufOF0XtYw
+# Title: Max Tegmark - What is Ultimate Reality? [12m 51s]
+https://www.youtube.com/watch?v=Mi8iuUqpe-w
+# Title: David Chalmers - Does Consciousness Defeat Materialism? [12m 49s]
+https://www.youtube.com/watch?v=PI-cESvGlKc
+# Title: How is God the Creator? | Episode 506 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=x-Ti2wzASfg
+# Title: The Closest We’ve Come to a Theory of Everything [32m 44s]
+https://www.youtube.com/watch?v=Q10_srZ-pbs
+# Title: The Most Controversial Idea In Biology [28m 50s]
+https://www.youtube.com/watch?v=XX7PdJIGiCw
+# Title: Math's Fundamental Flaw [34m 0s]
+https://www.youtube.com/watch?v=HeQX2HjkcNo
+# Title: The Surprising Secret of Synchronization [19m 29s]
+https://www.youtube.com/watch?v=t-_VPRCtiUg
+# Title: The unexpected logic behind rolling multiple dice and picking the highest. [27m 29s]
+https://www.youtube.com/watch?v=X_DdGRjtwAo
+# Title: Is there an equation for a triangle? [15m 50s]
+https://www.youtube.com/watch?v=4K-Jx914NcQ

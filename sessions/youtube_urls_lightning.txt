@@ -1,105 +1,122 @@
-# =============================================================================
-#  FaceKey Studio - Dedicated Queue for Lightning.ai Studios
-#  Assigned Videos: 50 | Partition: LIGHTNING (Zero Overlap)
-# =============================================================================
+# ==============================================================================
+# 🎬 FACEKEY DEDICATED QUEUE: LIGHTNING.AI (worker: lightning-worker-1)
+# 117 Unique Curated Speech Videos
+# ==============================================================================
 
-# Title: Jeffrey Brenzel: The Essential Value of a Classic Education | Big Think [56m 42s]
-https://www.youtube.com/watch?v=cVLpdzhcU0g
-# Title: The problem with pretending quantum mechanics makes sense | Sean Carroll [50m 19s]
-https://www.youtube.com/watch?v=u9YiM7LZ6b0
-# Title: Sean Carroll explains the biggest ideas in the universe | Full Interview [86m 40s]
-https://www.youtube.com/watch?v=_TBNJyztai0
-# Title: What 85 years of research says is the real key to happiness | Robert Waldinger: Full Interview [61m 38s]
-https://www.youtube.com/watch?v=_CxmzkYPvsg
-# Title: Harvard professor debunks the biggest exercise myths | Daniel Lieberman [4m 35s]
-https://www.youtube.com/watch?v=n6AwsVGJDOY
-# Title: Why the ultra rich get rich, explained in two charts | Brian Klaas [6m 25s]
-https://www.youtube.com/watch?v=_pUxqKqnMlQ
-# Title: The Science of Making & Breaking Habits [110m 39s]
-https://www.youtube.com/watch?v=Wcs2PFz5q6g
-# Title: How to Learn Skills Faster [112m 15s]
-https://www.youtube.com/watch?v=xJ0IBzCjEPk
-# Title: Science-Based Tools for Increasing Happiness [143m 44s]
-https://www.youtube.com/watch?v=LTGGyQS1fZE
-# Title: How to Make Learning as Addictive as Social Media | Duolingo's Luis Von Ahn | TED [12m 55s]
-https://www.youtube.com/watch?v=P6FORpg0KVo
-# Title: Who are you, really? The puzzle of personality | Brian Little | TED [15m 16s]
-https://www.youtube.com/watch?v=qYvXk_bqlBk
-# Title: Do You Talk to Yourself? Here’s How to Harness Your Inner Voice | Ethan Kross | TED [12m 53s]
-https://www.youtube.com/watch?v=xb0nLpdWttA
-# Title: How to stop screwing yourself over | Mel Robbins | TEDxSF [21m 40s]
-https://www.youtube.com/watch?v=Lp7E973zozc
-# Title: How to Talk Like a Native Speaker | Marc Green | TEDxHeidelberg [17m 38s]
-https://www.youtube.com/watch?v=Ti_gFEe1XNY
-# Title: My philosophy for a happy life | Sam Berns | TEDxMidAtlantic [12m 45s]
-https://www.youtube.com/watch?v=36m1o-tM05g
-# Title: How to Accept Yourself in a World Striving for Perfection | Haemin Sunim | Talks at Google [45m 34s]
-https://www.youtube.com/watch?v=g5DMrrCd_cQ
-# Title: Life After College | Jenny Blake | Talks at Google [38m 7s]
-https://www.youtube.com/watch?v=Y_TrCPZyd5g
-# Title: Thinking, Fast and Slow | Daniel Kahneman | Talks at Google [62m 27s]
-https://www.youtube.com/watch?v=CjVQJdIrDJ0
-# Title: Essentialism | Greg McKeown | Talks at Google [42m 32s]
-https://www.youtube.com/watch?v=sQKrt1-IDaE
-# Title: Valuation in Four Lessons | Aswath Damodaran | Talks at Google [61m 30s]
-https://www.youtube.com/watch?v=Z5chrxMuBoo
-# Title: CS50 Fall 2023 - Lecture 4 - Memory (live, unedited) [168m 15s]
-https://www.youtube.com/watch?v=kY7wcPMqKtA
-# Title: lecture 2 - CS50 2023 - Arrays -  Harvard – Full Computer Science University Course. [143m 23s]
-https://www.youtube.com/watch?v=H77sVaP1e68
-# Title: Bananagram Lab - CS50 Fair 2024 at Yale [2m 51s]
-https://www.youtube.com/watch?v=_LkG71cqUFg
-# Title: CS50 2024 | Flask (Aula 9) - Curso de Introdução à Ciência da Computação de Harvard [148m 37s]
-https://www.youtube.com/watch?v=3ZlkWgEnHmE
-# Title: Gil Strang's Final 18.06 Linear Algebra Lecture [65m 9s]
-https://www.youtube.com/watch?v=lUUte2o2Sn8
-# Title: Limits and Continuous Functions [36m 26s]
-https://www.youtube.com/watch?v=kAv5pahIevE
-# Title: 6. Column Space and Nullspace [46m 1s]
-https://www.youtube.com/watch?v=8o5Cmfpeo6g
-# Title: Lec 1 | MIT 6.00 Introduction to Computer Science and Programming, Fall 2008 [53m 30s]
-https://www.youtube.com/watch?v=k6U-i4gXkLM
-# Title: Lecture 15: Recursion [45m 19s]
-https://www.youtube.com/watch?v=Bbyp4VRbmyY
-# Title: 1. Introduction to Statistics [78m 3s]
-https://www.youtube.com/watch?v=VPZD_aij8H0
-# Title: Stanford CS230 | Autumn 2025 | Lecture 9: Career Advice in AI [105m 9s]
-https://www.youtube.com/watch?v=AuZoDsNmG_s
-# Title: Andrew Ng: Opportunities in AI - 2023 [36m 55s]
-https://www.youtube.com/watch?v=5p248yoa3oE
-# Title: Lecture 18 - Continous State MDP & Model Simulation | Stanford CS229: Machine Learning (Autumn 2018) [80m 15s]
-https://www.youtube.com/watch?v=QFu5nuc-S0s
-# Title: “AI and Our Economic Future” with Professor Chad Jones [60m 39s]
-https://www.youtube.com/watch?v=xBpGn3BDcOY
-# Title: Last Lecture Series: “Your Life as the Hero’s Journey,” Graham Weaver [53m 58s]
+https://www.youtube.com/watch?v=Y0Oa4Lp5fLE
+https://www.youtube.com/watch?v=eQZO-MPpbJg
+https://www.youtube.com/watch?v=Fsr4yrSAIAQ
+https://www.youtube.com/watch?v=F_7M4Hc-usM
+https://www.youtube.com/watch?v=0eFln_mdXGY
+https://www.youtube.com/watch?v=114i2Kz-LZA
 https://www.youtube.com/watch?v=WhkTFEzyqlo
-# Title: Alex O'Connor: God, Evil, and Why Reality Is So Strange (Full Conversation) [153m 35s]
+https://www.youtube.com/watch?v=x6TsR3y5Qfg
+https://www.youtube.com/watch?v=P-medYaqVak
+https://www.youtube.com/watch?v=UF8uR6Z6KLc
+https://www.youtube.com/watch?v=0SQor2z2QAU
+https://www.youtube.com/watch?v=DADXS8Gp_ok
+https://www.youtube.com/watch?v=qf_OGB6zazU
 https://www.youtube.com/watch?v=6LT2v7C6Xt0
-# Title: Sean Carroll on Physics, the Multiverse, and Quantum Mechanics | Closer To Truth Chats [57m 54s]
+https://www.youtube.com/watch?v=04evNPYg9TI
+https://www.youtube.com/watch?v=X6lbwcCI8TA
+https://www.youtube.com/watch?v=2aPmC_zQ8bI
+https://www.youtube.com/watch?v=IvwkMxgahA4
+https://www.youtube.com/watch?v=ed9ynT7N1s8
+https://www.youtube.com/watch?v=TqqFij2O3L0
 https://www.youtube.com/watch?v=YPb2Zkpx5dA
-# Title: Is Consciousness Ultimate Reality? | Episode 1513 | Closer To Truth [26m 48s]
+https://www.youtube.com/watch?v=bKapdscHwJ0
+https://www.youtube.com/watch?v=ekfG-PCk25g
+https://www.youtube.com/watch?v=DypFWCK4dnY
+https://www.youtube.com/watch?v=5T6VKwaR_vc
+https://www.youtube.com/watch?v=rDP1C1aaUYE
+https://www.youtube.com/watch?v=t048GYr47b8
 https://www.youtube.com/watch?v=ske-PYBCq54
-# Title: Acharya Prashant: Is Ego or Consciousness Fundamental? (Part 1) [111m 44s]
+https://www.youtube.com/watch?v=rSqLe_QbX10
+https://www.youtube.com/watch?v=opkiJFUyeMs
+https://www.youtube.com/watch?v=2i9UPTDUFJo
+https://www.youtube.com/watch?v=z5qtyOwsiEk
+https://www.youtube.com/watch?v=ezA8E_fj5XU
+https://www.youtube.com/watch?v=WBZ-8RVaUlM
 https://www.youtube.com/watch?v=fyif6U6kQxA
-# Title: Global Philosophy: Is Consciousness Ultimate? | Episode 2602 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=OF2U4V-ayAU
+https://www.youtube.com/watch?v=REagyz1_9Cc
+https://www.youtube.com/watch?v=m8jN7aL98R0
+https://www.youtube.com/watch?v=WTjQkGQno6g
+https://www.youtube.com/watch?v=UOUsQiZ7zeE
+https://www.youtube.com/watch?v=OzaYsIAa6cE
 https://www.youtube.com/watch?v=Dt8mkSfHHOw
-# Title: Judea Pearl: Concerns for AGI | AI Podcast Clips [2m 46s]
+https://www.youtube.com/watch?v=IhcLimQwlIw
+https://www.youtube.com/watch?v=rSngHyD44OY
+https://www.youtube.com/watch?v=ZIwzwTXBNK8
+https://www.youtube.com/watch?v=N7PnUfQgn1E
+https://www.youtube.com/watch?v=Lmq2VNLFvxM
+https://www.youtube.com/watch?v=0rd3TB_dIQo
 https://www.youtube.com/watch?v=s0nw1Y88aw0
-# Title: Judea Pearl: Should We Equip Robots with Religious Belief? | AI Podcast Clips [2m 33s]
+https://www.youtube.com/watch?v=HQKY8ZkfExg
+https://www.youtube.com/watch?v=amXXYgu0eFY
+https://www.youtube.com/watch?v=5vH__7w346Q
+https://www.youtube.com/watch?v=OhCv0-Uggxo
+https://www.youtube.com/watch?v=TfJ_XoAvPs0
+https://www.youtube.com/watch?v=lm64RB5q3fk
 https://www.youtube.com/watch?v=bu3q_pl-c3k
-# Title: Who is Hedgy? - A Story of Minimalism | AMA #5 - Ask Me Anything with Lex Fridman [18m 47s]
+https://www.youtube.com/watch?v=zoxlC-QnVxg
+https://www.youtube.com/watch?v=OeH2qZI-49E
+https://www.youtube.com/watch?v=-roHquYjvGA
+https://www.youtube.com/watch?v=NCIGxxG4tkI
+https://www.youtube.com/watch?v=t9t5Bsjb0Ms
+https://www.youtube.com/watch?v=0m3hGZvD-0s
 https://www.youtube.com/watch?v=KceRmxCnXDA
-# Title: All those moments will be lost in time like tears in rain | Jason Calacanis and Lex Fridman [8m 43s]
+https://www.youtube.com/watch?v=rxe15-lfU0U
+https://www.youtube.com/watch?v=jTsetgSIMmY
+https://www.youtube.com/watch?v=Wtbhb1DM30U
+https://www.youtube.com/watch?v=wKw1tpN7NVE
+https://www.youtube.com/watch?v=pRorAkMc-q4
+https://www.youtube.com/watch?v=ao3UoceiL2w
 https://www.youtube.com/watch?v=Jk59YpUc2dA
-# Title: LEX FRIEDMAN's Acting Reel [4m 21s]
+https://www.youtube.com/watch?v=rnHvF2KvYMc
+https://www.youtube.com/watch?v=pHPytdI-LAY
+https://www.youtube.com/watch?v=fXDRVFvNguw
+https://www.youtube.com/watch?v=qMJKkc-qTfI
+https://www.youtube.com/watch?v=uTEYq1fj-WM
+https://www.youtube.com/watch?v=B1lPJmQb7Vk
 https://www.youtube.com/watch?v=DJzmhGQpq_M
-# Title: Mathematician Explains Infinity in 5 Levels of Difficulty | WIRED [24m 44s]
+https://www.youtube.com/watch?v=DBpB_tGWLKo
+https://www.youtube.com/watch?v=cVgVPfPgKpM
+https://www.youtube.com/watch?v=X3l0fPHZja8
+https://www.youtube.com/watch?v=AuA2EAgAegE
+https://www.youtube.com/watch?v=7DHE8RnsCQ8
+https://www.youtube.com/watch?v=wKV0GYvR2X8
 https://www.youtube.com/watch?v=Vp570S6Plt8
-# Title: How did the NSA hack our emails? [10m 59s]
+https://www.youtube.com/watch?v=ERBVFcutl3M
+https://www.youtube.com/watch?v=4Lb-6rxZxx0
+https://www.youtube.com/watch?v=iW_LkYiuTKE
+https://www.youtube.com/watch?v=O4ndIDcDSGc
+https://www.youtube.com/watch?v=kaMKInkV7Vs
+https://www.youtube.com/watch?v=8l-La9HEUIU
 https://www.youtube.com/watch?v=ulg_AHBOIQU
-# Title: Fundamental Theorem of Algebra - Numberphile [15m 26s]
+https://www.youtube.com/watch?v=0iMtlus-afo
+https://www.youtube.com/watch?v=OuF-WB7mD6k
+https://www.youtube.com/watch?v=d6c6uIyieoo
+https://www.youtube.com/watch?v=Vp3sgYKULp0
+https://www.youtube.com/watch?v=m6rfpQXzXu0
+https://www.youtube.com/watch?v=uuMwz47LV_w
 https://www.youtube.com/watch?v=shEk8sz1oOw
-# Title: Prof. Tony Lynch - The Importance of Listening to International Students [64m 56s]
+https://www.youtube.com/watch?v=wtIhVwPruwY
+https://www.youtube.com/watch?v=I3GWzXRectE
+https://www.youtube.com/watch?v=BDqvzFY72mg
+https://www.youtube.com/watch?v=81jxfxLg9tg
+https://www.youtube.com/watch?v=cn1_jhqqNQ0
+https://www.youtube.com/watch?v=kBdfcR-8hEY
 https://www.youtube.com/watch?v=6Ql5mQdxeWk
-# Title: A day in the life of an Astrophysicist at Oxford University [18m 35s]
+https://www.youtube.com/watch?v=otrqzITuSqE
+https://www.youtube.com/watch?v=f7CW7S0zxv4
+https://www.youtube.com/watch?v=1pp07pHzGTY
+https://www.youtube.com/watch?v=ScX2aBFyrVU
+https://www.youtube.com/watch?v=R-qKLIlpZiQ
+https://www.youtube.com/watch?v=0mGAh2GlD6I
 https://www.youtube.com/watch?v=XW_qIqLhPkI
+https://www.youtube.com/watch?v=zMg9Gjz8PKs
+https://www.youtube.com/watch?v=2AO5DyNC-Yg
+https://www.youtube.com/watch?v=MieZJ0bxv7k
+https://www.youtube.com/watch?v=Gpf_ttt_c8M
+https://www.youtube.com/watch?v=BP7Ujbyu-NE

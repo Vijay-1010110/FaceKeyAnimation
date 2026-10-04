@@ -111,3 +111,25 @@ In **Google Colab**, simply run:
 ```
 
 This delta synchronizer checks all chunks on Hugging Face, skips any that are already in Drive, and downloads only new chunks at ~100 MB/s datacenter speed. Zero duplicate files, 100% verified.
+
+---
+
+## 📋 Queue Allocation & Isolation
+
+### 🛡️ Core Proven Services (The 351 Original Videos - 100% Preserved)
+| Service | Dedicated Queue File | Video Count |
+| :--- | :--- | :---: |
+| **Google Colab** | `sessions/youtube_urls_colab.txt` | **117 Videos** |
+| **Kaggle (GPU & CPU)** | `sessions/youtube_urls_kaggle.txt` | **117 Videos** |
+| **Lightning.ai Studios** | `sessions/youtube_urls_lightning.txt` | **117 Videos** |
+| **Core Total** | `sessions/youtubeURLtoProcess.txt` | **351 Videos** |
+
+### 🧪 Experimental Free Services (118 Brand-New Videos - 0% Overlap)
+| Service | Dedicated Queue File | Video Count |
+| :--- | :--- | :---: |
+| **GitHub Actions (3 Runners)** | `sessions/youtube_urls_gha.txt` | **30 New Videos** |
+| **GitHub Codespaces** | `sessions/youtube_urls_codespaces.txt` | **30 New Videos** |
+| **Google Cloud Shell** | `sessions/youtube_urls_cloudshell.txt` | **29 New Videos** |
+| **Hugging Face Spaces** | `sessions/youtube_urls_hfspace.txt` | **29 New Videos** |
+| **Experimental Total** | `sessions/youtube_urls_experimental_master.txt` | **118 New Videos** |
+
