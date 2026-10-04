@@ -200,9 +200,10 @@ def audit_and_heal(
                     )
                     # Copy complete chunk to Google Drive
                     shutil.copyfile(dl_file, target_chunk)
-                    # Free scratch disk space immediately
+                    # Free scratch disk space immediately (purge blobs to prevent disk buildup)
                     try:
-                        os.remove(dl_file)
+                        shutil.rmtree(temp_cache, ignore_errors=True)
+                        os.makedirs(temp_cache, exist_ok=True)
                     except Exception:
                         pass
                     print("[DONE [OK]]")
