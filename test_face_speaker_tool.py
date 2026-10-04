@@ -24,6 +24,7 @@ import sys
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["GLOG_minloglevel"] = "3"
 os.environ["ABSL_LOG_LEVEL"] = "error"
+os.environ["OPENCV_FFMPEG_THREADS"] = "4"
 
 import ctypes
 
