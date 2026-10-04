@@ -715,7 +715,7 @@ def worker_process_loop(
                     pass
 
         if ret_code != 0:
-            if stop_event.is_set() or ret_code in (-2, -9, -15, 130, 2):
+            if (stop_event and stop_event.is_set()) or ret_code in (-2, -9, -15, 130, 2):
                 print(f"[*] [WORKER {coordinator.worker_id}] Worker stopped cleanly by user. Releasing lock for '{key}'...")
                 coordinator.release_lock(key)
                 break

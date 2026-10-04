@@ -69,12 +69,10 @@ echo "[*] Worker Threads    : ${WORKER_THREADS} parallel workers"
 echo "[*] Target Queue File : ${DEFAULT_URLS}"
 echo "------------------------------------------------------------------------------"
 
-# 2. Ensure ffmpeg is installed
-if ! command -v ffmpeg &> /dev/null; then
-    echo "[*] Installing ffmpeg for media streaming..."
-    if command -v apt-get &> /dev/null; then
-        sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg || true
-    fi
+# 2. Ensure ffmpeg and OpenGL/EGL libraries are installed (required by MediaPipe on Linux)
+if command -v apt-get &> /dev/null; then
+    echo "[*] Checking system dependencies (ffmpeg, libEGL, libGL)..."
+    sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libegl1 libgl1 libglib2.0-0 libsm6 libxext6 || true
 fi
 
 # 3. Install Python requirements
