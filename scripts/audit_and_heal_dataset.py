@@ -56,6 +56,7 @@ def resolve_token(token_arg: Optional[str] = None) -> Optional[str]:
                     if t.startswith("hf_"):
                         return t
             except Exception:
+                pass
     if os.environ.get("HUGGINGFACE_HUB_TOKEN") and os.environ.get("HUGGINGFACE_HUB_TOKEN").startswith("hf_"):
         return os.environ.get("HUGGINGFACE_HUB_TOKEN")
     try:
