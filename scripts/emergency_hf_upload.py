@@ -180,9 +180,14 @@ for i, cf in enumerate(chunk_files, 1):
         success_count += 1
         total_bytes += os.path.getsize(cf)
         
-        # Free up disk space after upload
+        # Free up disk space after upload ONLY on ephemeral scratch disks (Kaggle/Lightning), NEVER delete from Google Drive!
         try:
-            os.remove(cf)
+            cf_norm = os.path.normpath(os.path.abspath(cf)).lower()
+            if "drive" in cf_norm or "gdrive" in cf_norm:
+                print(" [SAFEGUARD: Preserved in Google Drive]")
+            else:
+                os.remove(cf)
+                print(" [Ephemeral scratch disk freed]")
         except Exception:
             pass
     except Exception as e:
