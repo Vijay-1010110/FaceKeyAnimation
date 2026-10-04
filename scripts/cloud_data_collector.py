@@ -304,7 +304,8 @@ def worker_process_loop(
         try:
             download_success = False
             if turbo:
-                scratch_video = os.path.join(tempfile.gettempdir(), f"fka_scratch_{coordinator.worker_id}_{key}.mp4")
+                scratch_base = "/dev/shm" if os.path.exists("/dev/shm") and os.access("/dev/shm", os.W_OK) else tempfile.gettempdir()
+                scratch_video = os.path.join(scratch_base, f"fka_scratch_{coordinator.worker_id}_{key}.mp4")
                 print(f"[*] [WORKER {coordinator.worker_id}] Attempting fast 480p scratch download to: {scratch_video}...")
 
                 with DOWNLOAD_MUTEX:
