@@ -22,6 +22,8 @@ import subprocess
 import shutil
 import tempfile
 import threading
+import glob
+import json
 from typing import Optional, Dict, Any, List
 
 # Silence TensorFlow & MediaPipe C++ informational logs
@@ -347,7 +349,7 @@ def worker_process_loop(
                         {"client": "ios", "use_cookies": False},
                     ])
 
-                    fmt_spec = "bestvideo[height<=480]+bestaudio/best[height<=480]/18/best"
+                    fmt_spec = "best[height<=480][ext=mp4]/18/bestvideo[height<=480]+bestaudio/best[height<=480]/best"
 
                     for attempt in download_attempts:
                         if download_success:

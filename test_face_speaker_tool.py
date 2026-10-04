@@ -1686,7 +1686,7 @@ def main():
 
                 if args.quality == "480p" and frame_bgr.shape[0] > 480:
                     scale = 480.0 / frame_bgr.shape[0]
-                    frame_bgr = cv2.resize(frame_bgr, (int(frame_bgr.shape[1] * scale), 480), interpolation=cv2.INTER_AREA)
+                    frame_bgr = cv2.resize(frame_bgr, (int(frame_bgr.shape[1] * scale), 480), interpolation=cv2.INTER_LINEAR)
 
                 frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
 

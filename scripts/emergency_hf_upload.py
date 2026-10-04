@@ -67,12 +67,22 @@ if not token:
 repo_id = os.environ.get("HF_REPO", "VijayTheOne/facekey-dataset-chunks")
 
 # 3. Auto-pack unarchived raw session folders into chunks
-target_chunks_dir = "/teamspace/studios/this_studio/FaceKeyDataset/chunks" if os.path.exists("/teamspace/studios/this_studio") else (
-    "/kaggle/working/FaceKeyDataset/chunks" if os.path.exists("/kaggle/working") else os.path.abspath("FaceKeyDataset/chunks")
-)
+if os.path.exists("/content/drive/MyDrive/FaceKeyDataset/chunks"):
+    target_chunks_dir = "/content/drive/MyDrive/FaceKeyDataset/chunks"
+elif os.path.exists("/content"):
+    target_chunks_dir = "/content/FaceKeyDataset/chunks"
+elif os.path.exists("/teamspace/studios/this_studio"):
+    target_chunks_dir = "/teamspace/studios/this_studio/FaceKeyDataset/chunks"
+elif os.path.exists("/kaggle/working"):
+    target_chunks_dir = "/kaggle/working/FaceKeyDataset/chunks"
+else:
+    target_chunks_dir = os.path.abspath("FaceKeyDataset/chunks")
+
 os.makedirs(target_chunks_dir, exist_ok=True)
 
 sess_dirs = [
+    "/content/FaceKeyAnimation/sessions",
+    "/content/sessions",
     "/teamspace/studios/this_studio/FaceKeyAnimation/sessions",
     "/kaggle/working/FaceKeyAnimation/sessions",
     "/kaggle/working/sessions",
