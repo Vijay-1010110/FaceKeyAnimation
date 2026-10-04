@@ -263,6 +263,18 @@ def worker_process_loop(
 
         item = queue.get_next_pending(exclude_keys=locally_locked_keys)
         if not item:
+            # Check if there is a master queue with pending videos (e.g. sessions/youtubeURLtoProcess.txt)
+            master_urls = os.path.join(script_dir, "sessions", "youtubeURLtoProcess.txt")
+            if os.path.exists(master_urls) and getattr(queue, "urls_file", None) != master_urls:
+                master_q = StreamBatchQueue(project_root=script_dir, urls_file=master_urls)
+                master_q.sync_from_file()
+                master_item = master_q.get_next_pending(exclude_keys=locally_locked_keys)
+                if master_item:
+                    queue = master_q
+                    item = master_item
+                    print(f"[*] [WORKER {worker_id}] Dedicated queue completed! Automatically pulling next video from Master Queue (100h milestone push)...")
+
+        if not item:
             if locally_locked_keys:
                 locally_locked_keys.clear()
                 time.sleep(5)
