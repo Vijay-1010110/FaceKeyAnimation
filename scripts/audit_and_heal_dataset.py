@@ -56,7 +56,8 @@ def resolve_token(token_arg: Optional[str] = None) -> Optional[str]:
                     if t.startswith("hf_"):
                         return t
             except Exception:
-                pass
+    if os.environ.get("HUGGINGFACE_HUB_TOKEN") and os.environ.get("HUGGINGFACE_HUB_TOKEN").startswith("hf_"):
+        return os.environ.get("HUGGINGFACE_HUB_TOKEN")
     try:
         t_in = input("Enter Hugging Face Token (starts with hf_): ").strip()
         if t_in.startswith("hf_"):
@@ -72,15 +73,26 @@ def audit_and_heal(
     hf_token: Optional[str] = None,
     dry_run: bool = False
 ):
+    import shutil
     token = resolve_token(hf_token)
     api = HfApi(token=token)
+
+    # Auto-mount Google Drive if on Colab and not already mounted
+    if os.path.exists("/content") and not os.path.exists("/content/drive/MyDrive"):
+        try:
+            print("[*] Detecting Google Colab environment. Auto-mounting Google Drive...")
+            from google.colab import drive
+            drive.mount("/content/drive")
+            print("[+] Google Drive successfully mounted at /content/drive/MyDrive")
+        except Exception as me:
+            print(f"[!] Warning: Auto-mount encountered: {me}. Continuing...")
 
     print("=" * 86)
     print(" [SHIELD] FACEKEY MASTER REDUNDANCY, DEDUPLICATION & AUTO-HEAL ENGINE")
     print("=" * 86)
     print(f" Target Hugging Face Repo : https://huggingface.co/datasets/{repo_id}")
     print(f" Target Google Drive Dir  : {drive_dir}")
-    print(f" Mode                     : {'DRY RUN (Audit Only)' if dry_run else 'AUTO-HEAL (Active Synchronization)'}")
+    print(f" Mode                     : {'DRY RUN (Audit Only)' if dry_run else 'AUTO-HEAL (Active Dual Sync)'}")
     print("=" * 86)
 
     # 1. Audit Hugging Face Repository
@@ -169,18 +181,29 @@ def audit_and_heal(
     if not dry_run:
         # A. Download HF-only chunks into Google Drive
         if hf_only:
-            print(f"\n[*] [AUTO-HEAL 1/2] Downloading {len(hf_only)} chunk(s) from Hugging Face into Google Drive...")
+            print(f"\n[*] [AUTO-HEAL 1/2] Syncing {len(hf_only)} chunk(s) from Hugging Face into 5 TB Google Drive...")
+            temp_cache = "/tmp/fka_hf_cache"
+            os.makedirs(temp_cache, exist_ok=True)
             for idx, fname in enumerate(hf_only, 1):
                 c_info = hf_chunks[fname]
                 print(f"  [{idx}/{len(hf_only)}] Syncing to Drive: '{fname}' ({c_info['size_mb']:.1f} MB)...", end=" ", flush=True)
                 try:
-                    hf_hub_download(
+                    target_chunk = os.path.join(drive_chunks_dir, fname)
+                    # Download to fast local SSD first to protect Google Drive from partial/corrupt files
+                    dl_file = hf_hub_download(
                         repo_id=repo_id,
                         filename=c_info["path"],
                         repo_type="dataset",
                         token=token,
-                        local_dir=drive_dir
+                        cache_dir=temp_cache
                     )
+                    # Copy complete chunk to Google Drive
+                    shutil.copyfile(dl_file, target_chunk)
+                    # Free scratch disk space immediately
+                    try:
+                        os.remove(dl_file)
+                    except Exception:
+                        pass
                     print("[DONE [OK]]")
                 except Exception as dl_e:
                     print(f"[ERROR: {dl_e}]")
@@ -229,7 +252,7 @@ def audit_and_heal(
     print(f"  - Total Dataset Volume      : {total_dataset_mb / 1024:.2f} GB ({total_dataset_mb:.1f} MB)")
     print(f"  - Verified Training Duration: ~{est_hours:.1f} Hours of 3D Facial Animation Data")
     print(f"  - Milestone Progress (100h) : {min(100.0, est_hours):.1f}% Completed")
-    print(f"  - Redundancy Guarantee      : 100% Protected Across Dual Clouds")
+    print(f"  - Redundancy Guarantee      : 100% Protected Across Dual Clouds (HF Hub + 5TB Drive)")
     print("=" * 86 + "\n")
 
     # 7. Write Master Manifest Ledger
