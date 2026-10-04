@@ -241,6 +241,18 @@ def worker_process_loop(
     os.makedirs(local_sessions_dir, exist_ok=True)
     stream_registry = StreamRegistry(script_dir)
 
+    # Clean any orphaned scratch files from previous interrupted runs to free /dev/shm
+    for clean_dir in ["/dev/shm", tempfile.gettempdir(), os.path.join(script_dir, ".scratch")]:
+        if clean_dir and os.path.isdir(clean_dir):
+            try:
+                for orphaned in glob.glob(os.path.join(clean_dir, "fka_scratch_*")):
+                    try:
+                        os.remove(orphaned)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
     coordinator = CloudCoordinator(
         drive_folder=cloud_sync.drive_folder,
         worker_id=worker_id,
@@ -317,10 +329,42 @@ def worker_process_loop(
 
         try:
             download_success = False
+            use_turbo_for_this_video = turbo
             if turbo:
-                scratch_base = "/dev/shm" if os.path.exists("/dev/shm") and os.access("/dev/shm", os.W_OK) else tempfile.gettempdir()
-                scratch_video = os.path.join(scratch_base, f"fka_scratch_{coordinator.worker_id}_{key}.mp4")
-                print(f"[*] [WORKER {coordinator.worker_id}] Attempting fast 480p scratch download to: {scratch_video}...")
+                # Find scratch directory with AT LEAST 1.0 GB free disk space.
+                # In environments like Google Cloud Shell or restricted containers, /dev/shm is limited to 64 MB!
+                scratch_base = None
+                candidates = [
+                    "/dev/shm",
+                    os.path.join(script_dir, ".scratch"),
+                    tempfile.gettempdir()
+                ]
+                for cand in candidates:
+                    if cand and os.path.exists(cand) and os.access(cand, os.W_OK):
+                        try:
+                            free_mb = shutil.disk_usage(cand).free / (1024 * 1024)
+                            if free_mb >= 1000:  # At least 1000 MB free
+                                scratch_base = cand
+                                break
+                        except Exception:
+                            pass
+
+                if not scratch_base:
+                    local_scratch = os.path.join(script_dir, ".scratch")
+                    try:
+                        os.makedirs(local_scratch, exist_ok=True)
+                        if shutil.disk_usage(local_scratch).free / (1024 * 1024) >= 600:
+                            scratch_base = local_scratch
+                    except Exception:
+                        pass
+
+                if not scratch_base:
+                    print(f"[*] [WORKER {coordinator.worker_id}] Notice: Insufficient free scratch space (<600MB). Running zero-disk direct streaming mode!")
+                    use_turbo_for_this_video = False
+                else:
+                    scratch_video = os.path.join(scratch_base, f"fka_scratch_{coordinator.worker_id}_{key}.mp4")
+                    free_gb = shutil.disk_usage(scratch_base).free / (1024 * 1024 * 1024)
+                    print(f"[*] [WORKER {coordinator.worker_id}] Scratch location: {scratch_base} ({free_gb:.1f} GB free)")
 
                 with DOWNLOAD_MUTEX:
                     js_dict = get_js_runtimes()
@@ -378,12 +422,25 @@ def worker_process_loop(
                                 download_success = True
                                 break
                             else:
+                                if scratch_video and os.path.exists(scratch_video):
+                                    try:
+                                        os.remove(scratch_video)
+                                    except Exception:
+                                        pass
                                 err_tail = (proc.stderr or proc.stdout or "").strip()
                                 last_err = err_tail.splitlines()[-1] if err_tail else f"exit {proc.returncode}"
-                                if "bot" in last_err.lower() or "sign in" in last_err.lower():
+                                if "no space left" in last_err.lower() or "errno 28" in last_err.lower():
+                                    print(f"[!] [WORKER {coordinator.worker_id}] Scratch disk full. Falling back to zero-disk streaming mode.")
+                                    use_turbo_for_this_video = False
+                                    break
+                                elif "bot" in last_err.lower() or "sign in" in last_err.lower():
                                     print(f"[*] [WORKER {coordinator.worker_id}] Client '{attempt['client']}' flagged by YouTube bot check.")
                         except Exception:
-                            pass
+                            if scratch_video and os.path.exists(scratch_video):
+                                try:
+                                    os.remove(scratch_video)
+                                except Exception:
+                                    pass
 
                     # Fallback Strategy: Python API
                     if not download_success:
@@ -516,7 +573,7 @@ def worker_process_loop(
                         except Exception:
                             pass
 
-            if download_success:
+            if download_success and use_turbo_for_this_video and scratch_video and os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
                 print(f"[+] [WORKER {coordinator.worker_id}] Scratch file ready ({os.path.getsize(scratch_video)/1e6:.1f} MB). Running Turbo Processing @ 150+ FPS!")
                 cmd = [
                     python_exe, os.path.join(script_dir, "test_face_speaker_tool.py"),

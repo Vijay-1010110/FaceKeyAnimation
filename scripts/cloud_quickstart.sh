@@ -23,7 +23,7 @@ echo "==========================================================================
 ENV_NAME="generic-cloud"
 WORKER_PREFIX="cloud-worker"
 DEFAULT_URLS="sessions/youtubeURLtoProcess.txt"
-WORKER_THREADS=2
+EXTRA_FLAGS=""
 
 if [ -n "$CODESPACES" ] || [ -n "$GITHUB_CODESPACE_TOKEN" ]; then
     ENV_NAME="GitHub Codespaces"
@@ -34,7 +34,10 @@ elif [ -n "$DEVSHELL_PROJECT_ID" ] || [ -d "/google/devshell" ]; then
     ENV_NAME="Google Cloud Shell"
     WORKER_PREFIX="gcloud-shell"
     DEFAULT_URLS="sessions/youtube_urls_cloudshell.txt"
-    WORKER_THREADS=2
+    WORKER_THREADS=1
+    EXTRA_FLAGS="--no-turbo"
+    # Immediately clear any full /dev/shm or /tmp scratch files
+    rm -f /dev/shm/fka_scratch_* /tmp/fka_scratch_* 2>/dev/null || true
 elif [ -d "/kaggle/working" ]; then
     ENV_NAME="Kaggle Notebook"
     WORKER_PREFIX="kaggle-cpu"
@@ -139,4 +142,4 @@ python3 scripts/cloud_data_collector.py \
     --chunk-size 1 \
     --quality 480p \
     --num-workers "${WORKER_THREADS}" \
-    ${HF_ARGS} "$@"
+    ${HF_ARGS} ${EXTRA_FLAGS} "$@"
