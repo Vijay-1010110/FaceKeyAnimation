@@ -163,8 +163,12 @@ def upload_to_gdrive_service_account(
 
             if purge_after_upload:
                 try:
-                    os.remove(cf)
-                    total_freed_mb += filesize_mb
+                    cf_norm = os.path.normpath(os.path.abspath(cf)).lower()
+                    if "drive" in cf_norm or "gdrive" in cf_norm:
+                        pass
+                    else:
+                        os.remove(cf)
+                        total_freed_mb += filesize_mb
                 except Exception:
                     pass
         except Exception as e:
@@ -232,8 +236,12 @@ def upload_to_hf_hub(
             uploaded_count += 1
             if purge_after_upload:
                 try:
-                    os.remove(cf)
-                    total_freed_mb += filesize_mb
+                    cf_norm = os.path.normpath(os.path.abspath(cf)).lower()
+                    if "drive" in cf_norm or "gdrive" in cf_norm:
+                        print(" [SAFEGUARD: Preserved in Google Drive]")
+                    else:
+                        os.remove(cf)
+                        total_freed_mb += filesize_mb
                 except Exception:
                     pass
         except Exception as e:

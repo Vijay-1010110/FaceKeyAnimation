@@ -190,6 +190,9 @@ def _trigger_auto_upload(
 ):
     """Auto-uploads any packaged chunks to cloud (HF Hub or Google Drive) and cleans local disk."""
     sys.path.insert(0, os.path.dirname(__file__))
+    is_drive = "drive" in os.path.normpath(os.path.abspath(chunks_dir)).lower() or "gdrive" in os.path.normpath(os.path.abspath(chunks_dir)).lower()
+    purge_flag = not is_drive
+
     if hf_token and hf_repo:
         try:
             from cloud_drive_uploader import upload_to_hf_hub
@@ -198,7 +201,7 @@ def _trigger_auto_upload(
                 chunks_dir=chunks_dir,
                 hf_token=hf_token,
                 repo_id=hf_repo,
-                purge_after_upload=True
+                purge_after_upload=purge_flag
             )
         except Exception as he:
             print(f"[!] HF auto-upload warning: {he}")
@@ -210,7 +213,7 @@ def _trigger_auto_upload(
                 chunks_dir=chunks_dir,
                 service_account_json=sa_json,
                 folder_id=folder_id,
-                purge_after_upload=True
+                purge_after_upload=purge_flag
             )
         except Exception as ue:
             print(f"[!] Auto-upload warning: {ue}")
