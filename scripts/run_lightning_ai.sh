@@ -41,13 +41,14 @@ fi
 if command -v warp-cli &> /dev/null; then
     if ! pgrep -x "warp-svc" > /dev/null; then
         sudo warp-svc > /tmp/warp-svc.log 2>&1 &
-        sleep 2
+        sleep 4
     fi
     warp-cli --accept-tos registration new 2>/dev/null || warp-cli --accept-tos register 2>/dev/null || true
     warp-cli --accept-tos mode proxy 2>/dev/null || warp-cli --accept-tos set-mode proxy 2>/dev/null || true
     warp-cli --accept-tos proxy port 40000 2>/dev/null || warp-cli --accept-tos set-proxy-port 40000 2>/dev/null || true
+    warp-cli --accept-tos disconnect 2>/dev/null || true
     warp-cli --accept-tos connect 2>/dev/null || true
-    sleep 2
+    sleep 3
     if curl -s --socks5-hostname 127.0.0.1:40000 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null | grep -q "warp=on"; then
         echo "[+] Cloudflare WARP SOCKS5 proxy active on 127.0.0.1:40000 (AWS IP masked)!"
         PROXY_FLAG="--proxy socks5://127.0.0.1:40000"

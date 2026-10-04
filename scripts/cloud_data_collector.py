@@ -324,28 +324,37 @@ def worker_process_loop(
                     js_dict = get_js_runtimes()
 
                     # Robust multi-tiered download attempts:
-                    # 1. Standard web/mweb clients with authenticated cookies (DO NOT use android client with cookies)
-                    # 2. Unauthenticated clients (default, android, ios, android_vr) through proxy or clean IP
-                    download_attempts = []
+                    # 1. VisionOS client (Apple Vision Pro API - zero bot challenges, no reCAPTCHA, full 480p streams)
+                    # 2. Android VR & mobile clients (low bot challenge probability)
+                    # 3. Standard clients with authenticated cookies
+                    download_attempts = [
+                        {"client": "visionos", "use_cookies": False},
+                        {"client": "android_vr", "use_cookies": False},
+                        {"client": "default", "use_cookies": False},
+                        {"client": "mweb", "use_cookies": False},
+                        {"client": "web", "use_cookies": False},
+                    ]
                     if cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file):
-                        download_attempts.append({"client": "default", "use_cookies": True})
-                        download_attempts.append({"client": "web", "use_cookies": True})
-                        download_attempts.append({"client": "mweb", "use_cookies": True})
-                        download_attempts.append({"client": "web_safari", "use_cookies": True})
+                        download_attempts.extend([
+                            {"client": "visionos", "use_cookies": True},
+                            {"client": "default", "use_cookies": True},
+                            {"client": "web", "use_cookies": True},
+                            {"client": "mweb", "use_cookies": True},
+                            {"client": "web_safari", "use_cookies": True},
+                        ])
+                    download_attempts.extend([
+                        {"client": "android", "use_cookies": False},
+                        {"client": "ios", "use_cookies": False},
+                    ])
 
-                    download_attempts.append({"client": "default", "use_cookies": False})
-                    download_attempts.append({"client": "android", "use_cookies": False})
-                    download_attempts.append({"client": "ios", "use_cookies": False})
-                    download_attempts.append({"client": "android_vr", "use_cookies": False})
-                    download_attempts.append({"client": "web", "use_cookies": False})
-                    download_attempts.append({"client": "mweb", "use_cookies": False})
+                    fmt_spec = "bestvideo[height<=480]+bestaudio/best[height<=480]/18/best"
 
                     for attempt in download_attempts:
                         if download_success:
                             break
                         dl_cmd = [
                             sys.executable, "-m", "yt_dlp",
-                            "-f", "18/best[height<=480][ext=mp4]/bestvideo[height<=480]+bestaudio/best[height<=480]/best",
+                            "-f", fmt_spec,
                             "--no-warnings",
                             "--sleep-requests", "1",
                             "--merge-output-format", "mp4",
@@ -383,7 +392,7 @@ def worker_process_loop(
                             try:
                                 import yt_dlp
                                 ydl_opts = {
-                                    'format': '18/best[height<=480][ext=mp4]/bestvideo[height<=480]+bestaudio/best[height<=480]/best',
+                                    'format': fmt_spec,
                                     'outtmpl': scratch_video,
                                     'js_runtimes': js_dict,
                                     'quiet': True,
@@ -393,7 +402,7 @@ def worker_process_loop(
                                     'socket_timeout': 30,
                                 }
                                 if not use_c:
-                                    ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios', 'android_vr']}}
+                                    ydl_opts['extractor_args'] = {'youtube': {'player_client': ['visionos', 'android_vr', 'default']}}
                                 if proxy:
                                     ydl_opts['proxy'] = proxy
                                 if use_c and cookies_file:
@@ -413,17 +422,16 @@ def worker_process_loop(
                         try:
                             import yt_dlp
                             ydl_s_opts = {
-                                'format': '18/best[height<=480][ext=mp4]/best',
+                                'format': fmt_spec,
                                 'js_runtimes': js_dict,
                                 'quiet': True,
                                 'skip_download': True,
+                                'extractor_args': {'youtube': {'player_client': ['visionos', 'android_vr', 'default']}}
                             }
                             if proxy:
                                 ydl_s_opts['proxy'] = proxy
                             if cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file):
                                 ydl_s_opts['cookiefile'] = cookies_file
-                            else:
-                                ydl_s_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios', 'android_vr']}}
                             info_s = None
                             try:
                                 with yt_dlp.YoutubeDL(ydl_s_opts) as ydl_s:
@@ -460,6 +468,30 @@ def worker_process_loop(
                                 os.remove(scratch_video)
                             except Exception:
                                 pass
+
+                    # Fallback without proxy using visionos if proxy was rate-limited
+                    if not download_success and proxy:
+                        try:
+                            import yt_dlp
+                            ydl_nop = {
+                                'format': fmt_spec,
+                                'outtmpl': scratch_video,
+                                'js_runtimes': js_dict,
+                                'extractor_args': {'youtube': {'player_client': ['visionos', 'android_vr']}},
+                                'quiet': True,
+                                'no_warnings': True,
+                                'noprogress': True,
+                                'retries': 2,
+                                'socket_timeout': 30,
+                            }
+                            with yt_dlp.YoutubeDL(ydl_nop) as ydl:
+                                info = ydl.extract_info(raw_url, download=True)
+                                title = info.get('title', item_title)
+                                canonical_url = info.get('webpage_url') or canonical_url
+                            if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
+                                download_success = True
+                        except Exception:
+                            pass
 
                     # Extract title and canonical_url if not yet resolved
                     if download_success and (not title or title == item_title or title == "Pending Resolution"):
