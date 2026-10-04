@@ -58,6 +58,17 @@ if not token:
                 pass
 
 if not token:
+    try:
+        t_in = input("Enter Hugging Face Token (starts with hf_): ").strip()
+        if t_in.startswith("hf_"):
+            token = t_in
+            save_p = "/kaggle/working/hf_token.txt" if os.path.exists("/kaggle") else "hf_token.txt"
+            with open(save_p, "w", encoding="utf-8") as f:
+                f.write(token)
+    except Exception:
+        pass
+
+if not token:
     print("[ERROR] Hugging Face token not found!")
     print("Please set HF_TOKEN environment variable or run:")
     print("  echo 'your_hf_token' > hf_token.txt")
