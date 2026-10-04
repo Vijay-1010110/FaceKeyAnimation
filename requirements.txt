@@ -1,0 +1,14 @@
+# FaceKey Cloud Collector Requirements
+# Pinned for maximum cross-platform compatibility across Colab, Kaggle, Lightning, Codespaces, and GitHub Actions
+numpy<2
+yt-dlp[default]
+mediapipe
+opencv-python-headless
+sounddevice
+mss
+av
+scipy
+huggingface_hub
+pysocks
+requests
+tqdm

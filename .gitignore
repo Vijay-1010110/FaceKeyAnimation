@@ -6,9 +6,7 @@ __pycache__/
 # Large session recordings (Stored in Google Drive / Chunks, not in Git)
 sessions/*
 !sessions/youtubeURLtoProcess.txt
-!sessions/youtube_urls_colab.txt
-!sessions/youtube_urls_kaggle.txt
-!sessions/youtube_urls_lightning.txt
+!sessions/youtube_urls_*.txt
 !sessions/.gitkeep
 
 # Checkpoints and Model Weights (Saved in Google Drive)

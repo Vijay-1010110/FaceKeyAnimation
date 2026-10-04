@@ -1,122 +1,107 @@
-# ==============================================================================
-# 🎬 FACEKEY DEDICATED QUEUE: GOOGLE COLAB (worker: colab-worker-1)
-# 117 Unique Curated Speech Videos
-# ==============================================================================
+# =============================================================================
+#  FaceKey Studio - Dedicated Queue for Google Colab Free Workers
+#  Assigned Videos: 51 | Partition: COLAB (Zero Overlap)
+# =============================================================================
 
+# Title: How to live an intellectual life | Zena Hitz | Big Think [5m 13s]
 https://www.youtube.com/watch?v=APCWOBUZNjc
-https://www.youtube.com/watch?v=whPIzfm-Xng
-https://www.youtube.com/watch?v=cVLpdzhcU0g
-https://www.youtube.com/watch?v=mq10ZvZgxy4
-https://www.youtube.com/watch?v=9fpztV4oMd4
-https://www.youtube.com/watch?v=BjmPvovl-V4
-https://www.youtube.com/watch?v=nGrRf1wD320
+# Title: Consciousness Is a Narrative Created by Your Unconscious Mind | Dean Buonomano | Big Think [4m 20s]
 https://www.youtube.com/watch?v=mMJQVxkBCBA
-https://www.youtube.com/watch?v=U88jj6PSD7w
-https://www.youtube.com/watch?v=u9YiM7LZ6b0
-https://www.youtube.com/watch?v=9OcdV27iDxE
-https://www.youtube.com/watch?v=nwOW3thvw-E
-https://www.youtube.com/watch?v=yzNzjg1c0V4
-https://www.youtube.com/watch?v=MiDhosleZA4
+# Title: Big Think Interview With Robert McKee | Big Think [60m 39s]
 https://www.youtube.com/watch?v=MMrPdxLqIlU
-https://www.youtube.com/watch?v=g_tmTYznG3o
-https://www.youtube.com/watch?v=_TBNJyztai0
-https://www.youtube.com/watch?v=LViE-cD_WJQ
-https://www.youtube.com/watch?v=UScm9avQM1Y
-https://www.youtube.com/watch?v=Q8QxTRI72js
-https://www.youtube.com/watch?v=vnT8FCqy9B4
+# Title: The political philosophy that changed the world | Jonathan Rauch: Full Interview [90m 17s]
 https://www.youtube.com/watch?v=fzol1qf9qTo
-https://www.youtube.com/watch?v=d_YZWaSeHws
-https://www.youtube.com/watch?v=_CxmzkYPvsg
-https://www.youtube.com/watch?v=UD9IOllUR4k
-https://www.youtube.com/watch?v=ZhZvMbNT_qc
-https://www.youtube.com/watch?v=RGbZsE7qFgw
-https://www.youtube.com/watch?v=tcbxIoERm6w
+# Title: Why loneliness feels so real, even when it’s not | Kasley Killam [8m 0s]
 https://www.youtube.com/watch?v=DC9-StcwNFU
-https://www.youtube.com/watch?v=IDj1OBG5Tpw
-https://www.youtube.com/watch?v=n6AwsVGJDOY
-https://www.youtube.com/watch?v=iVJDwHZFWY8
-https://www.youtube.com/watch?v=rrOnk0JnXW4
-https://www.youtube.com/watch?v=BHEhxPuMmQI
-https://www.youtube.com/watch?v=znwUCNrjpD4
+# Title: The psychology of persuasion, as told by an Ivy League professor | Jonah Berger for Big Think+ [6m 24s]
 https://www.youtube.com/watch?v=UXFRgMb9TTw
-https://www.youtube.com/watch?v=e-or_D-qNqM
-https://www.youtube.com/watch?v=_pUxqKqnMlQ
-https://www.youtube.com/watch?v=Pmd6knanPKw
-https://www.youtube.com/watch?v=zYuw-8pwnp8
-https://www.youtube.com/watch?v=ddq8JIMhz7c
-https://www.youtube.com/watch?v=tpntW9Tte4M
+# Title: How to Increase Motivation & Drive | Huberman Lab Essentials [34m 8s]
 https://www.youtube.com/watch?v=OLQRAMZi--c
-https://www.youtube.com/watch?v=nDLb8_wgX50
-https://www.youtube.com/watch?v=Wcs2PFz5q6g
-https://www.youtube.com/watch?v=35lS7gJVTyA
-https://www.youtube.com/watch?v=x4m_PdFbu-s
-https://www.youtube.com/watch?v=ssP31IenzYA
-https://www.youtube.com/watch?v=LG53Vxum0as
+# Title: The Science of Setting & Achieving Goals [114m 23s]
 https://www.youtube.com/watch?v=t1F7EEGPQwo
-https://www.youtube.com/watch?v=QmOF0crdyRU
-https://www.youtube.com/watch?v=xJ0IBzCjEPk
-https://www.youtube.com/watch?v=wAZn9dF3XTo
-https://www.youtube.com/watch?v=XXYNvwrVKdE
-https://www.youtube.com/watch?v=BRG4_KfTxbs
-https://www.youtube.com/watch?v=Ibj1k3IZTNU
+# Title: How to Properly Hydrate & How Much Water to Drink Each Day | Dr. Andrew Huberman [11m 19s]
 https://www.youtube.com/watch?v=lwOPaNMTGh8
-https://www.youtube.com/watch?v=cwakOgHIT0E
-https://www.youtube.com/watch?v=LTGGyQS1fZE
-https://www.youtube.com/watch?v=hcuMLQVAgEg
-https://www.youtube.com/watch?v=uuP-1ioh4LY
-https://www.youtube.com/watch?v=L5J6sgQLvuE
-https://www.youtube.com/watch?v=x7qbJeRxWGw
+# Title: Why Drinkers Can’t Stand Non-Drinkers - Andrew Huberman [14m 51s]
 https://www.youtube.com/watch?v=QlBh0Gqq77Q
-https://www.youtube.com/watch?v=8S0FDjFBj8o
-https://www.youtube.com/watch?v=P6FORpg0KVo
-https://www.youtube.com/watch?v=eHJnEHyyN1Y
-https://www.youtube.com/watch?v=fxbCHn6gE3U
-https://www.youtube.com/watch?v=lKsvLGdoIH8
-https://www.youtube.com/watch?v=bsxJVgb6Kls
+# Title: Thoughts on humanity, fame and love | Shah Rukh Khan | TED [17m 52s]
 https://www.youtube.com/watch?v=0NV1KdWRHck
-https://www.youtube.com/watch?v=qp0HIF3SfI4
-https://www.youtube.com/watch?v=qYvXk_bqlBk
-https://www.youtube.com/watch?v=yHGRBTZI6w0
-https://www.youtube.com/watch?v=36zrJfAFcuc
-https://www.youtube.com/watch?v=8jPQjjsBbIc
-https://www.youtube.com/watch?v=dIYmzf21d1g
+# Title: What really matters at the end of life | BJ Miller | TED [19m 8s]
 https://www.youtube.com/watch?v=apbSsILLh28
-https://www.youtube.com/watch?v=o_XVt5rdpFY
-https://www.youtube.com/watch?v=xb0nLpdWttA
-https://www.youtube.com/watch?v=BwFOwyoH-3g
-https://www.youtube.com/watch?v=aUYSDEYdmzw
-https://www.youtube.com/watch?v=UsV9K6eZZLE
-https://www.youtube.com/watch?v=YnuQwMp0oxU
+# Title: A one minute TEDx Talk for the digital age | Woody Roseland | TEDxMileHigh [1m 21s]
 https://www.youtube.com/watch?v=1aA1WGON49E
-https://www.youtube.com/watch?v=7sxpKhIbr0E
-https://www.youtube.com/watch?v=Lp7E973zozc
-https://www.youtube.com/watch?v=Yk983AQG7rA
-https://www.youtube.com/watch?v=iQaiMoUn-zc
-https://www.youtube.com/watch?v=ljqra3BcqWM
-https://www.youtube.com/watch?v=vlpKyLklDDY
+# Title: How to talk to the worst parts of yourself | Karen Faith | TEDxKC [14m 32s]
 https://www.youtube.com/watch?v=gUV5DJb6KGs
-https://www.youtube.com/watch?v=veEQQ-N9xWU
-https://www.youtube.com/watch?v=Ti_gFEe1XNY
-https://www.youtube.com/watch?v=w-HYZv6HzAs
-https://www.youtube.com/watch?v=lyZysfafOAs
-https://www.youtube.com/watch?v=TQMbvJNRpLE
-https://www.youtube.com/watch?v=21j_OCNLuYg
+# Title: Why you should speak to strangers | Praveen Wadalkar | TEDxIESMCRC [12m 50s]
 https://www.youtube.com/watch?v=g6HnOku6KUs
-https://www.youtube.com/watch?v=4-079YIasck
-https://www.youtube.com/watch?v=36m1o-tM05g
-https://www.youtube.com/watch?v=i0a61wFaF8A
-https://www.youtube.com/watch?v=BjVG3l3PeBk
-https://www.youtube.com/watch?v=J5W36VWNd9E
-https://www.youtube.com/watch?v=fEvKo90qBns
+# Title: The Sociology of Connection | Eric Klinenberg | Talks at Google [64m 49s]
 https://www.youtube.com/watch?v=jzcMjFUujT8
-https://www.youtube.com/watch?v=knU_JzbgQHs
-https://www.youtube.com/watch?v=g5DMrrCd_cQ
-https://www.youtube.com/watch?v=Wq6cv7V0cTo
-https://www.youtube.com/watch?v=mplebSY9xM4
-https://www.youtube.com/watch?v=T71ibcZAX3I
-https://www.youtube.com/watch?v=yx3G2wMuHjQ
+# Title: The Power of the Highly Sensitive Person | Andre Sólo & Jenn Granneman | Talks at Google [44m 46s]
 https://www.youtube.com/watch?v=7ZrGP4qlgrw
-https://www.youtube.com/watch?v=Mn-q529ExFw
-https://www.youtube.com/watch?v=Y_TrCPZyd5g
-https://www.youtube.com/watch?v=1qObDH0uYh4
-https://www.youtube.com/watch?v=gU8ERXvUk-8
+# Title: Barbara Oakley | Learning How to Learn | Talks at Google [68m 42s]
+https://www.youtube.com/watch?v=vd2dtkMINIw
+# Title: Social Intelligence | Daniel Goleman | Talks at Google [55m 53s]
+https://www.youtube.com/watch?v=-hoo_dIOP8k
+# Title: Sadhguru | Developing an Inclusive Consciousness | Talks at Google [66m 20s]
+https://www.youtube.com/watch?v=QQn8X4FbpTM
+# Title: CS50 Cybersecurity - Lecture 0 - Securing Accounts [73m 7s]
+https://www.youtube.com/watch?v=kUovJpWqEMk
+# Title: CS50 Cybersecurity - Lecture 1 - Securing Data [115m 22s]
+https://www.youtube.com/watch?v=X3DVaMnl5n8
+# Title: Harvard Cooks - CS50 Fair 2024 at Harvard [2m 36s]
+https://www.youtube.com/watch?v=ZsS23y7TWSM
+# Title: CS50 2024 | C (Aula 1) - Curso de Introdução à Ciência da Computação de Harvard [147m 41s]
+https://www.youtube.com/watch?v=fPYL-UDMSug
+# Title: CS50 Filter Solution 2024 - Week 4 Problem Set - Filter-less Solution 2024. (Beginners Guide) [30m 43s]
+https://www.youtube.com/watch?v=M79wIRZ9FmM
+# Title: An Interview with Gilbert Strang on Teaching Linear Algebra [7m 34s]
+https://www.youtube.com/watch?v=7UJ4CFRGd-U
+# Title: 4. Factorization into A = LU [48m 5s]
+https://www.youtube.com/watch?v=MsIvs_6vC38
+# Title: 22. Diagonalization and Powers of A [51m 50s]
+https://www.youtube.com/watch?v=13r9QY6cmjc
+# Title: Lec 2 | MIT 6.042J Mathematics for Computer Science, Fall 2010 [79m 25s]
+https://www.youtube.com/watch?v=z8HKWUWS-lA
+# Title: Lecture 6B: Streams, Part 2 [63m 1s]
+https://www.youtube.com/watch?v=qp05AtXbOP0
+# Title: Stanford CS230 | Autumn 2025 | Lecture 1: Introduction to Deep Learning [60m 17s]
+https://www.youtube.com/watch?v=_NLHFoVNlbg
+# Title: Lecture 15 - PCA and ICA | Stanford CS229: Machine Learning Andrew Ng - Autumn 2018 [78m 35s]
+https://www.youtube.com/watch?v=dyb_cFywuik
+# Title: What is it like working in an AI lab? - Chelsea Finn & Andrew Ng [1m 16s]
+https://www.youtube.com/watch?v=NJg0CtLd4BU
+# Title: Last Lecture Series: “How to Live an Asymmetric Life,” Graham Weaver [33m 5s]
+https://www.youtube.com/watch?v=dZxbVGhpEkI
+# Title: Power: Why Some People Have It and Others Don't [8m 11s]
+https://www.youtube.com/watch?v=0eFln_mdXGY
+# Title: What Things Really Exist? | Episode 304 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=DADXS8Gp_ok
+# Title: Is Consciousness Fundamental? | Episode 308 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=ed9ynT7N1s8
+# Title: When Science and Religion Become Dogmatic | Philip Kurian [9m 39s]
+https://www.youtube.com/watch?v=rDP1C1aaUYE
+# Title: Eastern Traditions: What is World? What is Reality? | Episode 2401 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=ezA8E_fj5XU
+# Title: Can There Be a Philosophy of the Bible? | Peter van Inwagen [8m 29s]
+https://www.youtube.com/watch?v=UOUsQiZ7zeE
+# Title: Why You Can't Stop Criticizing Yourself | Therapist Analysis [15m 20s]
+https://www.youtube.com/watch?v=Lmq2VNLFvxM
+# Title: 12 Min Recap: Lex Fridman with Elon Musk | Summary Smoothie [11m 57s]
+https://www.youtube.com/watch?v=TfJ_XoAvPs0
+# Title: Evolution of Life and Universe | Lex Fridman Podcast | Lee Cronin | Podcast Summary | The Pod Slice [29m 10s]
+https://www.youtube.com/watch?v=t9t5Bsjb0Ms
+# Title: Whitney Cummings: Neurology and Mind over Matter | AI Podcast Clips [12m 4s]
+https://www.youtube.com/watch?v=pRorAkMc-q4
+# Title: Elon Musk Thought Provoking Monologue on Life on Earth and the Future of Human Civilization [1m 46s]
+https://www.youtube.com/watch?v=uTEYq1fj-WM
+# Title: The Centrifuge Problem - Numberphile [9m 18s]
+https://www.youtube.com/watch?v=7DHE8RnsCQ8
+# Title: Equally sharing a cake between three people - Numberphile [7m 33s]
+https://www.youtube.com/watch?v=kaMKInkV7Vs
+# Title: Math vs Physics - Numberphile [13m 53s]
+https://www.youtube.com/watch?v=m6rfpQXzXu0
+# Title: Daniel Markovits | Meritocracy Debate | Propositon (3/8) | Oxford Union [11m 3s]
+https://www.youtube.com/watch?v=cn1_jhqqNQ0
+# Title: Mishal Husain - 'Empire, Identity and the Search for Reason' Romanes Lecture 2025 [43m 2s]
+https://www.youtube.com/watch?v=R-qKLIlpZiQ
+# Title: Introduction to Complex Numbers: Lecture 2 - Oxford Mathematics 1st Year Student Lecture [50m 4s]
+https://www.youtube.com/watch?v=BP7Ujbyu-NE

@@ -1,0 +1,13 @@
+gradio>=4.44.0
+numpy<2
+yt-dlp[default]
+mediapipe
+opencv-python-headless
+sounddevice
+mss
+av
+scipy
+huggingface_hub
+pysocks
+requests
+tqdm

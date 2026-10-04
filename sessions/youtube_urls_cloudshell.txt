@@ -1,0 +1,105 @@
+# =============================================================================
+#  FaceKey Studio - Dedicated Queue for Google Cloud Shell (50 Free Hrs/Wk)
+#  Assigned Videos: 50 | Partition: CLOUDSHELL (Zero Overlap)
+# =============================================================================
+
+# Title: The 4 biggest ideas in philosophy, with legend Daniel Dennett for Big Think+ [11m 32s]
+https://www.youtube.com/watch?v=nGrRf1wD320
+# Title: How to Deal With a Panic Attack  | Big Think [3m 23s]
+https://www.youtube.com/watch?v=MiDhosleZA4
+# Title: 3 experts reveal how psychedelics can expand the walls of perception [5m 54s]
+https://www.youtube.com/watch?v=vnT8FCqy9B4
+# Title: A neuroscientist’s guide to reclaiming your brain | Nicole Vignola [6m 25s]
+https://www.youtube.com/watch?v=tcbxIoERm6w
+# Title: How to enter ‘flow state’ on command | Steven Kotler for Big Think [7m 12s]
+https://www.youtube.com/watch?v=znwUCNrjpD4
+# Title: Erasing Fears & Traumas Using Modern Neuroscience | Huberman Lab Essentials [35m 5s]
+https://www.youtube.com/watch?v=tpntW9Tte4M
+# Title: How to Focus to Change Your Brain [89m 43s]
+https://www.youtube.com/watch?v=LG53Vxum0as
+# Title: How to Control Your Cortisol & Overcome Burnout [136m 16s]
+https://www.youtube.com/watch?v=Ibj1k3IZTNU
+# Title: How to Control Your Metabolism by Thyroid & Growth Hormone [106m 1s]
+https://www.youtube.com/watch?v=x7qbJeRxWGw
+# Title: The Trick to Powerful Public Speaking | Lawrence Bernstein | TED [14m 39s]
+https://www.youtube.com/watch?v=bsxJVgb6Kls
+# Title: How to Claim Your Leadership Power | Michael Timms | TED [11m 27s]
+https://www.youtube.com/watch?v=dIYmzf21d1g
+# Title: Think Like a Lawyer | Adam Lange | TEDxGrinnellCollege [12m 54s]
+https://www.youtube.com/watch?v=YnuQwMp0oxU
+# Title: Great leadership starts with self-leadership | Lars Sudmann | TEDxUCLouvain [12m 47s]
+https://www.youtube.com/watch?v=vlpKyLklDDY
+# Title: Life is easy. Why do we make it so hard? | Jon Jandai | TEDxDoiSuthep [15m 10s]
+https://www.youtube.com/watch?v=21j_OCNLuYg
+# Title: The Lean Startup | Eric Ries | Talks at Google [58m 9s]
+https://www.youtube.com/watch?v=fEvKo90qBns
+# Title: Stop Being Lonely | Kira Asatryan | Talks at Google [42m 12s]
+https://www.youtube.com/watch?v=yx3G2wMuHjQ
+# Title: Carlo Rovelli | Helgoland: Making Sense of the Quantum Revolution | Talks at Google [61m 9s]
+https://www.youtube.com/watch?v=gpWf2wyGQ0Q
+# Title: Contagious: Why Things Catch On | Jonah Berger | Talks at Google [40m 48s]
+https://www.youtube.com/watch?v=FN4eDk1pq6U
+# Title: Understanding Linguistics | Noam Chomsky | Talks at Google [62m 42s]
+https://www.youtube.com/watch?v=Y3PwG4UoJ0Y
+# Title: Hack Club AMA with David J. Malan (Harvard's CS50 Instructor) [66m 2s]
+https://www.youtube.com/watch?v=Vvcuk_uGCuY
+# Title: This is CS50x 2023 [1m 15s]
+https://www.youtube.com/watch?v=WHcgVxTYIyc
+# Title: Is Harvard CS50 the Best Beginner Programming Course in 2024? [12m 57s]
+https://www.youtube.com/watch?v=kBCm8bf1IsI
+# Title: CS50 2024 | Scratch (Aula 0) - Curso de Introdução à Ciência da Computação de Harvard [124m 55s]
+https://www.youtube.com/watch?v=mR6jktYAOqs
+# Title: CS50 2024 | Cibersegurança (Aula 10) - Introdução à Ciência da Computação [91m 17s]
+https://www.youtube.com/watch?v=yYXVHSw25P4
+# Title: 2. Elimination with Matrices. [47m 42s]
+https://www.youtube.com/watch?v=QVKj3LADCnA
+# Title: The Exponential Function [38m 54s]
+https://www.youtube.com/watch?v=oo1ZZlvT2LQ
+# Title: How to Speak [63m 43s]
+https://www.youtube.com/watch?v=Unzc731iCUY
+# Title: Lecture 1: Introduction to CS and Programming Using Python [63m 30s]
+https://www.youtube.com/watch?v=xAcTmDO6NTI
+# Title: Lecture 8: Functions as Objects [77m 46s]
+https://www.youtube.com/watch?v=0fEJFRKJN4U
+# Title: Andrew Ng: One Skill to Stay Relevant in the Age of AI [1m 29s]
+https://www.youtube.com/watch?v=HTlf3KNNez0
+# Title: Locally Weighted & Logistic Regression | Stanford CS229: Machine Learning - Lecture 3 (Autumn 2018) [79m 34s]
+https://www.youtube.com/watch?v=het9HFqo1TQ
+# Title: Stanford CS229 Machine Learning | Spring 2026 | Lecture 1: Introduction [36m 59s]
+https://www.youtube.com/watch?v=DATnpGoGhM8
+# Title: Last Lecture Series: How to Live your Life at Full Power — Graham Weaver [33m 27s]
+https://www.youtube.com/watch?v=uxoCnxlxpIk
+# Title: Stanford CS153 Frontier Systems | Scale, AGI, and the Future of Everything [41m 10s]
+https://www.youtube.com/watch?v=F_7M4Hc-usM
+# Title: Last Lecture Series: How to Design a Winnable Game – Graham Weaver [29m 1s]
+https://www.youtube.com/watch?v=0SQor2z2QAU
+# Title: What is Philosophy of Science? | Episode 1611 | Closer To Truth [26m 48s]
+https://www.youtube.com/watch?v=IvwkMxgahA4
+# Title: Does Information Create the Cosmos? | Episode 1406 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=5T6VKwaR_vc
+# Title: What Exists? | Episode 1710 | Closer To Truth [26m 48s]
+https://www.youtube.com/watch?v=z5qtyOwsiEk
+# Title: How To Think About God's Existence | Episode 701 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=WTjQkGQno6g
+# Title: Thoughts about Joe Rogan moving to Spotify | Grant Sanderson and Lex Fridman [5m 28s]
+https://www.youtube.com/watch?v=N7PnUfQgn1E
+# Title: Judea Pearl: Descartes Was the Greatest Mathematician of All Time | AI Podcast Clips [2m 41s]
+https://www.youtube.com/watch?v=OhCv0-Uggxo
+# Title: Judea Pearl: What is Probability? | AI Podcast Clips [1m 48s]
+https://www.youtube.com/watch?v=NCIGxxG4tkI
+# Title: Do Something Difficult Every Day | AMA #1 - Ask Me Anything with Lex Fridman [4m 53s]
+https://www.youtube.com/watch?v=wKw1tpN7NVE
+# Title: Lex Fridman, Kanye West and The Future of Living in Pods [2m 0s]
+https://www.youtube.com/watch?v=qMJKkc-qTfI
+# Title: e (Euler's Number) - Numberphile [10m 42s]
+https://www.youtube.com/watch?v=AuA2EAgAegE
+# Title: Gödel's Incompleteness Theorem - Numberphile [13m 52s]
+https://www.youtube.com/watch?v=O4ndIDcDSGc
+# Title: The Fields Medal (with Cédric Villani) - Numberphile [9m 53s]
+https://www.youtube.com/watch?v=Vp3sgYKULp0
+# Title: Introduction to Complex Numbers: Lecture 1 - Oxford Mathematics 1st Year Student Lecture [46m 6s]
+https://www.youtube.com/watch?v=81jxfxLg9tg
+# Title: Information Theory, Lecture 1: Defining Entropy and Information - Oxford Mathematics 3rd Yr Lecture [53m 46s]
+https://www.youtube.com/watch?v=ScX2aBFyrVU
+# Title: What is AI ethics? Oxford Professor Edward Harcourt explains [2m 54s]
+https://www.youtube.com/watch?v=Gpf_ttt_c8M

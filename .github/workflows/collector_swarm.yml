@@ -1,0 +1,95 @@
+name: FaceKey Swarm Collector
+
+on:
+  workflow_dispatch:
+    inputs:
+      num_parallel_runners:
+        description: 'Number of parallel runners (1-4)'
+        required: true
+        default: '3'
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+      hf_token:
+        description: 'Optional Hugging Face Token (if not using repository secret)'
+        required: false
+        default: ''
+        type: string
+  schedule:
+    # Optional scheduled run every 12 hours
+    - cron: '0 */12 * * *'
+
+concurrency:
+  group: facekey-collector-swarm
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    name: Runner ${{ matrix.worker_id }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 330 # Max 5.5 hours (well within GitHub's 6h limit)
+    strategy:
+      fail-fast: false
+      matrix:
+        worker_id: [1, 2, 3]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install System Dependencies (ffmpeg)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Install Python Requirements
+        run: |
+          pip install -q -U "numpy<2" "yt-dlp[default]" mediapipe opencv-python-headless sounddevice mss av scipy huggingface_hub pysocks requests tqdm
+
+      - name: Run Turbo Data Collector
+        env:
+          HF_SECRET_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_INPUT_TOKEN: ${{ github.event.inputs.hf_token }}
+          OPENCV_FFMPEG_THREADS: "4"
+          OMP_NUM_THREADS: "2"
+          TF_CPP_MIN_LOG_LEVEL: "3"
+        run: |
+          # Resolve token
+          ACTIVE_TOKEN="${HF_SECRET_TOKEN}"
+          if [ -z "$ACTIVE_TOKEN" ] && [ -n "$HF_INPUT_TOKEN" ]; then
+            ACTIVE_TOKEN="${HF_INPUT_TOKEN}"
+          fi
+          if [ -z "$ACTIVE_TOKEN" ] && [ -f "hf_token.txt" ]; then
+            ACTIVE_TOKEN=$(cat hf_token.txt | tr -d ' \n\r')
+          fi
+
+          echo "[*] Launching GitHub Actions Collector Runner: gha-runner-${{ matrix.worker_id }}"
+          python scripts/cloud_data_collector.py \
+            --worker-id "gha-runner-${{ matrix.worker_id }}" \
+            --urls-file "sessions/youtube_urls_gha.txt" \
+            --num-workers 1 \
+            --chunk-size 1 \
+            --quality 480p \
+            --hf-token "${ACTIVE_TOKEN}" \
+            --hf-repo "VijayTheOne/facekey-dataset-chunks"
+
+      - name: Finalize & Safeguard Hugging Face Backup
+        if: always()
+        env:
+          HF_SECRET_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_INPUT_TOKEN: ${{ github.event.inputs.hf_token }}
+        run: |
+          ACTIVE_TOKEN="${HF_SECRET_TOKEN}"
+          if [ -z "$ACTIVE_TOKEN" ] && [ -n "$HF_INPUT_TOKEN" ]; then
+            ACTIVE_TOKEN="${HF_INPUT_TOKEN}"
+          fi
+          python scripts/emergency_hf_upload.py --token "${ACTIVE_TOKEN}" || true

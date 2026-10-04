@@ -1,0 +1,105 @@
+# =============================================================================
+#  FaceKey Studio - Dedicated Queue for Hugging Face Space 24/7 Worker
+#  Assigned Videos: 50 | Partition: HFSPACE (Zero Overlap)
+# =============================================================================
+
+# Title: Is consciousness an illusion? 5 experts explain [43m 53s]
+https://www.youtube.com/watch?v=BjmPvovl-V4
+# Title: How tiny actions grow into sustained happiness | Tal Ben-Shahar: Full Interview [82m 33s]
+https://www.youtube.com/watch?v=yzNzjg1c0V4
+# Title: 3 experts explain everything you need to know about loneliness [6m 45s]
+https://www.youtube.com/watch?v=Q8QxTRI72js
+# Title: Modern physics is forcing us to rethink existence | Michelle Thaller: Full Interview [76m 43s]
+https://www.youtube.com/watch?v=RGbZsE7qFgw
+# Title: Physicist Brian Cox explains quantum physics in 22 minutes [22m 19s]
+https://www.youtube.com/watch?v=BHEhxPuMmQI
+# Title: Optimal Protocols for Studying & Learning [101m 39s]
+https://www.youtube.com/watch?v=ddq8JIMhz7c
+# Title: Your Top Health Questions Answered [104m 15s]
+https://www.youtube.com/watch?v=ssP31IenzYA
+# Title: Using Play to Rewire & Improve Your Brain | Huberman Lab Essentials [31m 49s]
+https://www.youtube.com/watch?v=BRG4_KfTxbs
+# Title: How & Why to Get Weekly "Zone 2" Cardio Workouts | Dr. Andrew Huberman [5m 37s]
+https://www.youtube.com/watch?v=L5J6sgQLvuE
+# Title: The “Hot Shot Rule” To Help You Become a Better Leader | Kat Cole | TED [7m 49s]
+https://www.youtube.com/watch?v=lKsvLGdoIH8
+# Title: How to stay calm when you know you'll be stressed | Daniel Levitin | TED [12m 21s]
+https://www.youtube.com/watch?v=8jPQjjsBbIc
+# Title: This Talk is Literally Brain Science! | Sophie Scott | TEDxNewcastle [15m 13s]
+https://www.youtube.com/watch?v=UsV9K6eZZLE
+# Title: Extreme Ownership | Jocko Willink | TEDxUniversityofNevada [13m 50s]
+https://www.youtube.com/watch?v=ljqra3BcqWM
+# Title: How to Achieve Your Most Ambitious Goals | Stephen Duneier | TEDxTucson [17m 53s]
+https://www.youtube.com/watch?v=TQMbvJNRpLE
+# Title: The Art of Generous Listening | Krista Tippett | Talks at Google [71m 34s]
+https://www.youtube.com/watch?v=J5W36VWNd9E
+# Title: The Simple Path to Wealth | JL Collins | Talks at Google [57m 45s]
+https://www.youtube.com/watch?v=T71ibcZAX3I
+# Title: Outrageous Openness | Tosha Silver | Talks at Google [50m 55s]
+https://www.youtube.com/watch?v=Fv03TwMLvwk
+# Title: Democracy at Work: Curing Capitalism | Richard Wolff | Talks at Google [85m 34s]
+https://www.youtube.com/watch?v=ynbgMKclWWc
+# Title: Where Does Growth Come From? | Clayton Christensen | Talks at Google [81m 5s]
+https://www.youtube.com/watch?v=rHdS_4GsKmg
+# Title: CS50x 2023 - Lecture 0 - Scratch [129m 30s]
+https://www.youtube.com/watch?v=IDDmrzzB14M
+# Title: CS50 Cybersecurity - Lecture 4 - Preserving Privacy [78m 13s]
+https://www.youtube.com/watch?v=6IeqJtudKnk
+# Title: Why You SHOULD NOT Take Harvard CS50 in 2026 [8m 1s]
+https://www.youtube.com/watch?v=btG--vz2jrk
+# Title: CS50 2024 | Python (Aula 6) - Curso de Introdução à Ciência da Computação de Harvard [129m 3s]
+https://www.youtube.com/watch?v=z_BVOj-s0V8
+# Title: Harvard University Python Final Project  "InstaInsight Analyzer" [2m 16s]
+https://www.youtube.com/watch?v=m4Galm84xjo
+# Title: 21. Eigenvalues and Eigenvectors [51m 23s]
+https://www.youtube.com/watch?v=cdZnhQjJu4I
+# Title: Rec 1 | MIT 18.085 Computational Science and Engineering I, Fall 2008 [49m 32s]
+https://www.youtube.com/watch?v=0oBJN8F616U
+# Title: 11. Matrix Spaces; Rank 1; Small World Graphs [45m 56s]
+https://www.youtube.com/watch?v=2IdtqGM6KWU
+# Title: 2. Branching and Iteration [43m 31s]
+https://www.youtube.com/watch?v=0jljZRnHwOI
+# Title: Lecture 1: Predicates, Sets, and Proofs [78m 47s]
+https://www.youtube.com/watch?v=sbpCTjmw85g
+# Title: 8. Object Oriented Programming [41m 44s]
+https://www.youtube.com/watch?v=-DP1i2ZU9gk
+# Title: Stanford CS230 | Autumn 2025 | Lecture 8: Agents, Prompts, and RAG [109m 54s]
+https://www.youtube.com/watch?v=k1njvbBmfsw
+# Title: Stanford CME295 Transformers & LLMs | Autumn 2025 | Lecture 1 - Transformer [101m 59s]
+https://www.youtube.com/watch?v=Ub3GoFaUcds
+# Title: Think Fast, Talk Smart: Communication Techniques [58m 20s]
+https://www.youtube.com/watch?v=HAnw168huqA
+# Title: Matt Abrahams: "How to Make Your Communication Memorable" [52m 45s]
+https://www.youtube.com/watch?v=Fsr4yrSAIAQ
+# Title: Steve Jobs' 2005 Stanford Commencement Address [15m 5s]
+https://www.youtube.com/watch?v=UF8uR6Z6KLc
+# Title: Is Consciousness an Illusion? | Episode 1002 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=2aPmC_zQ8bI
+# Title: To Seek Cosmic Origins | Episode 1711 | Closer To Truth [26m 48s]
+https://www.youtube.com/watch?v=DypFWCK4dnY
+# Title: Are Brain and Mind the Same Thing? | Episode 1005 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=2i9UPTDUFJo
+# Title: Why Philosophy of Evolutionary Biology? | Episode 2701 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=m8jN7aL98R0
+# Title: How to deal with loneliness | Manolis Kellis and Lex Fridman [5m 58s]
+https://www.youtube.com/watch?v=ZIwzwTXBNK8
+# Title: Judea Pearl: Advice for Students | AI Podcast Clips [2m 12s]
+https://www.youtube.com/watch?v=5vH__7w346Q
+# Title: Marc Andreesen's Advice for First-Time Founders [2m 4s]
+https://www.youtube.com/watch?v=-roHquYjvGA
+# Title: Lex Fridman: Best Way to Understand the Mind is to Build It [1m 26s]
+https://www.youtube.com/watch?v=Wtbhb1DM30U
+# Title: Long form conversation - Joe Rogan | Lex Fridman Podcast [6m 21s]
+https://www.youtube.com/watch?v=fXDRVFvNguw
+# Title: The Daddy of Big Numbers (Rayo's Number) - Numberphile [15m 26s]
+https://www.youtube.com/watch?v=X3l0fPHZja8
+# Title: The problem in Good Will Hunting - Numberphile [4m 54s]
+https://www.youtube.com/watch?v=iW_LkYiuTKE
+# Title: Riemann Hypothesis - Numberphile [17m 3s]
+https://www.youtube.com/watch?v=d6c6uIyieoo
+# Title: Lecture 1: Introduction to Power and Politics in Today’s World [56m 15s]
+https://www.youtube.com/watch?v=BDqvzFY72mg
+# Title: Clarendon Law Lectures 2025/26: Part 1 - Truth Trust and Expertise [63m 55s]
+https://www.youtube.com/watch?v=1pp07pHzGTY
+# Title: Linear Algebra 1: Systems of linear equations - Oxford Mathematics 1st Year Student Lecture [51m 36s]
+https://www.youtube.com/watch?v=MieZJ0bxv7k

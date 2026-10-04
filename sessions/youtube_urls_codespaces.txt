@@ -1,0 +1,105 @@
+# =============================================================================
+#  FaceKey Studio - Dedicated Queue for GitHub Codespaces (60 Free Hrs/Mo)
+#  Assigned Videos: 50 | Partition: CODESPACES (Zero Overlap)
+# =============================================================================
+
+# Title: The Science of Spontaneity: Mastering Wu-Wei | Edward Slingerland | Big Think [9m 33s]
+https://www.youtube.com/watch?v=mq10ZvZgxy4
+# Title: 3 Brain Tricks That Will Help You Make Better Decisions | Dean Buonomano | Big Think [6m 56s]
+https://www.youtube.com/watch?v=9OcdV27iDxE
+# Title: A neuroscientist’s guide to protecting your brain, in 58 minutes | Lisa Genova: Full Interview [58m 46s]
+https://www.youtube.com/watch?v=LViE-cD_WJQ
+# Title: Berkeley professor explains gender theory | Judith Butler [13m 24s]
+https://www.youtube.com/watch?v=UD9IOllUR4k
+# Title: Your habits are quietly deciding who you become | Tal Ben-Shahar [17m 6s]
+https://www.youtube.com/watch?v=iVJDwHZFWY8
+# Title: Maximize Productivity, Physical & Mental Health With Daily Tools | Huberman Lab Essentials [31m 53s]
+https://www.youtube.com/watch?v=Pmd6knanPKw
+# Title: Improve Your Baseline Dopamine for Motivation & Drive | Dr. Andrew Huberman [8m 4s]
+https://www.youtube.com/watch?v=35lS7gJVTyA
+# Title: A Science-Supported Journaling Protocol to Improve Mental & Physical Health [98m 22s]
+https://www.youtube.com/watch?v=wAZn9dF3XTo
+# Title: The Science of Emotions & Relationships [101m 2s]
+https://www.youtube.com/watch?v=hcuMLQVAgEg
+# Title: 6 Tips on Being a Successful Entrepreneur | John Mullins | TED [15m 20s]
+https://www.youtube.com/watch?v=eHJnEHyyN1Y
+# Title: The Art of Marketing — for Good | Raja Rajamannar | TED [13m 40s]
+https://www.youtube.com/watch?v=yHGRBTZI6w0
+# Title: Why We Do What We Do | TED Talks | Tony Robbins [23m 13s]
+https://www.youtube.com/watch?v=BwFOwyoH-3g
+# Title: Live for Yourself! | Chetan Bhagat | TEDxGraphicEraUniversity [16m 59s]
+https://www.youtube.com/watch?v=Yk983AQG7rA
+# Title: The skill of self confidence | Dr. Ivan Joseph | TEDxRyersonU [13m 21s]
+https://www.youtube.com/watch?v=w-HYZv6HzAs
+# Title: The 7 secrets of the greatest speakers in history | Richard Greene | TEDxOrangeCoast [18m 25s]
+https://www.youtube.com/watch?v=i0a61wFaF8A
+# Title: Simon Sinek | Building Optimism | Talks at Google [57m 6s]
+https://www.youtube.com/watch?v=Wq6cv7V0cTo
+# Title: Now & Again | Julia Turshen | Talks at Google [35m 1s]
+https://www.youtube.com/watch?v=1qObDH0uYh4
+# Title: Robert Greene | The Laws of Human Nature | Talks at Google [83m 23s]
+https://www.youtube.com/watch?v=KcaVhMt71qE
+# Title: The Most Important Thing - Origins and Inspirations | Howard Marks | Talks at Google [69m 3s]
+https://www.youtube.com/watch?v=6WroiiaVhGo
+# Title: Antifragille: Things That Gain from Disorder | Nassim Nicholas Taleb | Talks at Google [55m 40s]
+https://www.youtube.com/watch?v=S3REdLZ8Xis
+# Title: CS50 Explained: Behind the Pedagogy - CS50 Educator Workshop 2023 [81m 46s]
+https://www.youtube.com/watch?v=qBeX4kOtaf8
+# Title: CS50 - Lecture 8 - Python | Harvard | David Malan [88m 13s]
+https://www.youtube.com/watch?v=r0tf1rhsUVg
+# Title: CS50 2024 | Memória (Aula 4) - Curso de Introdução à Ciência da Computação de Harvard [137m 23s]
+https://www.youtube.com/watch?v=VVFoSzk_rsg
+# Title: CS50 2024 | Inteligência Artificial (Aula 6.5) - Introdução à Ciência da Computação [55m 57s]
+https://www.youtube.com/watch?v=hAkBFRbthtc
+# Title: Gilbert Strang: Linear Algebra vs Calculus [2m 14s]
+https://www.youtube.com/watch?v=osEADxaIKIc
+# Title: 3. Multiplication and Inverse Matrices [46m 49s]
+https://www.youtube.com/watch?v=FX4C-JpTFgY
+# Title: Big Picture: Integrals [37m 22s]
+https://www.youtube.com/watch?v=2qxY859dzzQ
+# Title: MIT Undergraduate Curriculum Map and OCW [2m 36s]
+https://www.youtube.com/watch?v=eSRLIYaPPA0
+# Title: Lec 1 | MIT 6.042J Mathematics for Computer Science, Fall 2010 [44m 9s]
+https://www.youtube.com/watch?v=L3LMbpZIKhQ
+# Title: Lec 1 | MIT 6.01SC Introduction to Electrical Engineering and Computer Science I, Spring 2011 [77m 35s]
+https://www.youtube.com/watch?v=3S4cNfl0YF0
+# Title: Stanford CS229 I Machine Learning I Building Large Language Models (LLMs) [104m 31s]
+https://www.youtube.com/watch?v=9vM4p9NN0Ts
+# Title: Andrew Ng and Fei-Fei Li Discuss Human-Centered Artificial Intelligence - Stanford Online [41m 43s]
+https://www.youtube.com/watch?v=UNhC6Ox0T0o
+# Title: What advice do you have for someone breaking in to AI?  - Chris Manning & Andrew Ng [1m 21s]
+https://www.youtube.com/watch?v=iDnKK4G-K1U
+# Title: 2. Behavioral Evolution [96m 57s]
+https://www.youtube.com/watch?v=Y0Oa4Lp5fLE
+# Title: Think Faster, Talk Smarter with Matt Abrahams [44m 11s]
+https://www.youtube.com/watch?v=x6TsR3y5Qfg
+# Title: Is Human Consciousness Special? | Episode 709 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=04evNPYg9TI
+# Title: Edward Witten - What are Breakthroughs in Science? [12m 30s]
+https://www.youtube.com/watch?v=bKapdscHwJ0
+# Title: How do Language and Consciousness Relate? | Episode 1604 | Closer To Truth [26m 52s]
+https://www.youtube.com/watch?v=rSqLe_QbX10
+# Title: What's Philosophy of Cosmology? | Episode 1901 | Closer To Truth [26m 48s]
+https://www.youtube.com/watch?v=OF2U4V-ayAU
+# Title: What is Free Will? | Episode 210 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=IhcLimQwlIw
+# Title: Lex Fridman's Take on the Zelensky Interview: The Wounded Bird and Ukrainian Bot Farms [78m 34s]
+https://www.youtube.com/watch?v=HQKY8ZkfExg
+# Title: Joe Rogan: Husband MURDERS Wife…Then GOOGLES How to DISPOSE of Body! [3m 13s]
+https://www.youtube.com/watch?v=zoxlC-QnVxg
+# Title: Lex Fridman Monologue [1m 35s]
+https://www.youtube.com/watch?v=rxe15-lfU0U
+# Title: The brutal honesty of Mike Tyson | John Clarke and Lex Fridman [5m 2s]
+https://www.youtube.com/watch?v=rnHvF2KvYMc
+# Title: Jimmy Pedro Sr: The best American judo coach | Lex Fridman Podcast Clips [4m 22s]
+https://www.youtube.com/watch?v=DBpB_tGWLKo
+# Title: Navier-Stokes Equations - Numberphile [21m 3s]
+https://www.youtube.com/watch?v=ERBVFcutl3M
+# Title: Pascal's Triangle - Numberphile [12m 33s]
+https://www.youtube.com/watch?v=0iMtlus-afo
+# Title: Reynolds Number - Numberphile [16m 58s]
+https://www.youtube.com/watch?v=wtIhVwPruwY
+# Title: Professor John Lennox | God DOES exist [15m 18s]
+https://www.youtube.com/watch?v=otrqzITuSqE
+# Title: Michael Sandel - Are There Things Money Shouldn't Be Able To Buy? [69m 7s]
+https://www.youtube.com/watch?v=zMg9Gjz8PKs

@@ -1,122 +1,105 @@
-# ==============================================================================
-# 🎬 FACEKEY DEDICATED QUEUE: KAGGLE (worker: kaggle-worker-1)
-# 117 Unique Curated Speech Videos
-# ==============================================================================
+# =============================================================================
+#  FaceKey Studio - Dedicated Queue for Kaggle GPU & CPU Background Workers
+#  Assigned Videos: 50 | Partition: KAGGLE (Zero Overlap)
+# =============================================================================
 
-https://www.youtube.com/watch?v=Fv03TwMLvwk
-https://www.youtube.com/watch?v=gpWf2wyGQ0Q
-https://www.youtube.com/watch?v=vd2dtkMINIw
+# Title: Maria Konnikova: Unclutter Your Brain Attic Like Sherlock Holmes | Big Think [4m 51s]
+https://www.youtube.com/watch?v=whPIzfm-Xng
+# Title: Slavoj Žižek | Why Be Happy When You Could Be Interesting? | Big Think [2m 1s]
+https://www.youtube.com/watch?v=U88jj6PSD7w
+# Title: ‘The Art of War’: The greatest strategy book ever written | Roger Martin [8m 18s]
+https://www.youtube.com/watch?v=g_tmTYznG3o
+# Title: Body language expert: 7 cues that make you instantly more likable | Full Interview [57m 10s]
+https://www.youtube.com/watch?v=d_YZWaSeHws
+# Title: Harvard negotiator explains how to argue | Dan Shapiro [4m 36s]
+https://www.youtube.com/watch?v=IDj1OBG5Tpw
+# Title: Don’t chase happiness. Become antifragile | Tal Ben-Shahar | Big Think [7m 14s]
+https://www.youtube.com/watch?v=e-or_D-qNqM
+# Title: How to Build Immense Inner Strength | David Goggins [157m 35s]
+https://www.youtube.com/watch?v=nDLb8_wgX50
+# Title: Controlling Your Dopamine For Motivation, Focus & Satisfaction [136m 32s]
+https://www.youtube.com/watch?v=QmOF0crdyRU
+# Title: How to Increase Your Willpower & Tenacity | Huberman Lab Podcast [127m 59s]
+https://www.youtube.com/watch?v=cwakOgHIT0E
+# Title: How to sound smart in your TEDx Talk | Will Stephen | TEDxNewYork [5m 56s]
+https://www.youtube.com/watch?v=8S0FDjFBj8o
+# Title: How Great Leaders Inspire Action | Simon Sinek | TED [18m 35s]
+https://www.youtube.com/watch?v=qp0HIF3SfI4
+# Title: The secrets of learning a new language | Lýdia Machová | TED [10m 46s]
+https://www.youtube.com/watch?v=o_XVt5rdpFY
+# Title: The psychology of self-motivation | Scott Geller | TEDxVirginiaTech [15m 54s]
+https://www.youtube.com/watch?v=7sxpKhIbr0E
+# Title: The art of being yourself | Caroline McHugh | TEDxMiltonKeynesWomen [26m 23s]
+https://www.youtube.com/watch?v=veEQQ-N9xWU
+# Title: Master Shi Heng Yi – 5 hindrances to self-mastery | Shi Heng YI | TEDxVitosha [18m 37s]
+https://www.youtube.com/watch?v=4-079YIasck
+# Title: For Single Mothers Working as Train Conductors | Laura Wolfson | Talks at Google [40m 54s]
+https://www.youtube.com/watch?v=knU_JzbgQHs
+# Title: Read This Before Our Next Meeting | Al Pittampali | Talks At Google [40m 32s]
+https://www.youtube.com/watch?v=Mn-q529ExFw
+# Title: The Evolution of a Value Investor | Tom Gayner | Talks at Google [58m 39s]
 https://www.youtube.com/watch?v=2sG91e1Wh4I
-https://www.youtube.com/watch?v=CjVQJdIrDJ0
-https://www.youtube.com/watch?v=KcaVhMt71qE
-https://www.youtube.com/watch?v=rHKwIYsPXLg
-https://www.youtube.com/watch?v=ynbgMKclWWc
-https://www.youtube.com/watch?v=FN4eDk1pq6U
-https://www.youtube.com/watch?v=-hoo_dIOP8k
+# Title: So Good They Can't Ignore You | Cal Newport | Talks at Google [40m 24s]
 https://www.youtube.com/watch?v=qwOdU02SE0w
-https://www.youtube.com/watch?v=sQKrt1-IDaE
-https://www.youtube.com/watch?v=6WroiiaVhGo
-https://www.youtube.com/watch?v=BmAwa1nnB6w
-https://www.youtube.com/watch?v=rHdS_4GsKmg
-https://www.youtube.com/watch?v=Y3PwG4UoJ0Y
-https://www.youtube.com/watch?v=QQn8X4FbpTM
+# Title: Storytelling with Data | Cole Nussbaumer Knaflic | Talks at Google [53m 15s]
 https://www.youtube.com/watch?v=8EMW7io4rSI
-https://www.youtube.com/watch?v=Z5chrxMuBoo
-https://www.youtube.com/watch?v=S3REdLZ8Xis
-https://www.youtube.com/watch?v=HMBl0ttu-Ow
-https://www.youtube.com/watch?v=IDDmrzzB14M
-https://www.youtube.com/watch?v=Vvcuk_uGCuY
-https://www.youtube.com/watch?v=kUovJpWqEMk
+# Title: Visitas Thinks Big 2017 - Harvard University - David J. Malan [17m 54s]
 https://www.youtube.com/watch?v=GZUrPayHvvo
-https://www.youtube.com/watch?v=kY7wcPMqKtA
-https://www.youtube.com/watch?v=qBeX4kOtaf8
-https://www.youtube.com/watch?v=ixJMF3mWKsw
-https://www.youtube.com/watch?v=6IeqJtudKnk
-https://www.youtube.com/watch?v=WHcgVxTYIyc
-https://www.youtube.com/watch?v=X3DVaMnl5n8
+# Title: Office Hours @ Harvard Bio-Labs - 10/12/2023 [35m 41s]
 https://www.youtube.com/watch?v=rmjpzHMOhNM
-https://www.youtube.com/watch?v=H77sVaP1e68
-https://www.youtube.com/watch?v=r0tf1rhsUVg
-https://www.youtube.com/watch?v=X8h4dq9Hzq8
-https://www.youtube.com/watch?v=btG--vz2jrk
-https://www.youtube.com/watch?v=kBCm8bf1IsI
-https://www.youtube.com/watch?v=ZsS23y7TWSM
+# Title: CS50 2024 | HTML, CSS, JavaScript (Aula 8) - Curso de Introdução à Ciência da Computação de Harvard [149m 29s]
 https://www.youtube.com/watch?v=poUd7uEwzQE
-https://www.youtube.com/watch?v=_LkG71cqUFg
-https://www.youtube.com/watch?v=VVFoSzk_rsg
-https://www.youtube.com/watch?v=Ew5Dcmccf5w
-https://www.youtube.com/watch?v=z_BVOj-s0V8
-https://www.youtube.com/watch?v=mR6jktYAOqs
-https://www.youtube.com/watch?v=fPYL-UDMSug
+# Title: CS50 2024 | Estruturas de dados (Aula 5) - Curso de Introdução à Ciência da Computação de Harvard [122m 49s]
 https://www.youtube.com/watch?v=2VacoMXp39g
-https://www.youtube.com/watch?v=3ZlkWgEnHmE
-https://www.youtube.com/watch?v=hAkBFRbthtc
-https://www.youtube.com/watch?v=kfky8NaCfR8
-https://www.youtube.com/watch?v=m4Galm84xjo
-https://www.youtube.com/watch?v=yYXVHSw25P4
-https://www.youtube.com/watch?v=M79wIRZ9FmM
+# Title: CS50 2024  на русском L-0 [124m 25s]
 https://www.youtube.com/watch?v=CiWbjh5jpQ0
-https://www.youtube.com/watch?v=lUUte2o2Sn8
-https://www.youtube.com/watch?v=osEADxaIKIc
-https://www.youtube.com/watch?v=J7DzL2_Na80
-https://www.youtube.com/watch?v=cdZnhQjJu4I
-https://www.youtube.com/watch?v=QVKj3LADCnA
-https://www.youtube.com/watch?v=7UJ4CFRGd-U
+# Title: Intro: A New Way to Start Linear Algebra [4m 15s]
 https://www.youtube.com/watch?v=YrHlHbtiSM0
-https://www.youtube.com/watch?v=kAv5pahIevE
-https://www.youtube.com/watch?v=FX4C-JpTFgY
-https://www.youtube.com/watch?v=yjBerM5jWsc
-https://www.youtube.com/watch?v=0oBJN8F616U
-https://www.youtube.com/watch?v=oo1ZZlvT2LQ
-https://www.youtube.com/watch?v=MsIvs_6vC38
+# Title: The Big Picture of Linear Algebra [15m 57s]
 https://www.youtube.com/watch?v=ggWYkes-n6E
-https://www.youtube.com/watch?v=8o5Cmfpeo6g
-https://www.youtube.com/watch?v=2qxY859dzzQ
-https://www.youtube.com/watch?v=ghjOS7Q82s0
-https://www.youtube.com/watch?v=2IdtqGM6KWU
-https://www.youtube.com/watch?v=Unzc731iCUY
-https://www.youtube.com/watch?v=13r9QY6cmjc
+# Title: Lecture 2: Strings, Input/Output, and Branching [78m 58s]
 https://www.youtube.com/watch?v=UdEX0E9lIQM
-https://www.youtube.com/watch?v=k6U-i4gXkLM
-https://www.youtube.com/watch?v=eSRLIYaPPA0
-https://www.youtube.com/watch?v=nykOeWgQcHM
-https://www.youtube.com/watch?v=0jljZRnHwOI
-https://www.youtube.com/watch?v=xAcTmDO6NTI
-https://www.youtube.com/watch?v=z8HKWUWS-lA
+# Title: Quantum Explained [4m 57s]
 https://www.youtube.com/watch?v=jk0jWzlvA5w
-https://www.youtube.com/watch?v=Bbyp4VRbmyY
-https://www.youtube.com/watch?v=L3LMbpZIKhQ
-https://www.youtube.com/watch?v=_NYsYuzMLs0
-https://www.youtube.com/watch?v=sbpCTjmw85g
-https://www.youtube.com/watch?v=0fEJFRKJN4U
-https://www.youtube.com/watch?v=qp05AtXbOP0
+# Title: MIT Online Courses for FREE !? What They Offer and How to Access [12m 9s]
 https://www.youtube.com/watch?v=lOVeyrvjpRI
-https://www.youtube.com/watch?v=VPZD_aij8H0
-https://www.youtube.com/watch?v=3S4cNfl0YF0
-https://www.youtube.com/watch?v=-J_xL4IGhJA
-https://www.youtube.com/watch?v=-DP1i2ZU9gk
-https://www.youtube.com/watch?v=HTlf3KNNez0
-https://www.youtube.com/watch?v=_NLHFoVNlbg
+# Title: Stanford CS229: Machine Learning Lecture 1 - Andrew Ng (Autumn 2018) [75m 20s]
 https://www.youtube.com/watch?v=jGwO_UgTS7I
-https://www.youtube.com/watch?v=AuZoDsNmG_s
-https://www.youtube.com/watch?v=9vM4p9NN0Ts
-https://www.youtube.com/watch?v=PySo_6S4ZAg
-https://www.youtube.com/watch?v=k1njvbBmfsw
-https://www.youtube.com/watch?v=het9HFqo1TQ
-https://www.youtube.com/watch?v=dyb_cFywuik
+# Title: Stanford CS230: Deep Learning | Autumn 2018 | Lecture 8 - Career Advice / Reading Research Papers [64m 48s]
 https://www.youtube.com/watch?v=733m6qBH-jI
-https://www.youtube.com/watch?v=5p248yoa3oE
-https://www.youtube.com/watch?v=UNhC6Ox0T0o
-https://www.youtube.com/watch?v=4b4MUYve_U8
-https://www.youtube.com/watch?v=Ub3GoFaUcds
-https://www.youtube.com/watch?v=DATnpGoGhM8
-https://www.youtube.com/watch?v=NJg0CtLd4BU
+# Title: Stanford CS231N Deep Learning for Computer Vision | Spring 2025 | Lecture 1: Introduction [62m 53s]
 https://www.youtube.com/watch?v=2fq9wYslV0A
-https://www.youtube.com/watch?v=QFu5nuc-S0s
-https://www.youtube.com/watch?v=iDnKK4G-K1U
-https://www.youtube.com/watch?v=9ukK19Fh-hQ
-https://www.youtube.com/watch?v=HAnw168huqA
-https://www.youtube.com/watch?v=uxoCnxlxpIk
-https://www.youtube.com/watch?v=dZxbVGhpEkI
+# Title: Stanford's Sapolsky On Depression in U.S. (Full Lecture) [52m 29s]
 https://www.youtube.com/watch?v=NOAgplgTxfc
-https://www.youtube.com/watch?v=xBpGn3BDcOY
+# Title: Stanford CME295 Transformers & LLMs | Autumn 2026 | Lecture 1 - Transformers [104m 28s]
+https://www.youtube.com/watch?v=114i2Kz-LZA
+# Title: What is Time? | Episode 1102 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=qf_OGB6zazU
+# Title: Are there Extra Dimensions? | Episode 406 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=TqqFij2O3L0
+# Title: Does Consciousness Have Meaning? | Episode 703 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=t048GYr47b8
+# Title: Why Philosophy of Biology? | Episode 2301 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=WBZ-8RVaUlM
+# Title: What is Global Philosophy of Religion? | Episode 2601 | Closer To Truth [26m 47s]
+https://www.youtube.com/watch?v=OzaYsIAa6cE
+# Title: Judea Pearl: Human-Level AI and the Test of Free Will | AI Podcast Clips [5m 15s]
+https://www.youtube.com/watch?v=0rd3TB_dIQo
+# Title: 🤖 Exploring the Power & Mystery of Claude Anthropic’s Leap in Language Models  Lex Fridman Podcast [13m 21s]
+https://www.youtube.com/watch?v=lm64RB5q3fk
+# Title: A day in my life | Lex Fridman [35m 43s]
+https://www.youtube.com/watch?v=0m3hGZvD-0s
+# Title: Lex Fridman: Recipe for Progress in AI (Hard Work) [2m 9s]
+https://www.youtube.com/watch?v=ao3UoceiL2w
+# Title: Lex Fridman on interviewing Tom Waits [2m 29s]
+https://www.youtube.com/watch?v=B1lPJmQb7Vk
+# Title: Unexpected Shapes (Part 1) - Numberphile [7m 36s]
+https://www.youtube.com/watch?v=wKV0GYvR2X8
+# Title: Odd Equations - Numberphile [13m 1s]
+https://www.youtube.com/watch?v=8l-La9HEUIU
+# Title: Keith Numbers - Numberphile [6m 47s]
+https://www.youtube.com/watch?v=uuMwz47LV_w
+# Title: Justice: What's The Right Thing To Do? Episode 01 "THE MORAL SIDE OF MURDER" [54m 56s]
+https://www.youtube.com/watch?v=kBdfcR-8hEY
+# Title: Differential Equations 1: An Introduction - Oxford Mathematics 2nd Year Student Lecture [51m 8s]
+https://www.youtube.com/watch?v=0mGAh2GlD6I
