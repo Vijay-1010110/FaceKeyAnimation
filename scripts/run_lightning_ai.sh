@@ -29,35 +29,10 @@ if ! command -v ffmpeg &> /dev/null; then
     sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg || true
 fi
 
-# Setup Cloudflare WARP SOCKS5 proxy to mask AWS EC2 datacenter IP
+# Ensure clean direct connection without dead proxy interference
+unset ALL_PROXY all_proxy HTTP_PROXY http_proxy HTTPS_PROXY https_proxy
 PROXY_FLAG=""
-if ! command -v warp-cli &> /dev/null; then
-    echo "[*] Setting up Cloudflare WARP proxy to bypass AWS datacenter IP bans..."
-    curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg 2>/dev/null || true
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list > /dev/null 2>&1 || true
-    sudo apt-get update -qq && sudo apt-get install -y -qq cloudflare-warp || true
-fi
-
-if command -v warp-cli &> /dev/null; then
-    if ! pgrep -x "warp-svc" > /dev/null; then
-        sudo warp-svc > /tmp/warp-svc.log 2>&1 &
-        sleep 4
-    fi
-    warp-cli --accept-tos registration new 2>/dev/null || warp-cli --accept-tos register 2>/dev/null || true
-    warp-cli --accept-tos mode proxy 2>/dev/null || warp-cli --accept-tos set-mode proxy 2>/dev/null || true
-    warp-cli --accept-tos proxy port 40000 2>/dev/null || warp-cli --accept-tos set-proxy-port 40000 2>/dev/null || true
-    warp-cli --accept-tos disconnect 2>/dev/null || true
-    warp-cli --accept-tos connect 2>/dev/null || true
-    sleep 3
-    if curl -s --socks5-hostname 127.0.0.1:40000 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null | grep -q "warp=on"; then
-        echo "[+] Cloudflare WARP SOCKS5 proxy active on 127.0.0.1:40000 (AWS IP masked)!"
-        PROXY_FLAG="--proxy socks5://127.0.0.1:40000"
-        export ALL_PROXY="socks5://127.0.0.1:40000"
-        export all_proxy="socks5://127.0.0.1:40000"
-    else
-        echo "[!] WARP proxy did not connect, continuing with direct connection and authenticated fallbacks."
-    fi
-fi
+echo "[+] Using clean direct high-speed datacenter connection (VisionOS client active)"
 
 # Detect YouTube Cookies for anti-bot bypass (must contain real login markers)
 COOKIES_FLAG=""

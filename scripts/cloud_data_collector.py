@@ -248,19 +248,6 @@ def worker_process_loop(
     if not cookies_file:
         cookies_file = resolve_cookies_file(drive_folder=cloud_sync.drive_folder)
 
-    # Auto-detect Cloudflare WARP SOCKS5 proxy on local port 40000 or env vars
-    if not proxy:
-        try:
-            import socket
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.3)
-            if sock.connect_ex(('127.0.0.1', 40000)) == 0:
-                proxy = "socks5://127.0.0.1:40000"
-            sock.close()
-        except Exception:
-            pass
-        if not proxy:
-            proxy = os.environ.get("ALL_PROXY") or os.environ.get("HTTPS_PROXY")
     if proxy:
         print(f"[+] [WORKER {worker_id}] Outbound network proxy active: {proxy}")
 
@@ -761,19 +748,18 @@ def run_cloud_collector(
     ensure_deno_installed()
     resolved_cookies = resolve_cookies_file(cookies_file, drive_folder=cloud_sync.drive_folder)
 
-    # Auto-detect Cloudflare WARP SOCKS5 proxy on local port 40000 or env vars
-    if not proxy:
+    # Validate proxy responsiveness if provided, avoiding dead SOCKS5 ports
+    if proxy and "socks5" in proxy:
         try:
-            import socket
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.3)
-            if sock.connect_ex(('127.0.0.1', 40000)) == 0:
-                proxy = "socks5://127.0.0.1:40000"
-            sock.close()
+            p_host = proxy.replace("socks5://", "").replace("socks5h://", "")
+            chk = subprocess.run(["curl", "-s", "--max-time", "3", "--socks5-hostname", p_host, "https://api.ipify.org"], capture_output=True, timeout=5)
+            if chk.returncode != 0:
+                print(f"[!] Warning: Proxy '{proxy}' is not responding. Disabling proxy, running direct high-speed connection!")
+                proxy = None
+            else:
+                print(f"[+] Proxy '{proxy}' verified active and responding.")
         except Exception:
-            pass
-        if not proxy:
-            proxy = os.environ.get("ALL_PROXY") or os.environ.get("HTTPS_PROXY")
+            proxy = None
 
     # Auto-detect service account JSON if present
     sa_json = service_account
