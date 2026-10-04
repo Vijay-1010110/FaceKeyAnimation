@@ -304,6 +304,8 @@ class CloudCoordinator:
         """Scan locks directory and remove stale locks abandoned by crashed sessions."""
         cleaned = 0
         now = time.time()
+        if not os.path.exists(self.locks_dir):
+            return 0
         for fname in os.listdir(self.locks_dir):
             if fname.endswith(".lock.json"):
                 fpath = os.path.join(self.locks_dir, fname)
@@ -311,10 +313,11 @@ class CloudCoordinator:
                     with open(fpath, "r", encoding="utf-8") as f:
                         data = json.load(f)
                     last_hb = data.get("last_heartbeat", 0.0)
-                    if (now - last_hb) > self.stale_timeout_sec:
+                    w_id = data.get("worker_id", "")
+                    if (now - last_hb) > self.stale_timeout_sec or (w_id and w_id.startswith(self.worker_id)):
                         os.remove(fpath)
                         cleaned += 1
-                        print(f"[!] Cleaned stale lock: {fname} (idle {(now - last_hb)/60:.1f}m)")
+                        print(f"[!] Cleaned stale lock: {fname} (worker: {w_id}, idle {(now - last_hb)/60:.1f}m)")
                 except Exception:
                     pass
         return cleaned
