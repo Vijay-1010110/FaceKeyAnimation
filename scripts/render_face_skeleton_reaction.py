@@ -367,64 +367,130 @@ def draw_skeleton_frame(
     return canvas
 
 
+def extract_acoustic_features_from_wav(
+    wav_path: str,
+    fps: int = 30
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Reads a WAV file, computes frame-aligned energy_rms and vad_confidence, and returns:
+    (audio_feat [N, 64], audio_energy [N], audio_speech_prob [N])
+    """
+    import wave
+    from src.core.speaker_attribution import VoiceActivityDetector
+
+    with wave.open(wav_path, "rb") as wf:
+        sr = wf.getframerate()
+        n_ch = wf.getnchannels()
+        sampwidth = wf.getsampwidth()
+        n_frames = wf.getnframes()
+        raw_bytes = wf.readframes(n_frames)
+
+    if sampwidth == 2:
+        samples = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+    elif sampwidth == 4:
+        samples = np.frombuffer(raw_bytes, dtype=np.int32).astype(np.float32) / 2147483648.0
+    elif sampwidth == 1:
+        samples = (np.frombuffer(raw_bytes, dtype=np.uint8).astype(np.float32) - 128.0) / 128.0
+    else:
+        samples = np.frombuffer(raw_bytes, dtype=np.float32)
+
+    if n_ch > 1:
+        samples = samples.reshape(-1, n_ch).mean(axis=1)
+
+    vad = VoiceActivityDetector(sample_rate=sr)
+    samples_per_frame = int(round(sr / fps))
+    total_video_frames = len(samples) // samples_per_frame
+
+    ae_list = []
+    ap_list = []
+    for f in range(total_video_frames):
+        chunk = samples[f * samples_per_frame:(f + 1) * samples_per_frame]
+        t = f / fps
+        res = vad.process_chunk(chunk, t)
+        ae_list.append(res.energy_rms)
+        ap_list.append(res.vad_confidence)
+
+    ae = np.array(ae_list, dtype=np.float32)
+    ap = np.array(ap_list, dtype=np.float32)
+
+    # Construct 64-dim lag acoustic features
+    feat = np.zeros((total_video_frames, 64), dtype=np.float32)
+    feat[:, 0] = ae
+    feat[:, 1] = ap
+    for lag in range(1, 16):
+        if 2 * lag + 1 < 64:
+            feat[lag:, 2 * lag] = ae[:-lag]
+            feat[lag:, 2 * lag + 1] = ap[:-lag]
+
+    return feat, ae, ap
+
+
 def generate_face_skeleton_video(
     model: nn.Module,
-    dataset_npz: str,
     output_mp4: str,
     output_gif: str,
     device: torch.device,
+    dataset_npz: Optional[str] = None,
+    audio_file: Optional[str] = None,
     duration_frames: int = 180,  # 6.0 seconds @ 30 FPS
     fps: int = 30
 ):
-    """Feeds validation speech into the model and renders animated face skeleton MP4 and GIF."""
+    """Feeds speech acoustics into the model and renders animated face skeleton MP4 and GIF."""
     print("=" * 82)
     print(" 🎬 RENDERING FACE SKELETON SPEECH-REACTION VIDEO & GIF")
-    print(f" Source Dataset : {dataset_npz}")
+    if audio_file:
+        print(f" Source Audio   : {audio_file}")
+    else:
+        print(f" Source Dataset : {dataset_npz}")
     print(f" Output Video   : {output_mp4}")
     print(f" Output GIF     : {output_gif}")
-    print(f" Total Frames   : {duration_frames} ({duration_frames / fps:.1f}s @ {fps} FPS)")
     print("=" * 82)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_mp4)), exist_ok=True)
-    data = np.load(dataset_npz, allow_pickle=True)
 
-    # Extract active speech sequence from validation split
-    split_mask = data.get("split_mask", None)
-    if split_mask is not None:
-        val_mask = ~split_mask
+    if audio_file and os.path.exists(audio_file):
+        audio_feat, ae, ap = extract_acoustic_features_from_wav(audio_file, fps=fps)
+        if duration_frames > 0 and duration_frames < len(ae):
+            audio_feat = audio_feat[:duration_frames]
+            ae = ae[:duration_frames]
+            ap = ap[:duration_frames]
+        n_frames = len(ae)
+        print(f"[*] Extracted {n_frames} acoustic frames ({n_frames / fps:.2f}s) from {audio_file}")
+    elif dataset_npz and os.path.exists(dataset_npz):
+        data = np.load(dataset_npz, allow_pickle=True)
+        split_mask = data.get("split_mask", None)
+        if split_mask is not None:
+            val_mask = ~split_mask
+        else:
+            n_tot = len(data["blendshapes"])
+            val_mask = np.zeros(n_tot, dtype=bool)
+            val_mask[int(0.85 * n_tot):] = True
+
+        val_indices = np.where(val_mask)[0]
+        total_val = len(val_indices)
+
+        ae_all = data["audio_energy"][val_indices]
+        best_start = 0
+        max_energy_sum = 0
+        for offset in range(0, total_val - duration_frames, 30):
+            e_sum = np.sum(ae_all[offset:offset + duration_frames])
+            if e_sum > max_energy_sum:
+                max_energy_sum = e_sum
+                best_start = offset
+
+        eval_indices = val_indices[best_start:best_start + duration_frames]
+        n_frames = len(eval_indices)
+        ae = data["audio_energy"][eval_indices]
+        ap = data["audio_speech_prob"][eval_indices]
+
+        audio_feat = np.zeros((n_frames, 64), dtype=np.float32)
+        audio_feat[:, 0] = ae
+        audio_feat[:, 1] = ap
+        for lag in range(1, 16):
+            if 2 * lag + 1 < 64:
+                audio_feat[lag:, 2 * lag] = ae[:-lag]
+                audio_feat[lag:, 2 * lag + 1] = ap[:-lag]
     else:
-        n_tot = len(data["blendshapes"])
-        val_mask = np.zeros(n_tot, dtype=bool)
-        val_mask[int(0.85 * n_tot):] = True
-
-    val_indices = np.where(val_mask)[0]
-    total_val = len(val_indices)
-
-    # Find a lively speech section with active energy
-    ae_all = data["audio_energy"][val_indices]
-    # Pick a segment with high variance / lively speech
-    best_start = 0
-    max_energy_sum = 0
-    for offset in range(0, total_val - duration_frames, 30):
-        e_sum = np.sum(ae_all[offset:offset + duration_frames])
-        if e_sum > max_energy_sum:
-            max_energy_sum = e_sum
-            best_start = offset
-
-    eval_indices = val_indices[best_start:best_start + duration_frames]
-    n_frames = len(eval_indices)
-
-    ae = data["audio_energy"][eval_indices]
-    ap = data["audio_speech_prob"][eval_indices]
-
-    # Construct 64-dim lag acoustic features
-    audio_feat = np.zeros((n_frames, 64), dtype=np.float32)
-    audio_feat[:, 0] = ae
-    audio_feat[:, 1] = ap
-    for lag in range(1, 16):
-        if 2 * lag + 1 < 64:
-            audio_feat[lag:, 2 * lag] = ae[:-lag]
-            audio_feat[lag:, 2 * lag + 1] = ap[:-lag]
+        raise ValueError("Must provide either a valid --audio-file or --dataset path.")
 
     # Run Model Inference
     inp_tensor = torch.from_numpy(audio_feat).unsqueeze(0).to(device)
@@ -452,10 +518,12 @@ def generate_face_skeleton_video(
     ]
 
     width, height = 720, 720
+    temp_silent_mp4 = output_mp4 + ".temp.mp4" if audio_file else output_mp4
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out_video = cv2.VideoWriter(output_mp4, fourcc, fps, (width, height))
+    out_video = cv2.VideoWriter(temp_silent_mp4, fourcc, fps, (width, height))
 
     gif_frames = []
+    player_frames_data = []
 
     print(f"[*] Rendering {n_frames} frames of animated 3D face skeleton...")
     for f in range(n_frames):
@@ -478,6 +546,20 @@ def generate_face_skeleton_video(
 
         out_video.write(frame_img)
 
+        # Store compact telemetry for Web/HTML visualizer
+        player_frames_data.append({
+            "t": round(f / fps, 4),
+            "jaw": round(float(bs_dict.get("jawOpen", 0.0)), 4),
+            "smile_l": round(float(bs_dict.get("mouthSmileLeft", 0.0)), 4),
+            "smile_r": round(float(bs_dict.get("mouthSmileRight", 0.0)), 4),
+            "pucker": round(float(bs_dict.get("mouthPucker", 0.0)), 4),
+            "funnel": round(float(bs_dict.get("mouthFunnel", 0.0)), 4),
+            "brow_up": round(float(bs_dict.get("browInnerUp", 0.0)), 4),
+            "blink_l": round(float(bs_dict.get("eyeBlinkLeft", 0.0)), 4),
+            "blink_r": round(float(bs_dict.get("eyeBlinkRight", 0.0)), 4),
+            "energy": round(float(ae[f]), 4)
+        })
+
         # Downsample slightly for fast GIF preview
         if f % 2 == 0:  # 15 FPS for GIF
             from PIL import Image
@@ -486,7 +568,43 @@ def generate_face_skeleton_video(
             gif_frames.append(pil_img)
 
     out_video.release()
-    print(f"[✓] MP4 Video Rendered: {output_mp4}")
+
+    # If audio file is provided, mux audio into MP4 using ffmpeg
+    if audio_file and os.path.exists(temp_silent_mp4):
+        import subprocess
+        duration_sec = n_frames / fps
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", temp_silent_mp4,
+            "-ss", "0",
+            "-t", f"{duration_sec:.3f}",
+            "-i", audio_file,
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-shortest",
+            output_mp4
+        ]
+        try:
+            print("[*] Muxing speech audio into MP4 video with ffmpeg...")
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            if res.returncode == 0:
+                print(f"[✓] Audio-Synced MP4 Video Created: {output_mp4}")
+                if os.path.exists(temp_silent_mp4) and temp_silent_mp4 != output_mp4:
+                    os.remove(temp_silent_mp4)
+            else:
+                print(f"[!] ffmpeg warning: {res.stderr}")
+                if os.path.exists(temp_silent_mp4) and temp_silent_mp4 != output_mp4:
+                    import shutil
+                    shutil.move(temp_silent_mp4, output_mp4)
+        except Exception as e:
+            print(f"[!] Warning: Audio muxing failed ({e}), keeping silent video.")
+            if os.path.exists(temp_silent_mp4) and temp_silent_mp4 != output_mp4:
+                import shutil
+                shutil.move(temp_silent_mp4, output_mp4)
+    else:
+        print(f"[✓] MP4 Video Rendered: {output_mp4}")
 
     if gif_frames:
         print("[*] Generating looping GIF animation...")
@@ -500,10 +618,17 @@ def generate_face_skeleton_video(
         )
         print(f"[✓] Animated GIF Saved: {output_gif}")
 
+    # Export telemetry JSON
+    json_path = output_mp4.replace(".mp4", "_telemetry.json")
+    with open(json_path, "w", encoding="utf-8") as jf:
+        json.dump(player_frames_data, jf)
+    print(f"[✓] Telemetry JSON Saved: {json_path}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Render Face Skeleton Speech-Reaction Video")
     parser.add_argument("--checkpoint", type=str, default=None, help="Model checkpoint path")
+    parser.add_argument("--audio-file", type=str, default=None, help="Input WAV audio file for inference")
     parser.add_argument("--dataset", type=str, default="sessions/normalized_training_dataset.npz", help="Dataset NPZ")
     parser.add_argument("--output-mp4", type=str, default="test_results_epoch10/face_skeleton_reaction.mp4", help="Output MP4 path")
     parser.add_argument("--output-gif", type=str, default="test_results_epoch10/face_skeleton_reaction.gif", help="Output GIF path")
@@ -544,6 +669,7 @@ if __name__ == "__main__":
 
     generate_face_skeleton_video(
         model=model,
+        audio_file=args.audio_file,
         dataset_npz=args.dataset,
         output_mp4=args.output_mp4,
         output_gif=args.output_gif,
