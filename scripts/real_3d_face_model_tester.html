@@ -318,6 +318,7 @@
     let analyser = null;
     let micStream = null;
     let dataArray = null;
+    let freqArray = null;
     let isMicActive = false;
     let isTestPlaying = false;
     let testAudioBuffer = null;
@@ -338,6 +339,8 @@
       mouthPucker: ['mouthPucker', 'mouth_pucker', 'MouthPucker'],
       mouthSmile_L: ['mouthSmile_L', 'mouthSmileLeft', 'mouth_smile_l', 'MouthSmileLeft'],
       mouthSmile_R: ['mouthSmile_R', 'mouthSmileRight', 'mouth_smile_r', 'MouthSmileRight'],
+      mouthStretch_L: ['mouthStretch_L', 'mouthStretchLeft', 'mouth_stretch_l', 'MouthStretchLeft'],
+      mouthStretch_R: ['mouthStretch_R', 'mouthStretchRight', 'mouth_stretch_r', 'MouthStretchRight'],
       mouthUpperUp_L: ['mouthUpperUp_L', 'mouthUpperUpLeft', 'mouth_upper_up_l'],
       mouthUpperUp_R: ['mouthUpperUp_R', 'mouthUpperUpRight', 'mouth_upper_up_r'],
       mouthLowerDown_L: ['mouthLowerDown_L', 'mouthLowerDownLeft', 'mouth_lower_down_l'],
@@ -529,8 +532,8 @@
       activeMorphCount.innerText = `${activeCount} Active`;
     }
 
-    // Dynamic Kinematics & Audio Envelope Loop
-    function updateAnimation(rmsEnergy, delta) {
+    // Dynamic Kinematics & Spectral Formant Viseme Decomposition Loop
+    function updateAnimation(rmsEnergy, formants, delta) {
       const sens = parseFloat(sensSlider.value);
       const boost = parseFloat(scaleSlider.value);
 
@@ -547,17 +550,26 @@
       const normEnergy = Math.min(1.0, adjustedEnergy / Math.max(1e-4, peakEnergy * 0.85));
       const rawDrive = Math.max(0.0, normEnergy);
 
-      // Attack / Release envelope
+      // Attack / Release envelope for overall syllabic drive
       const alpha = rawDrive > smoothDrive ? 0.70 : 0.22;
       smoothDrive = alpha * rawDrive + (1.0 - alpha) * smoothDrive;
 
-      // Primary Speech Articulations
-      const jaw = Math.min(1.0, smoothDrive * 0.85 * boost);
-      const funnel = Math.min(1.0, smoothDrive * 0.35 * boost);
+      // Acoustic Formants (Visemes):
+      // 1. Open Vowels ("AA", "AH"): mid formant (500 - 1800 Hz) drives deep jaw drop
+      const jaw = Math.min(1.0, (smoothDrive * 0.45 + (formants ? formants.mid * 1.5 : 0)) * boost);
+
+      // 2. Rounded Vowels ("OO", "OH", "W"): low formant (100 - 500 Hz) drives lip funnel & pucker
+      const pucker = Math.min(1.0, (formants ? formants.low * 1.7 : smoothDrive * 0.2) * boost);
+      const funnel = Math.min(1.0, (formants ? formants.low * 1.3 + formants.mid * 0.3 : smoothDrive * 0.35) * boost);
+
+      // 3. Spread Vowels & Sibilants ("EE", "AY", "S"): high formant (1800 - 4500 Hz) drives lateral stretch and smile
+      const smile = Math.min(1.0, (formants ? formants.high * 1.6 : smoothDrive * 0.25) * boost);
+      const stretch = Math.min(1.0, (formants ? formants.high * 1.4 : smoothDrive * 0.2) * boost);
+
+      // 4. Lip Elevations
       const lowerDown = Math.min(1.0, jaw * 0.65);
       const upperUp = Math.min(1.0, jaw * 0.25);
-      const smile = Math.min(1.0, smoothDrive * 0.25);
-      const browUp = Math.min(1.0, smoothDrive * 0.22);
+      const browUp = Math.min(1.0, smoothDrive * 0.25);
 
       // Procedural Natural Blinking (keeps model lifelike)
       blinkTimer += delta;
@@ -574,6 +586,9 @@
       // Apply to 3D Model Morph Targets
       setMorphTarget('jawOpen', jaw);
       setMorphTarget('mouthFunnel', funnel);
+      setMorphTarget('mouthPucker', pucker);
+      setMorphTarget('mouthStretch_L', stretch);
+      setMorphTarget('mouthStretch_R', stretch);
       setMorphTarget('mouthLowerDown_L', lowerDown);
       setMorphTarget('mouthLowerDown_R', lowerDown);
       setMorphTarget('mouthUpperUp_L', upperUp);
@@ -613,8 +628,11 @@
       updateBlendshapesUI({
         jawOpen: jaw,
         mouthFunnel: funnel,
+        mouthPucker: pucker,
         mouthSmile_L: smile,
         mouthSmile_R: smile,
+        mouthStretch_L: stretch,
+        mouthStretch_R: stretch,
         browInnerUp: browUp,
         eyeBlink_L: Math.max(0.0, blinkValue),
         eyeBlink_R: Math.max(0.0, blinkValue)
@@ -641,8 +659,9 @@
         fpsTimer = 0;
       }
 
-      // Compute RMS Energy from Audio
+      // Compute RMS Energy & Formant Frequencies from Audio
       let rms = 0.0;
+      let formants = { low: 0, mid: 0, high: 0 };
       if ((isMicActive || isTestPlaying) && analyser && dataArray) {
         analyser.getFloatTimeDomainData(dataArray);
         let sumSq = 0;
@@ -650,9 +669,27 @@
           sumSq += dataArray[i] * dataArray[i];
         }
         rms = Math.sqrt(sumSq / dataArray.length);
+
+        if (freqArray) {
+          analyser.getByteFrequencyData(freqArray);
+          // Low: bins 2-10 (~100 - 500 Hz) - rounded vowels ("OO", "OH")
+          let l = 0;
+          for (let i = 2; i < 11; i++) l += freqArray[i];
+          formants.low = l / (9 * 255);
+
+          // Mid: bins 11-38 (~500 - 1800 Hz) - open vowels ("AA", "AH")
+          let m = 0;
+          for (let i = 11; i < 39; i++) m += freqArray[i];
+          formants.mid = m / (28 * 255);
+
+          // High: bins 39-95 (~1800 - 4500 Hz) - spread vowels / sibilants ("EE", "S")
+          let h = 0;
+          for (let i = 39; i < 96; i++) h += freqArray[i];
+          formants.high = h / (57 * 255);
+        }
       }
 
-      updateAnimation(rms, delta);
+      updateAnimation(rms, formants, delta);
       controls.update();
       renderer.render(scene, camera);
     }
@@ -694,6 +731,7 @@
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 1024;
         dataArray = new Float32Array(analyser.fftSize);
+        freqArray = new Uint8Array(analyser.frequencyBinCount);
         source.connect(analyser);
 
         isMicActive = true;
@@ -725,7 +763,7 @@
       micStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-slate-600';
       hudStatus.innerText = 'STANDBY';
       hudStatus.className = 'text-slate-400';
-      updateAnimation(0.0, 0.016);
+      updateAnimation(0.0, null, 0.016);
     }
 
     // Steve Jobs Test Audio Handler
@@ -748,6 +786,7 @@
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 1024;
         dataArray = new Float32Array(analyser.fftSize);
+        freqArray = new Uint8Array(analyser.frequencyBinCount);
 
         testBufferSource.connect(analyser);
         analyser.connect(audioCtx.destination);
@@ -780,7 +819,7 @@
       micStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-slate-600';
       hudStatus.innerText = 'STANDBY';
       hudStatus.className = 'text-slate-400';
-      updateAnimation(0.0, 0.016);
+      updateAnimation(0.0, null, 0.016);
     }
 
     // UI Listeners
