@@ -393,20 +393,26 @@ def train_speech_to_animation(
         num_workers = min(4, os.cpu_count() or 2) if torch.cuda.is_available() else 0
     pin_mem = torch.cuda.is_available()
 
+    loader_kwargs = {
+        "num_workers": num_workers,
+        "pin_memory": pin_mem,
+    }
+    if num_workers > 0:
+        loader_kwargs["persistent_workers"] = True
+        loader_kwargs["prefetch_factor"] = 4
+
     train_loader = DataLoader(
         train_ds,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=num_workers,
-        pin_memory=pin_mem,
-        drop_last=True
+        drop_last=True,
+        **loader_kwargs
     )
     val_loader = DataLoader(
         val_ds,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=num_workers,
-        pin_memory=pin_mem
+        **loader_kwargs
     )
 
     # 5. Model, Optimizer, Criterion & Scaler
@@ -485,6 +491,9 @@ def train_speech_to_animation(
             raw_model.load_state_dict(cleaned_state)
 
             optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+            if lr:
+                for pg in optimizer.param_groups:
+                    pg["lr"] = lr
             if "scheduler_state_dict" in ckpt:
                 scheduler.load_state_dict(ckpt["scheduler_state_dict"])
             if "scaler_state_dict" in ckpt and torch.cuda.is_available():
