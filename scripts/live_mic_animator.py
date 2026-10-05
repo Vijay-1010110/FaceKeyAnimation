@@ -54,6 +54,39 @@ STANDARD_BS_NAMES = [
 ]
 
 
+def find_best_input_device() -> tuple:
+    """Finds the best active microphone device (prioritizing Realtek Microphone Array)
+    and returns (device_idx, device_name, native_sr, native_channels)
+    """
+    devices = sd.query_devices()
+    for preferred in [8, 18]:
+        if preferred < len(devices):
+            d = devices[preferred]
+            if d["max_input_channels"] > 0 and "realtek" in d["name"].lower():
+                sr = int(d["default_samplerate"])
+                ch = min(2, d["max_input_channels"])
+                return preferred, d["name"], sr, ch
+
+    candidates = []
+    for i, d in enumerate(devices):
+        if d["max_input_channels"] > 0:
+            name = d["name"]
+            score = 0
+            if "microphone" in name.lower() or "mic" in name.lower():
+                score += 10
+            if "array" in name.lower():
+                score += 5
+            if "mapper" in name.lower() or "ai noise" in name.lower():
+                score -= 20
+            candidates.append((score, i, name, int(d["default_samplerate"]), d["max_input_channels"]))
+
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    if candidates:
+        best = candidates[0]
+        return best[1], best[2], best[3], min(2, best[4])
+    return 0, "Default Input", 44100, 1
+
+
 class LiveFaceAnimatorApp:
     def __init__(
         self,
@@ -70,7 +103,7 @@ class LiveFaceAnimatorApp:
         print("=" * 80)
         print(" 🎙️ FACEKEY STUDIO: REAL-TIME LIVE MICROPHONE FACE SKELETON ANIMATOR")
         print(f" [*] Compute Device : {self.device}")
-        print(f" [*] Audio Rate     : {self.sample_rate} Hz ({self.samples_per_frame} samples/frame @ {self.fps} FPS)")
+        print(f" [*] Target FPS     : {self.fps} FPS")
         print(f" [*] Checkpoint     : {checkpoint_path}")
         print("=" * 80)
 
@@ -100,8 +133,8 @@ class LiveFaceAnimatorApp:
 
         # Dynamic Calibration State
         self.smooth_drive = 0.0
-        self.articulation_boost = 1.2
-        self.peak_energy = 0.05
+        self.articulation_boost = 1.3
+        self.peak_energy = 0.04
         self.frame_idx = 0
 
         # Mouse 3D Orbit State
@@ -115,10 +148,9 @@ class LiveFaceAnimatorApp:
         """Sounddevice streaming callback."""
         if status:
             pass
-        # indata is shape (frames, channels)
-        mono = indata[:, 0].copy()
+        mono = indata.mean(axis=1) if indata.shape[1] > 1 else indata[:, 0]
         try:
-            self.audio_queue.put_nowait(mono)
+            self.audio_queue.put_nowait(mono.copy())
         except queue.Full:
             pass
 
@@ -145,11 +177,26 @@ class LiveFaceAnimatorApp:
         cv2.namedWindow(window_name, cv2.WINDOW_AUTOSIZE)
         cv2.setMouseCallback(window_name, self.on_mouse)
 
-        print("[*] Starting microphone audio stream...")
+        if input_device is None:
+            dev_id, dev_name, native_sr, native_ch = find_best_input_device()
+        else:
+            d = sd.query_devices(input_device)
+            dev_id = input_device
+            dev_name = d["name"]
+            native_sr = int(d["default_samplerate"])
+            native_ch = min(2, d["max_input_channels"])
+
+        print(f"[*] Connecting to Audio Device [{dev_id}]: {dev_name}")
+        print(f"[*] Hardware Sample Rate: {native_sr} Hz, Channels: {native_ch}")
+
+        self.sample_rate = native_sr
+        self.samples_per_frame = int(round(native_sr / self.fps))
+        self.vad = VoiceActivityDetector(sample_rate=native_sr)
+
         stream = sd.InputStream(
-            device=input_device,
-            samplerate=self.sample_rate,
-            channels=1,
+            device=dev_id,
+            samplerate=native_sr,
+            channels=native_ch,
             blocksize=self.samples_per_frame,
             dtype="float32",
             callback=self.audio_callback
