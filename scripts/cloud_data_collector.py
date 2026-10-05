@@ -379,6 +379,8 @@ def worker_process_loop(
                     download_attempts = [
                         {"client": "visionos", "use_cookies": False},
                         {"client": "android_vr", "use_cookies": False},
+                        {"client": "tv", "use_cookies": False},
+                        {"client": "tv_embedded", "use_cookies": False},
                         {"client": "default", "use_cookies": False},
                         {"client": "mweb", "use_cookies": False},
                         {"client": "web", "use_cookies": False},
