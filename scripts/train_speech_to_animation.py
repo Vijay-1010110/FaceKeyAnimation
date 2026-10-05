@@ -269,22 +269,27 @@ def train_speech_to_animation(
             except Exception as e:
                 print(f"[!] Warning: Failed downloading from Hugging Face ({e})")
 
-        # If chunks exist, unpack them
-        if existing_chunks:
-            print(f"[*] Unpacking {len(existing_chunks)} chunk(s) to local SSD ({local_data_dir})...")
-            unpack_tar_chunks(existing_chunks, local_data_dir)
-
-    # 3. Preprocess if normalized_training_dataset.npz is missing
+    # 3. Preprocess if normalized_training_dataset.npz is missing (ZERO-DISK STREAMING!)
     if not os.path.exists(norm_npz):
-        from scripts.preprocess_normalized_training_data import preprocess_all_sessions
         stats_json = os.path.join(local_data_dir, "dataset_statistics.json")
-        print(f"[*] Compiling and normalizing training frames from: {local_data_dir}...")
-        preprocess_all_sessions(
-            sessions_dir=local_data_dir,
-            output_npz=norm_npz,
-            output_stats_json=stats_json,
-            val_ratio=0.15
-        )
+        if existing_chunks:
+            from scripts.preprocess_normalized_training_data import preprocess_from_tar_chunks
+            print(f"\n[*] Compiling normalized dataset directly from {len(existing_chunks)} chunk(s) in RAM (Zero-Disk Streaming)...")
+            preprocess_from_tar_chunks(
+                chunk_paths=existing_chunks,
+                output_npz=norm_npz,
+                output_stats_json=stats_json,
+                val_ratio=0.15
+            )
+        elif raw_sessions or npz_candidates:
+            from scripts.preprocess_normalized_training_data import preprocess_all_sessions
+            print(f"[*] Compiling and normalizing training frames from: {local_data_dir}...")
+            preprocess_all_sessions(
+                sessions_dir=local_data_dir,
+                output_npz=norm_npz,
+                output_stats_json=stats_json,
+                val_ratio=0.15
+            )
 
     if not os.path.exists(norm_npz):
         raise FileNotFoundError(f"Could not locate or generate normalized dataset at: {norm_npz}")
