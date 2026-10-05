@@ -35,8 +35,9 @@ from src.storage.cloud_sync import CloudDriveSync
 class FacialAnimationDataset(Dataset):
     """Memory-mapped PyTorch dataset loading normalized animation arrays with audio features."""
 
-    def __init__(self, npz_path: str, seq_len: int = 64, split: str = "train"):
+    def __init__(self, npz_path: str, seq_len: int = 64, stride: int = 16, split: str = "train"):
         self.seq_len = seq_len
+        self.stride = max(1, stride)
         self.split = split
         
         print(f"[*] Loading dataset from: {npz_path}...")
@@ -109,15 +110,15 @@ class FacialAnimationDataset(Dataset):
             self.dental = torch.zeros((len(self.blendshapes), 4), dtype=torch.float32)
             self.pose = torch.zeros((len(self.blendshapes), 3), dtype=torch.float32)
 
-        self.num_sequences = max(1, len(self.blendshapes) - self.seq_len)
-        print(f"[✓] {split.upper()} Dataset initialized: {len(self.blendshapes):,} frames ({self.num_sequences:,} sequences)")
+        self.num_sequences = max(1, (len(self.blendshapes) - self.seq_len) // self.stride)
+        print(f"[✓] {split.upper()} Dataset initialized: {len(self.blendshapes):,} frames ({self.num_sequences:,} sequences @ stride {self.stride})")
 
     def __len__(self) -> int:
         return self.num_sequences
 
     def __getitem__(self, idx: int):
-        s = idx
-        e = idx + self.seq_len
+        s = idx * self.stride
+        e = s + self.seq_len
         return (
             self.audio[s:e],
             self.blendshapes[s:e],
@@ -187,6 +188,7 @@ def train_speech_to_animation(
     batch_size: int = 64,
     lr: float = 1e-4,
     seq_len: int = 64,
+    stride: int = 16,
     accum_steps: int = 2,
     num_workers: Optional[int] = None,
     max_chunks: Optional[int] = None
@@ -336,8 +338,8 @@ def train_speech_to_animation(
         raise FileNotFoundError(f"Could not locate or generate normalized dataset at: {norm_npz}")
 
     # 4. Initialize DataLoaders
-    train_ds = FacialAnimationDataset(norm_npz, seq_len=seq_len, split="train")
-    val_ds = FacialAnimationDataset(norm_npz, seq_len=seq_len, split="val")
+    train_ds = FacialAnimationDataset(norm_npz, seq_len=seq_len, stride=stride, split="train")
+    val_ds = FacialAnimationDataset(norm_npz, seq_len=seq_len, stride=stride, split="val")
 
     if num_workers is None:
         num_workers = min(4, os.cpu_count() or 2) if torch.cuda.is_available() else 0
@@ -620,6 +622,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size (auto-scaled to 128 on Dual T4)")
     parser.add_argument("--lr", type=float, default=1e-4, help="Initial learning rate")
     parser.add_argument("--seq-len", type=int, default=64, help="Temporal sequence length in frames (~2.1 seconds)")
+    parser.add_argument("--stride", type=int, default=1, help="Temporal sequence subsampling stride (default: 1; use 16 for 16x faster training epochs)")
     parser.add_argument("--accum-steps", type=int, default=2, help="Gradient accumulation steps")
     parser.add_argument("--num-workers", type=int, default=None, help="DataLoader workers (default min(4, cpu_count))")
     parser.add_argument("--max-chunks", type=int, default=None, help="Maximum number of dataset chunks to download/use (ideal for Kaggle disk limits)")
@@ -635,6 +638,7 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         lr=args.lr,
         seq_len=args.seq_len,
+        stride=args.stride,
         accum_steps=args.accum_steps,
         num_workers=args.num_workers,
         max_chunks=args.max_chunks
