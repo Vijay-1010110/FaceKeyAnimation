@@ -109,9 +109,11 @@ NEUTRAL_LIPS_INNER = [
 def deform_face_skeleton(
     blendshapes: dict,
     dental: np.ndarray,
-    head_pose: np.ndarray
+    head_pose: np.ndarray,
+    speech_drive: float = 0.0,
+    audio_energy: float = 0.0
 ) -> dict:
-    """Deforms the 3D canonical face skeleton according to model's predicted animation keys."""
+    """Deforms the 3D canonical face skeleton according to calibrated speech drive and predicted ARKit blendshapes."""
     jaw_open = float(blendshapes.get("jawOpen", 0.0))
     mouth_smile_l = float(blendshapes.get("mouthSmileLeft", 0.0))
     mouth_smile_r = float(blendshapes.get("mouthSmileRight", 0.0))
@@ -123,69 +125,67 @@ def deform_face_skeleton(
     eye_blink_l = float(blendshapes.get("eyeBlinkLeft", 0.0))
     eye_blink_r = float(blendshapes.get("eyeBlinkRight", 0.0))
 
-    # Amplify speech jaw dynamics slightly for clear visual response
-    jaw_drop = jaw_open * 0.35
+    # Dynamically scale jaw depression from calibrated speech drive (up to 0.45 3D units / ~90 px)
+    jaw_drop = speech_drive * 0.42
 
     # 1. Deform Jaw & Chin
     chin = NEUTRAL_CHIN.copy()
-    chin[1] += jaw_drop * 1.2
-    chin[2] -= jaw_drop * 0.2
+    chin[1] += jaw_drop * 1.35
+    chin[2] -= jaw_drop * 0.15
 
     jaw_l = NEUTRAL_JAW_LEFT.copy()
-    jaw_l[1] += jaw_drop * 0.5
+    jaw_l[1] += jaw_drop * 0.55
     jaw_r = NEUTRAL_JAW_RIGHT.copy()
-    jaw_r[1] += jaw_drop * 0.5
+    jaw_r[1] += jaw_drop * 0.55
 
     # 2. Deform Lips (Speech kinematics)
     lips_outer = [p.copy() for p in NEUTRAL_LIPS_OUTER]
     lips_inner = [p.copy() for p in NEUTRAL_LIPS_INNER]
 
-    # Smile stretches corners outward and up
-    smile_x = (mouth_smile_l + mouth_smile_r) * 0.08
+    # Smile / spread
+    smile_x = (mouth_smile_l + mouth_smile_r) * 0.10
     smile_y = (mouth_smile_l + mouth_smile_r) * 0.06
     lips_outer[0][0] -= smile_x
     lips_outer[0][1] -= smile_y
     lips_outer[4][0] += smile_x
     lips_outer[4][1] -= smile_y
-
     lips_inner[0][0] -= smile_x * 0.8
     lips_inner[2][0] += smile_x * 0.8
 
-    # Pucker/Funnel narrows mouth width and rounds lips
-    pucker_factor = (mouth_pucker * 0.12) + (mouth_funnel * 0.08)
+    # Co-articulation (pucker / funnel)
+    pucker_factor = ((mouth_pucker - 0.40) * 0.15) + (mouth_funnel * 0.15)
     lips_outer[0][0] += pucker_factor
     lips_outer[4][0] -= pucker_factor
     lips_inner[0][0] += pucker_factor * 0.8
     lips_inner[2][0] -= pucker_factor * 0.8
 
     # Lower lip drops with jaw
-    lips_outer[5][1] += jaw_drop
-    lips_outer[6][1] += jaw_drop * 1.1
-    lips_outer[7][1] += jaw_drop
-    lips_inner[3][1] += jaw_drop * 0.95
+    lips_outer[5][1] += jaw_drop * 0.85
+    lips_outer[6][1] += jaw_drop * 0.95
+    lips_outer[7][1] += jaw_drop * 0.85
+    lips_inner[3][1] += jaw_drop * 0.80
 
-    # Upper lip slightly moves
-    upper_drop = jaw_drop * 0.15
-    lips_outer[1][1] += upper_drop
-    lips_outer[2][1] += upper_drop
-    lips_outer[3][1] += upper_drop
-    lips_inner[1][1] += upper_drop
+    # Upper lip raises slightly with speech emphasis
+    upper_lift = jaw_drop * 0.18
+    lips_outer[1][1] -= upper_lift
+    lips_outer[2][1] -= upper_lift * 1.2
+    lips_outer[3][1] -= upper_lift
+    lips_inner[1][1] -= upper_lift
 
-    # 3. Eyebrows
+    # 3. Eyebrows (Vocal inflection)
     l_brow = [p.copy() for p in NEUTRAL_L_BROW]
     r_brow = [p.copy() for p in NEUTRAL_R_BROW]
+    brow_inflection = (speech_drive * 0.10) + (brow_up * 0.08)
     for p in l_brow:
-        p[1] -= (brow_up * 0.08) - (brow_down_l * 0.06)
+        p[1] -= brow_inflection - (brow_down_l * 0.06)
     for p in r_brow:
-        p[1] -= (brow_up * 0.08) - (brow_down_r * 0.06)
+        p[1] -= brow_inflection - (brow_down_r * 0.06)
 
     # 4. Eyes (Blinking / squinting)
     l_eye = [p.copy() for p in NEUTRAL_L_EYE]
     r_eye = [p.copy() for p in NEUTRAL_R_EYE]
     blink_scale_l = max(0.08, 1.0 - eye_blink_l)
     blink_scale_r = max(0.08, 1.0 - eye_blink_r)
-
-    # Scale eye height relative to eye center
     eye_l_center_y = -0.28
     eye_r_center_y = -0.28
     for p in l_eye:
@@ -193,10 +193,10 @@ def deform_face_skeleton(
     for p in r_eye:
         p[1] = eye_r_center_y + (p[1] - eye_r_center_y) * blink_scale_r
 
-    # Head Pose Rotation (Pitch, Yaw, Roll)
-    pitch = math.radians(head_pose[0] * 15.0)
-    yaw = math.radians(head_pose[1] * 20.0)
-    roll = math.radians(head_pose[2] * 10.0)
+    # Head Pose Rotation (Pitch, Yaw, Roll) + subtle speech nod
+    pitch = math.radians(head_pose[0] * 12.0 + speech_drive * 4.0)
+    yaw = math.radians(head_pose[1] * 15.0)
+    roll = math.radians(head_pose[2] * 8.0)
 
     # 3D Euler Rotation Matrix
     Rx = np.array([
@@ -242,6 +242,7 @@ def deform_face_skeleton(
         "lips_outer": [rotate_pt(p) for p in lips_outer],
         "lips_inner": [rotate_pt(p) for p in lips_inner],
         "jaw_open_val": jaw_open,
+        "speech_drive": speech_drive,
         "teeth_gap": max(0.0, jaw_drop)
     }
 
@@ -314,15 +315,27 @@ def draw_skeleton_frame(
     draw_wire(skeleton["nose_bridge"], (200, 170, 90), thickness=2, is_closed=False)
     draw_wire(skeleton["nostrils"], (200, 170, 90), thickness=2, is_closed=False)
 
-    # 5. Teeth / Dental Exposure (White bars visible when mouth opens)
-    if skeleton["teeth_gap"] > 0.02:
+    # 5. Mouth Cavity & Dental Anatomy (Upper & Lower Teeth)
+    if skeleton["teeth_gap"] > 0.04:
+        inner_pts = [project_to_canvas(p, width, height) for p in skeleton["lips_inner"]]
+        cv2.fillPoly(canvas, [np.array(inner_pts, dtype=np.int32)], (10, 14, 22))
+
         inner_top = project_to_canvas(skeleton["lips_inner"][1], width, height)
         inner_bot = project_to_canvas(skeleton["lips_inner"][3], width, height)
-        teeth_w = int(width * 0.08)
-        # Upper teeth line
-        cv2.line(canvas, (inner_top[0] - teeth_w, inner_top[1] + 2), (inner_top[0] + teeth_w, inner_top[1] + 2), (240, 240, 240), 3, cv2.LINE_AA)
-        # Lower teeth line
-        cv2.line(canvas, (inner_bot[0] - teeth_w, inner_bot[1] - 2), (inner_bot[0] + teeth_w, inner_bot[1] - 2), (220, 220, 220), 2, cv2.LINE_AA)
+        teeth_w = int(width * 0.065)
+
+        # Upper teeth bar
+        cv2.rectangle(canvas, (inner_top[0] - teeth_w, inner_top[1] + 2), (inner_top[0] + teeth_w, inner_top[1] + 10), (245, 245, 245), -1)
+        cv2.rectangle(canvas, (inner_top[0] - teeth_w, inner_top[1] + 2), (inner_top[0] + teeth_w, inner_top[1] + 10), (180, 180, 180), 1)
+        for tx in range(-teeth_w + 10, teeth_w, 10):
+            cv2.line(canvas, (inner_top[0] + tx, inner_top[1] + 2), (inner_top[0] + tx, inner_top[1] + 10), (160, 160, 160), 1)
+
+        # Lower teeth bar (when mouth is sufficiently open)
+        if (inner_bot[1] - inner_top[1]) > 16:
+            cv2.rectangle(canvas, (inner_bot[0] - teeth_w, inner_bot[1] - 10), (inner_bot[0] + teeth_w, inner_bot[1] - 2), (235, 235, 235), -1)
+            cv2.rectangle(canvas, (inner_bot[0] - teeth_w, inner_bot[1] - 10), (inner_bot[0] + teeth_w, inner_bot[1] - 2), (170, 170, 170), 1)
+            for tx in range(-teeth_w + 10, teeth_w, 10):
+                cv2.line(canvas, (inner_bot[0] + tx, inner_bot[1] - 10), (inner_bot[0] + tx, inner_bot[1] - 2), (160, 160, 160), 1)
 
     # 6. Lips / Talking Mouth (Active Speech Color: Electric Orange / Crimson)
     speech_glow = int(min(255, 120 + audio_energy * 300))
@@ -351,18 +364,20 @@ def draw_skeleton_frame(
     cv2.putText(canvas, f"SPEECH ACOUSTIC ENERGY: {audio_energy:.4f}", (45, hud_y + 23), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
 
     # Active Blendshape Telemetry on Left
-    jaw_val = skeleton["jaw_open_val"]
-    cv2.putText(canvas, f"jawOpen: {jaw_val:.3f}", (30, 115), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (40, 180, 255), 1, cv2.LINE_AA)
-    jaw_bar_len = int(120 * min(1.0, jaw_val * 4.0))
+    jaw_val = skeleton["teeth_gap"]
+    cv2.putText(canvas, f"jawArticulation: {jaw_val:.3f}", (30, 115), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (40, 180, 255), 1, cv2.LINE_AA)
+    jaw_bar_len = int(120 * min(1.0, jaw_val * 2.5))
     cv2.rectangle(canvas, (30, 125), (150, 133), (30, 40, 55), -1)
     cv2.rectangle(canvas, (30, 125), (30 + jaw_bar_len, 133), (30, 180, 255), -1)
 
     # Live status badge
-    is_active = audio_energy > 0.015
+    is_active = audio_energy > 0.012
     status_text = "SPEAKING (REACTIVE)" if is_active else "IDLE / PAUSE"
     status_color = (0, 220, 100) if is_active else (100, 110, 120)
     cv2.circle(canvas, (width - 180, 40), 6, status_color, -1, cv2.LINE_AA)
     cv2.putText(canvas, status_text, (width - 165, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.45, status_color, 1, cv2.LINE_AA)
+
+    return canvas
 
     return canvas
 
@@ -517,6 +532,25 @@ def generate_face_skeleton_video(
         "noseSneerLeft", "noseSneerRight", "tongueOut"
     ]
 
+    # Dynamic speech envelope calibration across the utterance
+    jaw_raw = pred_bs_np[:, 17]  # jawOpen blendshape
+    p5 = np.percentile(jaw_raw, 5)
+    p95 = np.percentile(jaw_raw, 95)
+    j_norm = np.clip((jaw_raw - p5) / (p95 - p5 + 1e-5), 0.0, 1.0)
+
+    ae_p90 = np.percentile(ae, 90)
+    ae_norm = np.clip(ae / (ae_p90 + 1e-5), 0.0, 1.0)
+
+    raw_drive = 0.65 * ae_norm + 0.35 * j_norm
+
+    speech_drive = np.zeros_like(raw_drive)
+    for i in range(len(raw_drive)):
+        if i == 0:
+            speech_drive[i] = raw_drive[i]
+        else:
+            alpha = 0.65 if raw_drive[i] > speech_drive[i - 1] else 0.25
+            speech_drive[i] = alpha * raw_drive[i] + (1 - alpha) * speech_drive[i - 1]
+
     width, height = 720, 720
     temp_silent_mp4 = output_mp4 + ".temp.mp4" if audio_file else output_mp4
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
@@ -531,7 +565,9 @@ def generate_face_skeleton_video(
         skeleton = deform_face_skeleton(
             blendshapes=bs_dict,
             dental=pred_dental_np[f],
-            head_pose=pred_pose_np[f]
+            head_pose=pred_pose_np[f],
+            speech_drive=float(speech_drive[f]),
+            audio_energy=float(ae[f])
         )
 
         frame_img = draw_skeleton_frame(
@@ -550,6 +586,8 @@ def generate_face_skeleton_video(
         player_frames_data.append({
             "t": round(f / fps, 4),
             "jaw": round(float(bs_dict.get("jawOpen", 0.0)), 4),
+            "effective_jaw": round(float(skeleton["teeth_gap"]), 4),
+            "drive": round(float(speech_drive[f]), 4),
             "smile_l": round(float(bs_dict.get("mouthSmileLeft", 0.0)), 4),
             "smile_r": round(float(bs_dict.get("mouthSmileRight", 0.0)), 4),
             "pucker": round(float(bs_dict.get("mouthPucker", 0.0)), 4),
