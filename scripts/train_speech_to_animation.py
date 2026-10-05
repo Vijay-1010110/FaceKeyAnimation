@@ -275,12 +275,13 @@ def train_speech_to_animation(
                 from huggingface_hub import HfApi, hf_hub_download
                 api = HfApi(token=hf_token)
                 remote_files = api.list_repo_tree(repo_id=hf_repo, repo_type="dataset", path_in_repo="chunks")
-                chunk_files = [f for f in remote_files if f.path.endswith(".tar.gz")]
+                # Exclude duplicate copies (e.g. ' (1)')
+                chunk_files = [f for f in remote_files if f.path.endswith(".tar.gz") and " (1)" not in f.path]
                 if max_chunks and max_chunks > 0:
                     chunk_files = chunk_files[:max_chunks]
-                    print(f"[*] Selected {len(chunk_files)} chunk(s) for Phase 1 Benchmark (Disk-Safe Mode)...")
+                    print(f"[*] Selected {len(chunk_files)} unique chunk(s) for Phase 1 Benchmark (Disk & RAM Safe Mode)...")
                 else:
-                    print(f"[*] Selected all {len(chunk_files)} chunk(s)...")
+                    print(f"[*] Selected all {len(chunk_files)} unique chunk(s)...")
 
                 dl_chunks = []
                 for idx, cf in enumerate(chunk_files, 1):
@@ -300,19 +301,20 @@ def train_speech_to_animation(
             except Exception as e:
                 print(f"[!] Warning: Failed downloading from Hugging Face ({e})")
 
-    # 3. Preprocess if normalized_training_dataset.npz is missing (ZERO-DISK STREAMING!)
+    # 3. Preprocess if normalized_training_dataset.npz is missing (ULTRA-LEAN ZERO-DISK STREAMING!)
     if not os.path.exists(norm_npz):
         stats_json = os.path.join(local_data_dir, "dataset_statistics.json")
         if existing_chunks:
             from scripts.preprocess_normalized_training_data import preprocess_from_tar_chunks
-            print(f"\n[*] Compiling normalized dataset directly from {len(existing_chunks)} chunk(s) in RAM (Zero-Disk Streaming)...")
+            print(f"\n[*] Compiling normalized dataset directly from {len(existing_chunks)} chunk(s) in RAM (Zero-Disk Ultra-Lean)...")
             preprocess_from_tar_chunks(
                 chunk_paths=existing_chunks,
                 output_npz=norm_npz,
                 output_stats_json=stats_json,
-                val_ratio=0.15
+                val_ratio=0.15,
+                delete_chunk_after_process=True
             )
-            # Reclaim disk space by cleaning up temporary downloaded .tar.gz chunks
+            # Guarantee zero leftover tar archives to reclaim 100% disk space
             for cf in existing_chunks:
                 try:
                     if os.path.isfile(cf) and "/FaceKeyDataset" not in cf and "/content/drive" not in cf and "drive/MyDrive" not in cf:
