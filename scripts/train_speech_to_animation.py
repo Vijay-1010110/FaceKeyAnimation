@@ -398,22 +398,28 @@ def train_speech_to_animation(
     start_epoch = 1
     best_val_loss = float("inf")
 
-    # If checkpoint doesn't exist locally, check Hugging Face repo
+    # If checkpoint doesn't exist locally, check Hugging Face repo (try latest, then fallback to best)
     if not os.path.exists(latest_ckpt_path) and hf_repo:
         try:
             from huggingface_hub import hf_hub_download
             print(f"[*] Checking Hugging Face '{hf_repo}' for existing checkpoint...")
-            downloaded = hf_hub_download(
-                repo_id=hf_repo,
-                filename="checkpoints/checkpoint_latest.pt",
-                repo_type="dataset",
-                token=hf_token,
-                local_dir=ckpts_dir
-            )
-            if downloaded and os.path.exists(downloaded):
-                latest_ckpt_path = downloaded
-        except Exception:
-            pass
+            for candidate_ckpt in ["checkpoints/checkpoint_latest.pt", "checkpoints/checkpoint_best.pt"]:
+                try:
+                    downloaded = hf_hub_download(
+                        repo_id=hf_repo,
+                        filename=candidate_ckpt,
+                        repo_type="dataset",
+                        token=hf_token,
+                        local_dir=ckpts_dir
+                    )
+                    if downloaded and os.path.exists(downloaded):
+                        latest_ckpt_path = downloaded
+                        print(f"[✓] Retrieved remote checkpoint '{candidate_ckpt}' from Hugging Face!")
+                        break
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[*] Note: Remote checkpoint search ({e})")
 
     if os.path.exists(latest_ckpt_path):
         print(f"\n[*] FOUND EXISTING CHECKPOINT: '{latest_ckpt_path}'")
@@ -466,6 +472,12 @@ def train_speech_to_animation(
                 pred_bs, pred_dental, pred_pose = model(b_audio)
                 loss, metrics = criterion(pred_bs, b_bs, pred_dental, b_dental)
                 loss = loss / accum_steps
+
+            # Safety: Detect and discard NaN / Inf loss spikes to prevent exploding gradients
+            if torch.isnan(loss) or torch.isinf(loss):
+                print(f"  [!] WARNING: NaN/Inf detected at Epoch {epoch}, Step {step}! Discarding step...")
+                optimizer.zero_grad(set_to_none=True)
+                continue
 
             scaler.scale(loss).backward()
 
@@ -524,7 +536,11 @@ def train_speech_to_animation(
         print(f" [GPU ACCELERATION] VRAM Allocated/Peak: {vram_str}")
         print("-" * 75)
 
-        # 9. Save Checkpoint (Clean weights without DataParallel module. prefix)
+        # Defragment CUDA memory cache across epochs to prevent OOM
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        # 9. Save Checkpoint (Atomic write to prevent corruption on sudden session termination)
         raw_model = model.module if hasattr(model, "module") else model
         ckpt_payload = {
             "epoch": epoch,
@@ -538,35 +554,51 @@ def train_speech_to_animation(
             "saved_at": time.strftime("%Y-%m-%d %H:%M:%S")
         }
 
-        # Atomic write to local disk / drive
-        torch.save(ckpt_payload, latest_ckpt_path)
+        # Atomic replacement: write to .tmp first, then atomic rename
+        temp_latest = latest_ckpt_path + ".tmp"
+        torch.save(ckpt_payload, temp_latest)
+        try:
+            os.replace(temp_latest, latest_ckpt_path)
+        except Exception:
+            torch.save(ckpt_payload, latest_ckpt_path)
+
         if is_best:
-            torch.save(ckpt_payload, best_ckpt_path)
+            temp_best = best_ckpt_path + ".tmp"
+            torch.save(ckpt_payload, temp_best)
+            try:
+                os.replace(temp_best, best_ckpt_path)
+            except Exception:
+                torch.save(ckpt_payload, best_ckpt_path)
             print(f"[✓] Saved new BEST model checkpoint: '{best_ckpt_path}'")
 
-        # 10. Auto-sync Checkpoint to Hugging Face Hub (Interruption-Proof Cloud Sync)
+        # 10. Auto-sync Checkpoint to Hugging Face Hub (With 3-attempt exponential retry)
         if hf_repo and hf_token:
-            try:
-                from huggingface_hub import HfApi
-                api = HfApi()
-                api.upload_file(
-                    path_or_fileobj=latest_ckpt_path,
-                    path_in_repo="checkpoints/checkpoint_latest.pt",
-                    repo_id=hf_repo,
-                    repo_type="dataset",
-                    token=hf_token
-                )
-                if is_best:
+            for upload_attempt in range(1, 4):
+                try:
+                    from huggingface_hub import HfApi
+                    api = HfApi()
                     api.upload_file(
-                        path_or_fileobj=best_ckpt_path,
-                        path_in_repo="checkpoints/checkpoint_best.pt",
+                        path_or_fileobj=latest_ckpt_path,
+                        path_in_repo="checkpoints/checkpoint_latest.pt",
                         repo_id=hf_repo,
                         repo_type="dataset",
                         token=hf_token
                     )
-                print(f"[+] Checkpoint synced to Hugging Face Hub: {hf_repo}/checkpoints/")
-            except Exception as e:
-                print(f"[!] Note: HF checkpoint upload ({e})")
+                    if is_best:
+                        api.upload_file(
+                            path_or_fileobj=best_ckpt_path,
+                            path_in_repo="checkpoints/checkpoint_best.pt",
+                            repo_id=hf_repo,
+                            repo_type="dataset",
+                            token=hf_token
+                        )
+                    print(f"[+] Checkpoint synced to Hugging Face Hub: {hf_repo}/checkpoints/")
+                    break
+                except Exception as e:
+                    if upload_attempt < 3:
+                        time.sleep(2 * upload_attempt)
+                    else:
+                        print(f"[!] Warning: HF checkpoint sync retry failed ({e})")
 
     print("\n" + "=" * 82)
     print("  🏆 TRAINING PHASE COMPLETED SUCCESSFULLY!")
