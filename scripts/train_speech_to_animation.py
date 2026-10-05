@@ -129,7 +129,7 @@ def resolve_hf_token(token_arg: Optional[str] = None) -> Optional[str]:
 
 
 def unpack_tar_chunks(chunks: List[str], target_dir: str):
-    """Unpacks a list of .tar.gz chunks into the target directory."""
+    """Unpacks a list of .tar.gz chunks into the target directory and cleans archives to preserve disk."""
     os.makedirs(target_dir, exist_ok=True)
     for idx, cf in enumerate(chunks, 1):
         sz_mb = os.path.getsize(cf) / (1024.0 * 1024.0)
@@ -137,7 +137,11 @@ def unpack_tar_chunks(chunks: List[str], target_dir: str):
         try:
             with tarfile.open(cf, "r:gz") as tar:
                 tar.extractall(path=target_dir)
-            print("[DONE]")
+            try:
+                os.remove(cf)
+            except Exception:
+                pass
+            print("[DONE ✓]")
         except Exception as e:
             print(f"[ERROR: {e}]")
 
@@ -153,7 +157,8 @@ def train_speech_to_animation(
     lr: float = 1e-4,
     seq_len: int = 64,
     accum_steps: int = 2,
-    num_workers: Optional[int] = None
+    num_workers: Optional[int] = None,
+    max_chunks: Optional[int] = None
 ):
     print("=" * 82)
     print(" 🚀 FACEKEY STUDIO - MULTI-GPU CLOUD TRAINING ENGINE (KAGGLE / COLAB / CLOUD)")
@@ -234,18 +239,33 @@ def train_speech_to_animation(
 
         # If no chunks found on disk, pull from Hugging Face Hub directly!
         if not existing_chunks and hf_repo:
-            print(f"[*] Pulling all dataset chunks from Hugging Face repository '{hf_repo}'...")
+            print(f"[*] Querying Hugging Face repository '{hf_repo}'...")
             try:
-                from huggingface_hub import snapshot_download
-                snapshot_download(
-                    repo_id=hf_repo,
-                    repo_type="dataset",
-                    token=hf_token,
-                    local_dir=local_data_dir,
-                    allow_patterns=["chunks/*.tar.gz", "*.tar.gz", "dataset_manifest.json"]
-                )
-                existing_chunks = glob.glob(os.path.join(local_data_dir, "**", "*.tar.gz"), recursive=True)
-                print(f"[+] Downloaded {len(existing_chunks)} chunk(s) from Hugging Face!")
+                from huggingface_hub import HfApi, hf_hub_download
+                api = HfApi(token=hf_token)
+                remote_files = api.list_repo_tree(repo_id=hf_repo, repo_type="dataset", path_in_repo="chunks")
+                chunk_files = [f for f in remote_files if f.path.endswith(".tar.gz")]
+                if max_chunks and max_chunks > 0:
+                    chunk_files = chunk_files[:max_chunks]
+                    print(f"[*] Selected {len(chunk_files)} chunk(s) for Phase 1 Benchmark (Disk-Safe Mode)...")
+                else:
+                    print(f"[*] Selected all {len(chunk_files)} chunk(s)...")
+
+                dl_chunks = []
+                for idx, cf in enumerate(chunk_files, 1):
+                    fname = os.path.basename(cf.path)
+                    print(f"  [{idx}/{len(chunk_files)}] Downloading '{fname}'...", end=" ", flush=True)
+                    dl_p = hf_hub_download(
+                        repo_id=hf_repo,
+                        filename=cf.path,
+                        repo_type="dataset",
+                        token=hf_token,
+                        local_dir=local_data_dir
+                    )
+                    dl_chunks.append(dl_p)
+                    print("[DONE ✓]")
+                existing_chunks = dl_chunks
+                print(f"[+] Successfully retrieved {len(existing_chunks)} chunk(s) from Hugging Face!")
             except Exception as e:
                 print(f"[!] Warning: Failed downloading from Hugging Face ({e})")
 
@@ -445,8 +465,19 @@ def train_speech_to_animation(
         if is_best:
             best_val_loss = avg_val_loss
 
+        total_train_frames = len(train_loader.dataset) * seq_len
+        fps = total_train_frames / max(0.001, epoch_sec)
+        vram_info = []
+        if torch.cuda.is_available():
+            for gi in range(torch.cuda.device_count()):
+                mem_alloc = torch.cuda.memory_allocated(gi) / (1024**3)
+                mem_max = torch.cuda.max_memory_allocated(gi) / (1024**3)
+                vram_info.append(f"GPU {gi}: {mem_alloc:.1f}/{mem_max:.1f} GB")
+        vram_str = " | ".join(vram_info) if vram_info else "CPU"
+
         print("-" * 75)
-        print(f" [EPOCH {epoch:03d} SUMMARY] Train Loss: {avg_train_loss:.5f} | Val Loss: {avg_val_loss:.5f} {'[BEST ★]' if is_best else ''} | Time: {epoch_sec:.1f}s")
+        print(f" [EPOCH {epoch:03d} SUMMARY] Train Loss: {avg_train_loss:.5f} | Val Loss: {avg_val_loss:.5f} {'[BEST ★]' if is_best else ''} | Time: {epoch_sec:.1f}s ({fps:.0f} frames/sec)")
+        print(f" [GPU ACCELERATION] VRAM Allocated/Peak: {vram_str}")
         print("-" * 75)
 
         # 9. Save Checkpoint (Clean weights without DataParallel module. prefix)
@@ -513,6 +544,7 @@ if __name__ == "__main__":
     parser.add_argument("--seq-len", type=int, default=64, help="Temporal sequence length in frames (~2.1 seconds)")
     parser.add_argument("--accum-steps", type=int, default=2, help="Gradient accumulation steps")
     parser.add_argument("--num-workers", type=int, default=None, help="DataLoader workers (default min(4, cpu_count))")
+    parser.add_argument("--max-chunks", type=int, default=None, help="Maximum number of dataset chunks to download/use (ideal for Kaggle disk limits)")
     args = parser.parse_args()
 
     train_speech_to_animation(
@@ -526,5 +558,6 @@ if __name__ == "__main__":
         lr=args.lr,
         seq_len=args.seq_len,
         accum_steps=args.accum_steps,
-        num_workers=args.num_workers
+        num_workers=args.num_workers,
+        max_chunks=args.max_chunks
     )
