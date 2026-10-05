@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    // Automatic Secure Origin Forwarder for Web Audio & WebRTC Microphone
+    if (window.location.protocol === 'file:') {
+      window.location.replace('http://localhost:8765/real_3d_face_model_tester.html' + window.location.search + window.location.hash);
+    }
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FaceKey Real 3D Model Lip-Sync & Face Key Tester</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+
+  <!-- Three.js ES Module Importmap -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background: #060911;
+      color: #e2e8f0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      overflow-x: hidden;
+    }
+    .glow-cyan {
+      box-shadow: 0 0 35px rgba(6, 182, 212, 0.22);
+    }
+    .glow-model {
+      box-shadow: inset 0 0 60px rgba(15, 23, 42, 0.8), 0 0 30px rgba(6, 182, 212, 0.15);
+    }
+    .slider {
+      accent-color: #06b6d4;
+    }
+    .pulse-live {
+      animation: pulseLive 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulseLive {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.1); }
+    }
+    /* Custom scrollbar for blendshapes list */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.6);
+    }
+  </style>
+</head>
+<body class="p-3 md:p-6 flex flex-col items-center justify-center min-h-screen">
+
+  <div class="w-full max-w-6xl bg-slate-900/95 border border-slate-800 rounded-3xl p-5 md:p-7 glow-cyan backdrop-blur-2xl flex flex-col gap-5">
+    
+    <!-- Top Header -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800/80 pb-4 gap-3">
+      <div class="flex items-center gap-3.5">
+        <div id="mic-status-dot" class="w-3.5 h-3.5 rounded-full bg-slate-600 transition-colors shadow"></div>
+        <div>
+          <h1 class="text-xl font-black text-white tracking-tight flex items-center gap-2.5 flex-wrap">
+            <span>FaceKey Real 3D Model Studio</span>
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              WebGL 3D Morph Engine
+            </span>
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              52 ARKit Blendshapes
+            </span>
+          </h1>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Test live speech & audio lip-sync on a real 3D head mesh with zero 3D experience needed
+          </p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <span id="model-status-badge" class="text-xs font-mono font-semibold px-3 py-1 rounded-lg bg-cyan-950/80 text-cyan-300 border border-cyan-800/60">
+          Loading 3D Head...
+        </span>
+        <span id="mic-state-badge" class="text-xs font-bold px-3 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700">
+          STANDBY
+        </span>
+      </div>
+    </div>
+
+    <!-- Quick Zero-Knowledge 3D Guide Callout -->
+    <div class="bg-gradient-to-r from-cyan-950/40 via-slate-900/60 to-purple-950/30 border border-cyan-800/40 rounded-2xl p-3.5 text-xs text-slate-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <span class="text-xl">💡</span>
+        <div>
+          <span class="font-bold text-white">How this works without 3D knowledge:</span>
+          A <em>"Face Key"</em> (blendshape) is simply a slider inside the 3D model (e.g. <code class="text-amber-300 bg-slate-950 px-1 py-0.5 rounded">jawOpen</code> = open mouth).
+          Our AI listens to speech and moves all 52 sliders automatically in real time!
+        </div>
+      </div>
+      <div class="flex items-center gap-2 whitespace-nowrap text-cyan-400 text-[11px] font-medium">
+        <span>✨ You can also drag & drop any Ready Player Me <code class="text-white">.glb</code> avatar!</span>
+      </div>
+    </div>
+
+    <!-- Main Workspace (3D Viewport + Face Keys Telemetry) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      
+      <!-- 3D WebGL Canvas Viewport (Span 8) -->
+      <div class="lg:col-span-8 relative bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden flex flex-col items-center justify-center min-h-[500px] h-[520px] glow-model group" id="viewport-container">
+        
+        <!-- Three.js Canvas Container -->
+        <div id="three-canvas-container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+        
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-30 transition-opacity duration-300">
+          <div class="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+          <span class="text-sm font-semibold text-white tracking-wide">Loading 3D Realistic Head Mesh...</span>
+          <span class="text-xs text-slate-400 font-mono">Parsing 52 ARKit blendshapes & PBR materials</span>
+        </div>
+
+        <!-- Controls Hint Overlay -->
+        <div class="absolute top-3.5 left-3.5 text-[11px] text-slate-300 bg-slate-900/85 backdrop-blur px-3 py-1.5 rounded-lg pointer-events-none border border-slate-700/60 shadow flex items-center gap-2">
+          <span>🖱️ Left-Click: Rotate 3D</span> • <span>Right-Click: Pan</span> • <span>Scroll: Zoom</span>
+        </div>
+
+        <!-- FPS / Model Info HUD -->
+        <div class="absolute top-3.5 right-3.5 text-xs font-mono text-cyan-300 bg-slate-900/85 backdrop-blur px-3 py-1.5 rounded-lg border border-cyan-500/30 flex items-center gap-2 shadow">
+          <span id="hud-fps">60 FPS</span> | <span id="hud-status" class="text-amber-300">STANDBY</span>
+        </div>
+
+        <!-- Drag & Drop Zone Hint (Hover) -->
+        <div id="drop-zone-overlay" class="absolute inset-0 border-2 border-dashed border-cyan-400 bg-cyan-950/70 backdrop-blur-sm hidden flex-col items-center justify-center gap-2 z-20 pointer-events-none">
+          <span class="text-3xl">📥</span>
+          <span class="text-sm font-bold text-white">Drop your .GLB 3D Avatar Model here!</span>
+          <span class="text-xs text-cyan-300">FaceKey will automatically bind all 52 facial blendshapes</span>
+        </div>
+
+        <!-- Bottom Audio Wave VU Bar -->
+        <div class="absolute bottom-3 left-3.5 right-3.5 bg-slate-900/90 backdrop-blur-md border border-slate-700/70 rounded-xl p-3 flex items-center gap-3 shadow-xl">
+          <span class="text-xs font-mono text-slate-300 font-bold whitespace-nowrap flex items-center gap-1.5">
+            <span>🎙️ SPEECH RMS:</span>
+          </span>
+          <div class="flex-1 h-3 bg-slate-800 rounded-full overflow-hidden relative shadow-inner">
+            <div id="audio-energy-bar" class="h-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-amber-400 transition-all duration-75" style="width: 0%;"></div>
+          </div>
+          <span id="audio-energy-text" class="text-xs font-mono text-amber-300 font-bold w-14 text-right">0.000</span>
+        </div>
+
+      </div>
+
+      <!-- Right Telemetry & Live Face Keys Inspector (Span 4) -->
+      <div class="lg:col-span-4 bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex flex-col gap-4 h-[520px]">
+        
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <span>🔴 Live Face Keys</span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">52 ARKit Keys</span>
+          </h2>
+          <span id="active-morph-count" class="text-[11px] font-mono text-amber-400">0 Active</span>
+        </div>
+
+        <!-- Sliders: Sensitivity & Articulation Boost -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="bg-slate-900/70 border border-slate-800 p-2.5 rounded-xl flex flex-col gap-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300 font-medium">Mic Gain</span>
+              <span id="val-sens" class="font-mono text-cyan-300 font-bold">2.5x</span>
+            </div>
+            <input type="range" id="sens-slider" min="0.5" max="6.0" step="0.1" value="2.5" class="slider cursor-pointer w-full">
+          </div>
+
+          <div class="bg-slate-900/70 border border-slate-800 p-2.5 rounded-xl flex flex-col gap-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300 font-medium">Mouth Boost</span>
+              <span id="val-scale" class="font-mono text-amber-300 font-bold">1.5x</span>
+            </div>
+            <input type="range" id="scale-slider" min="0.5" max="3.0" step="0.1" value="1.5" class="slider cursor-pointer w-full">
+          </div>
+        </div>
+
+        <!-- Primary Face Keys Real-Time VU Meters -->
+        <div class="flex flex-col gap-2 bg-slate-900/50 border border-slate-800/80 p-3 rounded-xl">
+          
+          <!-- jawOpen -->
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-amber-400 font-bold">jawOpen (Mouth Opening)</span>
+              <span id="val-jaw" class="text-amber-300 font-bold">0.000</span>
+            </div>
+            <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div id="bar-jaw" class="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-75" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- mouthFunnel / Pucker -->
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-cyan-300">mouthFunnel (O / U Sound)</span>
+              <span id="val-funnel" class="text-cyan-300">0.000</span>
+            </div>
+            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="bar-funnel" class="h-full bg-cyan-400 transition-all duration-75" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- mouthSmile -->
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-emerald-300">mouthSmile (Expression)</span>
+              <span id="val-smile" class="text-emerald-300">0.000</span>
+            </div>
+            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="bar-smile" class="h-full bg-emerald-400 transition-all duration-75" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- browInnerUp -->
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-purple-300">browInnerUp (Inflection)</span>
+              <span id="val-brow" class="text-purple-300">0.000</span>
+            </div>
+            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="bar-brow" class="h-full bg-purple-400 transition-all duration-75" style="width: 0%;"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Scrollable Active ARKit Blendshapes List -->
+        <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-1.5 bg-slate-900/40 border border-slate-800/60 p-2.5 rounded-xl text-[11px] font-mono" id="blendshapes-list">
+          <div class="text-slate-500 text-center py-4">Waiting for audio playback or microphone...</div>
+        </div>
+
+        <!-- Drag & Drop / Custom Upload Trigger -->
+        <div class="flex items-center justify-between text-[11px] text-slate-400 bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+          <span>Drop any .glb avatar or</span>
+          <label class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded font-semibold cursor-pointer transition-colors border border-slate-700">
+            Browse 3D File
+            <input type="file" id="file-input" accept=".glb,.gltf" class="hidden">
+          </label>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Live Microphone and Test Speech Controls Bar -->
+    <div class="bg-slate-950/95 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <div class="flex items-center gap-3 flex-wrap">
+        <button id="btn-toggle-mic" class="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-sm transition-all flex items-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95 cursor-pointer">
+          <span id="btn-mic-icon">🎙️</span> <span id="btn-mic-label">Start Live Microphone</span>
+        </button>
+
+        <button id="btn-test-speech" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer border border-slate-700 shadow">
+          <span id="btn-test-icon">🔊</span> <span id="btn-test-label">Play Steve Jobs Speech Audio</span>
+        </button>
+
+        <button id="btn-reset-view" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer border border-slate-700">
+          🔄 Reset 3D View
+        </button>
+      </div>
+
+      <!-- Status Indicator -->
+      <div class="text-xs text-slate-400 flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow shadow-emerald-400/50"></span>
+        <span id="engine-status-text">Three.js WebGL Engine Ready • PBR Studio Lighting Active</span>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Three.js Interactive Application Script -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+    import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // UI Elements
+    const container = document.getElementById('three-canvas-container');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const modelBadge = document.getElementById('model-status-badge');
+    const micBadge = document.getElementById('mic-state-badge');
+    const micStatusDot = document.getElementById('mic-status-dot');
+    const hudStatus = document.getElementById('hud-status');
+    const hudFps = document.getElementById('hud-fps');
+    const btnToggleMic = document.getElementById('btn-toggle-mic');
+    const btnTestSpeech = document.getElementById('btn-test-speech');
+    const btnResetView = document.getElementById('btn-reset-view');
+    const sensSlider = document.getElementById('sens-slider');
+    const scaleSlider = document.getElementById('scale-slider');
+    const fileInput = document.getElementById('file-input');
+    const blendshapesList = document.getElementById('blendshapes-list');
+    const activeMorphCount = document.getElementById('active-morph-count');
+
+    // WebGL / Three.js Globals
+    let scene, camera, renderer, controls;
+    let currentModel = null;
+    let morphMeshes = [];
+    let morphDict = {}; // Maps blendshape names to mesh indices
+    let initialCameraPos = new THREE.Vector3(0, 0, 2.2);
+
+    // Audio Globals
+    let audioCtx = null;
+    let analyser = null;
+    let micStream = null;
+    let dataArray = null;
+    let isMicActive = false;
+    let isTestPlaying = false;
+    let testAudioBuffer = null;
+    let testBufferSource = null;
+    let animFrameId = null;
+
+    // Kinematic Drivers
+    let smoothDrive = 0.0;
+    let peakEnergy = 0.025;
+    let blinkTimer = 0.0;
+    let blinkValue = 0.0;
+
+    // Standard ARKit Mapping Aliases
+    // Different 3D models use either camelCase (jawOpen) or snake_L (mouthSmile_L)
+    const ARKIT_ALIASES = {
+      jawOpen: ['jawOpen', 'jaw_open', 'Jaw_Open', 'JawOpen'],
+      mouthFunnel: ['mouthFunnel', 'mouth_funnel', 'MouthFunnel'],
+      mouthPucker: ['mouthPucker', 'mouth_pucker', 'MouthPucker'],
+      mouthSmile_L: ['mouthSmile_L', 'mouthSmileLeft', 'mouth_smile_l', 'MouthSmileLeft'],
+      mouthSmile_R: ['mouthSmile_R', 'mouthSmileRight', 'mouth_smile_r', 'MouthSmileRight'],
+      mouthUpperUp_L: ['mouthUpperUp_L', 'mouthUpperUpLeft', 'mouth_upper_up_l'],
+      mouthUpperUp_R: ['mouthUpperUp_R', 'mouthUpperUpRight', 'mouth_upper_up_r'],
+      mouthLowerDown_L: ['mouthLowerDown_L', 'mouthLowerDownLeft', 'mouth_lower_down_l'],
+      mouthLowerDown_R: ['mouthLowerDown_R', 'mouthLowerDownRight', 'mouth_lower_down_r'],
+      browInnerUp: ['browInnerUp', 'brow_inner_up', 'BrowInnerUp'],
+      eyeBlink_L: ['eyeBlink_L', 'eyeBlinkLeft', 'eye_blink_l', 'EyeBlinkLeft'],
+      eyeBlink_R: ['eyeBlink_R', 'eyeBlinkRight', 'eye_blink_r', 'EyeBlinkRight']
+    };
+
+    function initThree() {
+      const width = container.clientWidth || 700;
+      const height = container.clientHeight || 520;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x070b14);
+
+      camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+      camera.position.copy(initialCameraPos);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      container.appendChild(renderer.domElement);
+
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.minDistance = 0.8;
+      controls.maxDistance = 5.0;
+      controls.target.set(0, 0, 0);
+
+      // Studio Lighting setup
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+      scene.add(ambientLight);
+
+      const keyLight = new THREE.DirectionalLight(0xfff1e0, 2.0);
+      keyLight.position.set(2, 3, 3);
+      scene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0xa5c9ff, 1.2);
+      fillLight.position.set(-3, 1, 2);
+      scene.add(fillLight);
+
+      const rimLight = new THREE.DirectionalLight(0x38bdf8, 2.2);
+      rimLight.position.set(0, 3, -3);
+      scene.add(rimLight);
+
+      // Subtle bottom bounce
+      const groundBounce = new THREE.DirectionalLight(0x1e293b, 0.6);
+      groundBounce.position.set(0, -3, 1);
+      scene.add(groundBounce);
+
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function onWindowResize() {
+      if (!renderer || !container) return;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+
+    // Load 3D Head Model via GLTFLoader
+    async function loadModel(urlOrBuffer, isArrayBuffer = false) {
+      loadingOverlay.style.display = 'flex';
+      loadingOverlay.style.opacity = '1';
+      modelBadge.innerText = 'Loading 3D Mesh...';
+
+      const ktx2Loader = new KTX2Loader()
+        .setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/basis/')
+        .detectSupport(renderer);
+
+      const loader = new GLTFLoader()
+        .setKTX2Loader(ktx2Loader)
+        .setMeshoptDecoder(MeshoptDecoder);
+
+      const handleGltf = (gltf) => {
+        if (currentModel) scene.remove(currentModel);
+
+        currentModel = gltf.scene;
+        morphMeshes = [];
+        morphDict = {};
+
+        // Discover all meshes with morph targets
+        currentModel.traverse((node) => {
+          if (node.isMesh && node.morphTargetDictionary && node.morphTargetInfluences) {
+            morphMeshes.push(node);
+            for (const key of Object.keys(node.morphTargetDictionary)) {
+              morphDict[key] = true;
+            }
+          }
+        });
+
+        // Auto-center and normalize model scale
+        const box = new THREE.Box3().setFromObject(currentModel);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+
+        currentModel.position.sub(center);
+        if (maxDim > 0) {
+          const targetScale = 1.3 / maxDim;
+          currentModel.scale.setScalar(targetScale);
+        }
+
+        scene.add(currentModel);
+        controls.reset();
+        camera.position.copy(initialCameraPos);
+        controls.update();
+
+        const totalTargets = Object.keys(morphDict).length;
+        modelBadge.innerText = `3D Head: ${totalTargets} Blendshapes Ready`;
+        modelBadge.className = 'text-xs font-mono font-semibold px-3 py-1 rounded-lg bg-emerald-950/80 text-emerald-300 border border-emerald-800/60';
+        
+        loadingOverlay.style.opacity = '0';
+        setTimeout(() => loadingOverlay.style.display = 'none', 300);
+
+        renderBlendshapesUI();
+        console.log(`[FaceKey] Loaded 3D Model with ${morphMeshes.length} morph meshes and ${totalTargets} distinct blendshapes.`);
+      };
+
+      if (isArrayBuffer) {
+        loader.parse(urlOrBuffer, '', handleGltf, (err) => {
+          console.error('Failed to parse uploaded GLB:', err);
+          alert('Could not load custom 3D model: ' + err.message);
+          loadingOverlay.style.display = 'none';
+        });
+      } else {
+        loader.load(urlOrBuffer, handleGltf, undefined, (err) => {
+          console.error('Failed to load model from URL:', err);
+          loadingOverlay.style.display = 'none';
+          alert('Could not load default 3D model: ' + err.message);
+        });
+      }
+    }
+
+    // Set Morph Target Influence across all meshes
+    function setMorphTarget(canonicalName, value) {
+      const aliases = ARKIT_ALIASES[canonicalName] || [canonicalName];
+      for (const mesh of morphMeshes) {
+        for (const alias of aliases) {
+          const idx = mesh.morphTargetDictionary[alias];
+          if (idx !== undefined) {
+            mesh.morphTargetInfluences[idx] = Math.max(0.0, Math.min(1.0, value));
+            break;
+          }
+        }
+      }
+    }
+
+    // Populate Sidebar UI with Active Morph Sliders
+    function renderBlendshapesUI() {
+      blendshapesList.innerHTML = '';
+      const allKeys = Object.keys(morphDict).sort();
+      if (allKeys.length === 0) {
+        blendshapesList.innerHTML = '<div class="text-rose-400 p-2">Warning: No morph targets found in this model.</div>';
+        return;
+      }
+
+      for (const key of allKeys) {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between bg-slate-950/60 px-2 py-1 rounded border border-slate-800/50';
+        row.innerHTML = `
+          <span class="text-slate-400 truncate max-w-[140px]" title="${key}">${key}</span>
+          <span id="bs-val-${key}" class="text-cyan-400 font-bold">0.00</span>
+        `;
+        blendshapesList.appendChild(row);
+      }
+    }
+
+    function updateBlendshapesUI(activeMap) {
+      let activeCount = 0;
+      for (const [key, val] of Object.entries(activeMap)) {
+        const el = document.getElementById(`bs-val-${key}`);
+        if (el) {
+          el.innerText = val.toFixed(2);
+          if (val > 0.05) {
+            activeCount++;
+            el.className = 'text-amber-400 font-bold';
+          } else {
+            el.className = 'text-slate-500 font-normal';
+          }
+        }
+      }
+      activeMorphCount.innerText = `${activeCount} Active`;
+    }
+
+    // Dynamic Kinematics & Audio Envelope Loop
+    function updateAnimation(rmsEnergy, delta) {
+      const sens = parseFloat(sensSlider.value);
+      const boost = parseFloat(scaleSlider.value);
+
+      const adjustedEnergy = rmsEnergy * sens;
+      document.getElementById('audio-energy-text').innerText = adjustedEnergy.toFixed(3);
+      document.getElementById('audio-energy-bar').style.width = Math.min(100, adjustedEnergy * 450) + '%';
+
+      if (adjustedEnergy > peakEnergy) {
+        peakEnergy = 0.90 * peakEnergy + 0.10 * adjustedEnergy;
+      } else {
+        peakEnergy = Math.max(0.012, 0.998 * peakEnergy);
+      }
+
+      const normEnergy = Math.min(1.0, adjustedEnergy / Math.max(1e-4, peakEnergy * 0.85));
+      const rawDrive = Math.max(0.0, normEnergy);
+
+      // Attack / Release envelope
+      const alpha = rawDrive > smoothDrive ? 0.70 : 0.22;
+      smoothDrive = alpha * rawDrive + (1.0 - alpha) * smoothDrive;
+
+      // Primary Speech Articulations
+      const jaw = Math.min(1.0, smoothDrive * 0.85 * boost);
+      const funnel = Math.min(1.0, smoothDrive * 0.35 * boost);
+      const lowerDown = Math.min(1.0, jaw * 0.65);
+      const upperUp = Math.min(1.0, jaw * 0.25);
+      const smile = Math.min(1.0, smoothDrive * 0.25);
+      const browUp = Math.min(1.0, smoothDrive * 0.22);
+
+      // Procedural Natural Blinking (keeps model lifelike)
+      blinkTimer += delta;
+      if (blinkTimer > 3.5) {
+        blinkValue = Math.sin((blinkTimer - 3.5) * Math.PI / 0.25);
+        if (blinkTimer > 3.75) {
+          blinkTimer = Math.random() * 1.5; // Randomize next blink
+          blinkValue = 0.0;
+        }
+      } else {
+        blinkValue = 0.0;
+      }
+
+      // Apply to 3D Model Morph Targets
+      setMorphTarget('jawOpen', jaw);
+      setMorphTarget('mouthFunnel', funnel);
+      setMorphTarget('mouthLowerDown_L', lowerDown);
+      setMorphTarget('mouthLowerDown_R', lowerDown);
+      setMorphTarget('mouthUpperUp_L', upperUp);
+      setMorphTarget('mouthUpperUp_R', upperUp);
+      setMorphTarget('mouthSmile_L', smile);
+      setMorphTarget('mouthSmile_R', smile);
+      setMorphTarget('browInnerUp', browUp);
+      setMorphTarget('eyeBlink_L', Math.max(0.0, blinkValue));
+      setMorphTarget('eyeBlink_R', Math.max(0.0, blinkValue));
+
+      // Telemetry UI Updates
+      document.getElementById('val-jaw').innerText = jaw.toFixed(3);
+      document.getElementById('bar-jaw').style.width = Math.min(100, jaw * 100) + '%';
+
+      document.getElementById('val-funnel').innerText = funnel.toFixed(3);
+      document.getElementById('bar-funnel').style.width = Math.min(100, funnel * 100) + '%';
+
+      document.getElementById('val-smile').innerText = smile.toFixed(3);
+      document.getElementById('bar-smile').style.width = Math.min(100, smile * 100) + '%';
+
+      document.getElementById('val-brow').innerText = browUp.toFixed(3);
+      document.getElementById('bar-brow').style.width = Math.min(100, browUp * 100) + '%';
+
+      const isSpeaking = smoothDrive > 0.15;
+      if (isSpeaking) {
+        micBadge.innerText = '🗣️ TALKING';
+        micBadge.className = 'text-xs font-bold px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+      } else if (isMicActive || isTestPlaying) {
+        micBadge.innerText = '👂 LISTENING';
+        micBadge.className = 'text-xs font-bold px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30';
+      } else {
+        micBadge.innerText = 'STANDBY';
+        micBadge.className = 'text-xs font-bold px-3 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700';
+      }
+
+      // Sidebar key update
+      updateBlendshapesUI({
+        jawOpen: jaw,
+        mouthFunnel: funnel,
+        mouthSmile_L: smile,
+        mouthSmile_R: smile,
+        browInnerUp: browUp,
+        eyeBlink_L: Math.max(0.0, blinkValue),
+        eyeBlink_R: Math.max(0.0, blinkValue)
+      });
+    }
+
+    // Audio Analysis & Render Loop
+    let lastTime = performance.now();
+    let frameCount = 0;
+    let fpsTimer = 0;
+
+    function renderLoop(time) {
+      animFrameId = requestAnimationFrame(renderLoop);
+
+      const delta = (time - lastTime) / 1000.0;
+      lastTime = time;
+
+      // FPS Counter
+      frameCount++;
+      fpsTimer += delta;
+      if (fpsTimer >= 1.0) {
+        hudFps.innerText = `${frameCount} FPS`;
+        frameCount = 0;
+        fpsTimer = 0;
+      }
+
+      // Compute RMS Energy from Audio
+      let rms = 0.0;
+      if ((isMicActive || isTestPlaying) && analyser && dataArray) {
+        analyser.getFloatTimeDomainData(dataArray);
+        let sumSq = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sumSq += dataArray[i] * dataArray[i];
+        }
+        rms = Math.sqrt(sumSq / dataArray.length);
+      }
+
+      updateAnimation(rms, delta);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Audio Context Setup
+    async function initAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+    }
+
+    // Live Microphone Handler
+    async function startMicrophone() {
+      if (isTestPlaying) stopTestAudio();
+
+      if (window.location.protocol === 'file:' || !window.isSecureContext) {
+        alert('Browser Security Policy: Microphones are blocked on file:/// URLs.\n\nRedirecting to http://localhost:8765/real_3d_face_model_tester.html ...');
+        window.location.href = 'http://localhost:8765/real_3d_face_model_tester.html';
+        return;
+      }
+
+      try {
+        await initAudioContext();
+
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true },
+            video: false
+          });
+        } catch (cErr) {
+          console.warn('Advanced constraints not supported, fallback to basic audio:', cErr);
+          micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        }
+
+        const source = audioCtx.createMediaStreamSource(micStream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        dataArray = new Float32Array(analyser.fftSize);
+        source.connect(analyser);
+
+        isMicActive = true;
+        document.getElementById('btn-mic-icon').innerText = '⏹️';
+        document.getElementById('btn-mic-label').innerText = 'Stop Microphone';
+        btnToggleMic.classList.replace('bg-cyan-500', 'bg-rose-500');
+        btnToggleMic.classList.replace('hover:bg-cyan-400', 'hover:bg-rose-400');
+        btnToggleMic.classList.replace('text-slate-950', 'text-white');
+        micStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-emerald-400 pulse-live';
+        hudStatus.innerText = 'LIVE MIC';
+        hudStatus.className = 'text-emerald-400 font-bold';
+      } catch (err) {
+        console.error('Microphone error:', err);
+        alert('Could not start microphone: ' + err.message + '\n\nPlease ensure you allowed microphone permission in your browser URL bar.');
+      }
+    }
+
+    function stopMicrophone() {
+      isMicActive = false;
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+      document.getElementById('btn-mic-icon').innerText = '🎙️';
+      document.getElementById('btn-mic-label').innerText = 'Start Live Microphone';
+      btnToggleMic.classList.replace('bg-rose-500', 'bg-cyan-500');
+      btnToggleMic.classList.replace('hover:bg-rose-400', 'hover:bg-cyan-400');
+      btnToggleMic.classList.replace('text-white', 'text-slate-950');
+      micStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-slate-600';
+      hudStatus.innerText = 'STANDBY';
+      hudStatus.className = 'text-slate-400';
+      updateAnimation(0.0, 0.016);
+    }
+
+    // Steve Jobs Test Audio Handler
+    async function startTestAudio() {
+      if (isMicActive) stopMicrophone();
+
+      try {
+        await initAudioContext();
+
+        if (!testAudioBuffer) {
+          const resp = await fetch('http://localhost:8765/steve_jobs_clip.wav');
+          const wavBuf = await resp.arrayBuffer();
+          testAudioBuffer = await audioCtx.decodeAudioData(wavBuf);
+        }
+
+        testBufferSource = audioCtx.createBufferSource();
+        testBufferSource.buffer = testAudioBuffer;
+        testBufferSource.loop = true;
+
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        dataArray = new Float32Array(analyser.fftSize);
+
+        testBufferSource.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        testBufferSource.start(0);
+
+        isTestPlaying = true;
+        document.getElementById('btn-test-icon').innerText = '⏹️';
+        document.getElementById('btn-test-label').innerText = 'Stop Test Audio';
+        btnTestSpeech.classList.replace('bg-slate-800', 'bg-amber-500');
+        btnTestSpeech.classList.replace('text-amber-300', 'text-slate-950');
+        micStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-amber-400 pulse-live';
+        hudStatus.innerText = 'TEST SPEECH';
+        hudStatus.className = 'text-amber-300 font-bold';
+      } catch (err) {
+        console.error('Test audio error:', err);
+        alert('Test audio error: ' + err.message);
+      }
+    }
+
+    function stopTestAudio() {
+      isTestPlaying = false;
+      if (testBufferSource) {
+        try { testBufferSource.stop(); } catch(e) {}
+        testBufferSource = null;
+      }
+      document.getElementById('btn-test-icon').innerText = '🔊';
+      document.getElementById('btn-test-label').innerText = 'Play Steve Jobs Speech Audio';
+      btnTestSpeech.classList.replace('bg-amber-500', 'bg-slate-800');
+      btnTestSpeech.classList.replace('text-slate-950', 'text-amber-300');
+      micStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-slate-600';
+      hudStatus.innerText = 'STANDBY';
+      hudStatus.className = 'text-slate-400';
+      updateAnimation(0.0, 0.016);
+    }
+
+    // UI Listeners
+    btnToggleMic.addEventListener('click', () => {
+      if (isMicActive) stopMicrophone(); else startMicrophone();
+    });
+
+    btnTestSpeech.addEventListener('click', () => {
+      if (isTestPlaying) stopTestAudio(); else startTestAudio();
+    });
+
+    btnResetView.addEventListener('click', () => {
+      controls.reset();
+      camera.position.copy(initialCameraPos);
+      controls.update();
+    });
+
+    sensSlider.addEventListener('input', (e) => {
+      document.getElementById('val-sens').innerText = e.target.value + 'x';
+    });
+
+    scaleSlider.addEventListener('input', (e) => {
+      document.getElementById('val-scale').innerText = e.target.value + 'x';
+    });
+
+    // Drag and Drop 3D Model File Handler
+    const dropZone = document.getElementById('viewport-container');
+    const dropOverlay = document.getElementById('drop-zone-overlay');
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropOverlay.classList.remove('hidden');
+      dropOverlay.classList.add('flex');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropOverlay.classList.add('hidden');
+      dropOverlay.classList.remove('flex');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropOverlay.classList.add('hidden');
+      dropOverlay.classList.remove('flex');
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFile(e.target.files[0]);
+      }
+    });
+
+    function handleFile(file) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        loadModel(evt.target.result, true);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Initialize WebGL Scene and Load Default ARKit 3D Head Model
+    initThree();
+    loadModel('http://localhost:8765/facecap.glb');
+    requestAnimationFrame(renderLoop);
+
+  </script>
+</body>
+</html>
