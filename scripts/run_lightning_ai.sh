@@ -77,11 +77,14 @@ if [ -n "$HF_TOKEN" ]; then
     HF_FLAG="--hf-token $HF_TOKEN --hf-repo VijayTheOne/facekey-dataset-chunks"
 fi
 
+QUEUE_FILE="${1:-sessions/youtube_urls_lightning.txt}"
+echo "[*] Using URLs queue file: ${QUEUE_FILE}"
+
 # Run Collector on Lightning's 4 CPU cores
 python scripts/cloud_data_collector.py \
     --drive-dir "${DRIVE_DIR}" \
     --worker-id "lightning-worker-1" \
-    --urls-file "sessions/youtube_urls_lightning.txt" \
+    --urls-file "${QUEUE_FILE}" \
     --chunk-size 1 \
     --quality 480p \
     --num-workers 3 \
