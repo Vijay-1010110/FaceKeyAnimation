@@ -110,18 +110,7 @@ notebook = {
     "\n",
     "%cd {APP_DIR}\n",
     "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy\n",
-    "\n",
-    "# Auto-sync latest zero-disk streaming scripts directly from Hugging Face Hub\n",
-    "try:\n",
-    "    from huggingface_hub import hf_hub_download\n",
-    "    for s_name in ['train_speech_to_animation.py', 'preprocess_normalized_training_data.py']:\n",
-    "        f_path = hf_hub_download(repo_id='VijayTheOne/facekey-dataset-chunks', filename=f'code/{s_name}', repo_type='dataset', local_dir='/kaggle/working/hf_code')\n",
-    "        !cp {f_path} scripts/{s_name}\n",
-    "    print('[✓] Synced latest zero-disk streaming engine from Hugging Face!')\n",
-    "except Exception as e:\n",
-    "    print(f'[*] Script notice: {e}')\n",
-    "\n",
-    "print('[+] Deep Learning Training environment ready!')\n"
+    "print('[+] Deep Learning Training environment ready with latest GitHub code!')\n"
    ]
   },
   {
