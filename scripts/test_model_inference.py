@@ -11,6 +11,13 @@ import sys
 import json
 import time
 import argparse
+
+# Enable UTF-8 encoding on Windows console
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+from typing import Tuple, Dict, List, Optional, Any
 import numpy as np
 import torch
 import torch.nn as nn
@@ -366,6 +373,8 @@ if __name__ == "__main__":
         local_candidates = [
             "/kaggle/working/checkpoints/checkpoint_best.pt",
             "/kaggle/working/checkpoints/checkpoint_latest.pt",
+            "\\kaggle\\working\\checkpoints\\checkpoints\\checkpoint_best.pt",
+            "\\kaggle\\working\\checkpoints\\checkpoints\\checkpoint_latest.pt",
             "checkpoints/checkpoint_best.pt",
             "checkpoints/checkpoint_latest.pt"
         ]
@@ -377,6 +386,7 @@ if __name__ == "__main__":
     # If still not found, download from Hugging Face Hub
     if not ckpt_path or not os.path.exists(ckpt_path):
         token = args.hf_token or os.environ.get("HF_TOKEN")
+        target_ckpt_dir = "/kaggle/working/checkpoints" if os.path.exists("/kaggle") else os.path.abspath("checkpoints")
         print(f"[*] Pulling 'checkpoint_best.pt' from Hugging Face: {args.hf_repo}...")
         try:
             from huggingface_hub import hf_hub_download
@@ -385,7 +395,7 @@ if __name__ == "__main__":
                 filename="checkpoints/checkpoint_best.pt",
                 repo_type="dataset",
                 token=token,
-                local_dir="/kaggle/working/checkpoints"
+                local_dir=target_ckpt_dir
             )
         except Exception as e:
             print(f"[!] Could not download best checkpoint, trying latest ({e})...")
@@ -395,7 +405,7 @@ if __name__ == "__main__":
                 filename="checkpoints/checkpoint_latest.pt",
                 repo_type="dataset",
                 token=token,
-                local_dir="/kaggle/working/checkpoints"
+                local_dir=target_ckpt_dir
             )
 
     model, ckpt_meta = load_model_from_checkpoint(ckpt_path, device)
