@@ -56,6 +56,17 @@ def sync_hf_to_google_drive(
     repo_id: str = "VijayTheOne/facekey-dataset-chunks",
     token: Optional[str] = None
 ):
+    import shutil
+    # Auto-mount Google Drive if on Colab and not already mounted
+    if os.path.exists("/content") and not os.path.exists("/content/drive/MyDrive"):
+        try:
+            print("[*] Detecting Google Colab environment. Auto-mounting Google Drive...")
+            from google.colab import drive
+            drive.mount("/content/drive")
+            print("[+] Google Drive successfully mounted at /content/drive/MyDrive")
+        except Exception as me:
+            print(f"[!] Warning: Auto-mount encountered: {me}. Continuing...")
+
     print("=" * 82)
     print(" 🔄 SMART CLOUD-TO-DRIVE DELTA SYNC (100% DUPLICATE-PROOF)")
     print("=" * 82)
@@ -118,12 +129,14 @@ def sync_hf_to_google_drive(
         print("=" * 82)
         return
 
-    # 4. Download ONLY the new missing chunks directly to Drive
+    # 4. Download ONLY the new missing chunks directly to Drive (with auto-cache purge)
     total_bytes_new = sum(getattr(f, "size", 0) or 0 for f in to_download)
     print(f"[*] Starting high-speed cloud-to-cloud transfer (~{total_bytes_new/(1024**2):.1f} MB total)...\n")
 
     t_start = time.perf_counter()
     newly_saved = 0
+    temp_cache = "/tmp/fka_hf_cache"
+    os.makedirs(temp_cache, exist_ok=True)
 
     for idx, rf in enumerate(to_download, 1):
         fname = os.path.basename(rf.path)
@@ -132,13 +145,21 @@ def sync_hf_to_google_drive(
         print(f"  [{idx}/{len(to_download)}] Downloading NEW: '{fname}'{size_str}...", end=" ", flush=True)
 
         try:
-            downloaded_path = hf_hub_download(
+            target_chunk = os.path.join(chunks_dir, fname)
+            dl_file = hf_hub_download(
                 repo_id=repo_id,
                 filename=rf.path,
                 repo_type="dataset",
                 token=token,
-                local_dir=drive_dir
+                cache_dir=temp_cache
             )
+            shutil.copyfile(dl_file, target_chunk)
+            # Reclaim VM disk immediately after each chunk to prevent disk buildup
+            try:
+                shutil.rmtree(temp_cache, ignore_errors=True)
+                os.makedirs(temp_cache, exist_ok=True)
+            except Exception:
+                pass
             print("[DONE ✓]")
             newly_saved += 1
         except Exception as dl_err:
