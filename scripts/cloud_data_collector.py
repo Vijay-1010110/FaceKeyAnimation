@@ -303,6 +303,12 @@ def worker_process_loop(
                 purge_local_after_pack=purge_local
             )
             _trigger_auto_upload(cloud_sync.chunks_dir, service_account_json, folder_id, hf_token, hf_repo)
+            if not getattr(coordinator, "_notified_complete", False):
+                notify_user(
+                    title="🎉 FaceKey Collection Finished!",
+                    message=f"All queued YouTube URLs for {coordinator.worker_id} have finished processing and are 100% synced to Hugging Face ({hf_repo})!"
+                )
+                coordinator._notified_complete = True
             print(f"[*] [WORKER {worker_id}] Watching for new links... (Waiting 10s)")
             time.sleep(10)
             continue

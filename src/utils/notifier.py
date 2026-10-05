@@ -21,9 +21,42 @@ def notify_user(title: str, message: str, sound: bool = True):
                 pass
 
     def _toast_worker():
+        # 1. Cloud / Webhook / Mobile Push Notification (Linux & Cross-Platform)
+        ntfy_topic = os.environ.get("NTFY_TOPIC", "facekey_alerts_vijay")
+        webhook_url = os.environ.get("DISCORD_WEBHOOK_URL") or os.environ.get("WEBHOOK_URL")
+
+        # Send push notification to ntfy.sh (Zero-setup free push alerts)
+        if ntfy_topic:
+            try:
+                import urllib.request
+                req = urllib.request.Request(
+                    f"https://ntfy.sh/{ntfy_topic}",
+                    data=f"{title}: {message}".encode("utf-8"),
+                    headers={"Title": title, "Priority": "high"}
+                )
+                urllib.request.urlopen(req, timeout=5)
+            except Exception:
+                pass
+
+        # Send webhook notification (e.g. Discord) if configured
+        if webhook_url:
+            try:
+                import urllib.request
+                import json
+                payload = json.dumps({"content": f"🔔 **{title}**\n{message}"}).encode("utf-8")
+                req = urllib.request.Request(
+                    webhook_url,
+                    data=payload,
+                    headers={"Content-Type": "application/json", "User-Agent": "FaceKeyNotifier/1.0"}
+                )
+                urllib.request.urlopen(req, timeout=5)
+            except Exception:
+                pass
+
         if sys.platform != "win32":
             return
-        # Escape single quotes and double quotes for PowerShell
+
+        # 2. Windows Native Toast Notification
         clean_title = title.replace("'", "''").replace('"', '`"')
         clean_msg = message.replace("'", "''").replace('"', '`"')
         ps_code = f"""
