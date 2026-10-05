@@ -270,9 +270,27 @@ def train_speech_to_animation(
                 if found:
                     existing_chunks.extend(found)
 
-        # If no chunks found on disk, pull from Hugging Face Hub directly!
-        if not existing_chunks and hf_repo:
-            print(f"[*] Querying Hugging Face repository '{hf_repo}'...")
+        # 2b. Check if pre-compiled normalized dataset is already available on Hugging Face Hub
+        if not os.path.exists(norm_npz) and hf_repo:
+            try:
+                from huggingface_hub import hf_hub_download
+                print(f"[*] Checking Hugging Face repository '{hf_repo}' for pre-compiled dataset...")
+                dl_norm = hf_hub_download(
+                    repo_id=hf_repo,
+                    filename="training_data/normalized_training_dataset.npz",
+                    repo_type="dataset",
+                    token=hf_token,
+                    local_dir=local_data_dir
+                )
+                if os.path.exists(dl_norm):
+                    norm_npz = dl_norm
+                    print(f"[✓] Instant startup: Found pre-compiled dataset on Hugging Face Hub ({norm_npz})!")
+            except Exception:
+                pass
+
+        # If no compiled dataset or local chunks found, stream-download from Hugging Face Hub directly
+        if not os.path.exists(norm_npz) and not existing_chunks and hf_repo:
+            print(f"[*] Querying Hugging Face repository '{hf_repo}' for dataset chunks...")
             try:
                 from huggingface_hub import HfApi, hf_hub_download
                 api = HfApi(token=hf_token)
@@ -281,29 +299,58 @@ def train_speech_to_animation(
                 chunk_files = [f for f in remote_files if f.path.endswith(".tar.gz") and " (1)" not in f.path]
                 if max_chunks and max_chunks > 0:
                     chunk_files = chunk_files[:max_chunks]
-                    print(f"[*] Selected {len(chunk_files)} unique chunk(s) for Phase 1 Benchmark (Disk & RAM Safe Mode)...")
+                    print(f"[*] Selected {len(chunk_files)} chunk(s) (Disk & RAM Safe Mode)...")
                 else:
-                    print(f"[*] Selected all {len(chunk_files)} unique chunk(s)...")
+                    print(f"[*] Selected all {len(chunk_files)} unique chunk(s) (Full Dataset Mode)...")
 
-                dl_chunks = []
-                for idx, cf in enumerate(chunk_files, 1):
-                    fname = os.path.basename(cf.path)
-                    print(f"  [{idx}/{len(chunk_files)}] Downloading '{fname}'...", end=" ", flush=True)
-                    dl_p = hf_hub_download(
-                        repo_id=hf_repo,
-                        filename=cf.path,
-                        repo_type="dataset",
-                        token=hf_token,
-                        local_dir=local_data_dir
-                    )
-                    dl_chunks.append(dl_p)
-                    print("[DONE ✓]")
-                existing_chunks = dl_chunks
-                print(f"[+] Successfully retrieved {len(existing_chunks)} chunk(s) from Hugging Face!")
+                def stream_download_gen(files):
+                    for idx, cf in enumerate(files, 1):
+                        fname = os.path.basename(cf.path)
+                        print(f"  [{idx}/{len(files)}] Stream-downloading '{fname}'...", end=" ", flush=True)
+                        try:
+                            dl_p = hf_hub_download(
+                                repo_id=hf_repo,
+                                filename=cf.path,
+                                repo_type="dataset",
+                                token=hf_token,
+                                local_dir=local_data_dir
+                            )
+                            print("[READY ✓]")
+                            yield dl_p
+                        except Exception as dl_err:
+                            print(f"[SKIP: {dl_err}]")
+
+                stats_json = os.path.join(local_data_dir, "dataset_statistics.json")
+                from scripts.preprocess_normalized_training_data import preprocess_from_tar_chunks
+                print(f"\n[*] Compiling normalized dataset directly from {len(chunk_files)} streamed chunk(s) in RAM (Zero-Disk Ultra-Lean)...")
+                preprocess_from_tar_chunks(
+                    chunk_paths=stream_download_gen(chunk_files),
+                    output_npz=norm_npz,
+                    output_stats_json=stats_json,
+                    val_ratio=0.15,
+                    delete_chunk_after_process=True,
+                    total_count=len(chunk_files)
+                )
+
+                # Cache compiled dataset to Hugging Face Hub for instant loads in all future sessions
+                if os.path.exists(norm_npz):
+                    try:
+                        print("[*] Caching compiled normalized dataset to Hugging Face Hub...")
+                        api.upload_file(
+                            path_or_fileobj=norm_npz,
+                            path_in_repo="training_data/normalized_training_dataset.npz",
+                            repo_id=hf_repo,
+                            repo_type="dataset",
+                            token=hf_token
+                        )
+                        print("[✓] Compiled dataset cached to Hugging Face Hub successfully!")
+                    except Exception as upload_err:
+                        print(f"[!] Notice: Could not cache compiled dataset ({upload_err})")
+
             except Exception as e:
-                print(f"[!] Warning: Failed downloading from Hugging Face ({e})")
+                print(f"[!] Warning: Chunk processing encounter issue: ({e})")
 
-    # 3. Preprocess if normalized_training_dataset.npz is missing (ULTRA-LEAN ZERO-DISK STREAMING!)
+    # 3. Preprocess if normalized_training_dataset.npz is still missing from existing local chunks
     if not os.path.exists(norm_npz):
         stats_json = os.path.join(local_data_dir, "dataset_statistics.json")
         if existing_chunks:
@@ -314,7 +361,8 @@ def train_speech_to_animation(
                 output_npz=norm_npz,
                 output_stats_json=stats_json,
                 val_ratio=0.15,
-                delete_chunk_after_process=True
+                delete_chunk_after_process=True,
+                total_count=len(existing_chunks)
             )
             # Guarantee zero leftover tar archives to reclaim 100% disk space
             for cf in existing_chunks:
@@ -443,10 +491,13 @@ def train_speech_to_animation(
                 scaler.load_state_dict(ckpt["scaler_state_dict"])
             start_epoch = ckpt.get("epoch", 0) + 1
             best_val_loss = ckpt.get("best_val_loss", float("inf"))
+            history = ckpt.get("history", {"epochs": [], "train_loss": [], "val_loss": []})
             print(f"[✓] Successfully resumed from Epoch {start_epoch - 1} (Best Val Loss: {best_val_loss:.5f})!\n")
         except Exception as e:
             print(f"[!] Warning: Could not resume from checkpoint ({e}). Starting fresh.")
+            history = {"epochs": [], "train_loss": [], "val_loss": []}
     else:
+        history = {"epochs": [], "train_loss": [], "val_loss": []}
         print(f"[*] No previous checkpoint found. Starting fresh training run.")
 
     print("=" * 82)
@@ -545,6 +596,10 @@ def train_speech_to_animation(
             torch.cuda.empty_cache()
 
         # 9. Save Checkpoint (Atomic write to prevent corruption on sudden session termination)
+        history["epochs"].append(epoch)
+        history["train_loss"].append(float(avg_train_loss))
+        history["val_loss"].append(float(avg_val_loss))
+
         raw_model = model.module if hasattr(model, "module") else model
         ckpt_payload = {
             "epoch": epoch,
@@ -555,6 +610,7 @@ def train_speech_to_animation(
             "train_loss": avg_train_loss,
             "val_loss": avg_val_loss,
             "best_val_loss": best_val_loss,
+            "history": history,
             "saved_at": time.strftime("%Y-%m-%d %H:%M:%S")
         }
 
@@ -575,7 +631,27 @@ def train_speech_to_animation(
                 torch.save(ckpt_payload, best_ckpt_path)
             print(f"[✓] Saved new BEST model checkpoint: '{best_ckpt_path}'")
 
-        # 10. Auto-sync Checkpoint to Hugging Face Hub (With 3-attempt exponential retry)
+        # 10. Generate Live Graphical Training Curve Plot
+        loss_plot_path = os.path.join(ckpts_dir, "loss_curve.png")
+        try:
+            import matplotlib
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(figsize=(9, 4.5), dpi=120)
+            ax.plot(history["epochs"], history["train_loss"], label="Train Loss", color="#2563eb", lw=2, marker="o", markersize=4)
+            ax.plot(history["epochs"], history["val_loss"], label="Val Loss", color="#f97316", lw=2, marker="s", markersize=4)
+            ax.set_title("FaceKey 3D Speech-to-Animation Training Loss Curve", fontsize=12, fontweight="bold")
+            ax.set_xlabel("Epoch", fontsize=10)
+            ax.set_ylabel("Loss", fontsize=10)
+            ax.grid(True, linestyle="--", alpha=0.5)
+            ax.legend(loc="upper right")
+            fig.tight_layout()
+            fig.savefig(loss_plot_path)
+            plt.close(fig)
+        except Exception:
+            loss_plot_path = None
+
+        # 11. Auto-sync Checkpoint & Loss Curve to Hugging Face Hub (With 3-attempt exponential retry)
         if hf_repo and hf_token:
             for upload_attempt in range(1, 4):
                 try:
@@ -596,7 +672,15 @@ def train_speech_to_animation(
                             repo_type="dataset",
                             token=hf_token
                         )
-                    print(f"[+] Checkpoint synced to Hugging Face Hub: {hf_repo}/checkpoints/")
+                    if loss_plot_path and os.path.exists(loss_plot_path):
+                        api.upload_file(
+                            path_or_fileobj=loss_plot_path,
+                            path_in_repo="checkpoints/loss_curve.png",
+                            repo_id=hf_repo,
+                            repo_type="dataset",
+                            token=hf_token
+                        )
+                    print(f"[+] Checkpoints & graphical loss curve synced to Hugging Face Hub: {hf_repo}/checkpoints/")
                     break
                 except Exception as e:
                     if upload_attempt < 3:

@@ -335,20 +335,22 @@ def preprocess_all_sessions(
 
 
 def preprocess_from_tar_chunks(
-    chunk_paths: List[str],
+    chunk_paths,
     output_npz: str,
     output_stats_json: str,
     val_ratio: float = 0.15,
     min_speech_frames_per_session: int = 10,
-    delete_chunk_after_process: bool = True
+    delete_chunk_after_process: bool = True,
+    total_count: Optional[int] = None
 ):
     """Ultra-lean memory-safe preprocessor: extracts animation features directly from .tar.gz chunks in RAM.
     Avoids storing heavy 478x3 landmark matrices, reducing RAM from 74 GB to < 200 MB!
     Optionally deletes each tar chunk immediately after reading to guarantee zero disk exhaustion.
     """
+    num_chunks = len(chunk_paths) if hasattr(chunk_paths, "__len__") else (total_count or "streaming")
     print("=" * 82)
     print(" [STREAMING PREPROCESSOR] ULTRA-LEAN ZERO-DISK IN-MEMORY NORMALIZER")
-    print(f" Source Chunks Count : {len(chunk_paths)} chunks")
+    print(f" Source Chunks Count : {num_chunks} chunks")
     print(f" Output Dataset NPZ  : {output_npz}")
     print(f" Output Stats JSON   : {output_stats_json}")
     print(f" Validation Split    : {val_ratio * 100:.1f}%")
@@ -372,7 +374,7 @@ def preprocess_from_tar_chunks(
         if not os.path.exists(c_path) or os.path.getsize(c_path) < 100:
             continue
         sz_mb = os.path.getsize(c_path) / (1024 * 1024)
-        print(f"[{c_idx}/{len(chunk_paths)}] In-memory streaming: '{c_name}' ({sz_mb:.1f} MB)...", flush=True)
+        print(f"[{c_idx}/{num_chunks}] In-memory streaming: '{c_name}' ({sz_mb:.1f} MB)...", flush=True)
 
         try:
             with tarfile.open(c_path, "r:gz") as tar:
