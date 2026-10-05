@@ -12,7 +12,7 @@ import time
 import io
 import gc
 import tarfile
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import numpy as np
 
 # Ensure root workspace is in sys.path
