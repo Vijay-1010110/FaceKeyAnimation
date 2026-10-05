@@ -1,10 +1,13 @@
-{
+import json
+import os
+
+notebook = {
  "cells": [
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# \ud83e\udde0 FaceKey Studio \u2014 Kaggle Dual T4 GPU Deep Learning Trainer\n",
+    "# 🧠 FaceKey Studio — Kaggle Dual T4 GPU Deep Learning Trainer\n",
     "### Unleash 100% of Kaggle's Free 30h/Week GPU Power (2x NVIDIA T4 GPUs @ 500+ FPS)\n",
     "\n",
     "> [!IMPORTANT]\n",
@@ -24,12 +27,12 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## \u26a1 STEP 1: VERIFY DUAL NVIDIA T4 GPUs & TENSOR CORES"
+    "## ⚡ STEP 1: VERIFY DUAL NVIDIA T4 GPUs & TENSOR CORES"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": None,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -42,9 +45,9 @@
     "print(f'[+] Detected GPUs: {gpu_count}')\n",
     "for i in range(gpu_count):\n",
     "    props = torch.cuda.get_device_properties(i)\n",
-    "    print(f'    \u2022 GPU {i}: {props.name} ({props.total_memory / (1024**3):.1f} GB VRAM, {props.multi_processor_count} SMs)')\n",
+    "    print(f'    • GPU {i}: {props.name} ({props.total_memory / (1024**3):.1f} GB VRAM, {props.multi_processor_count} SMs)')\n",
     "if gpu_count >= 2:\n",
-    "    print('[\u2713] DUAL T4 GPU ACCELERATION READY!')\n",
+    "    print('[✓] DUAL T4 GPU ACCELERATION READY!')\n",
     "elif gpu_count == 1:\n",
     "    print('[!] Single GPU detected. (For maximum speed, switch Accelerator to GPU T4 x2 in Notebook options).')\n",
     "else:\n",
@@ -55,12 +58,12 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## \u26a1 STEP 2: CLONE & UPDATE FACEKEY REPOSITORY (SELF-HEALING)"
+    "## ⚡ STEP 2: CLONE & UPDATE FACEKEY REPOSITORY (SELF-HEALING)"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": None,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -86,17 +89,17 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## \u26a1 STEP 3: LAUNCH DUAL T4 GPU TRAINING (PHASE 1 BENCHMARK: 15 CHUNKS)"
+    "## ⚡ STEP 3: LAUNCH DUAL T4 GPU TRAINING (PHASE 1 BENCHMARK: 15 CHUNKS)"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": None,
    "metadata": {},
    "outputs": [],
    "source": [
     "# ==============================================================================\n",
-    "# \ud83d\ude80 1-CLICK DUAL T4 GPU MODEL TRAINING (SPEECH-TO-FACIAL ANIMATION)\n",
+    "# 🚀 1-CLICK DUAL T4 GPU MODEL TRAINING (SPEECH-TO-FACIAL ANIMATION)\n",
     "# ==============================================================================\n",
     "import os\n",
     "\n",
@@ -151,12 +154,12 @@
    "metadata": {},
    "source": [
     "---\n",
-    "## \ud83d\udcca STEP 4: MONITOR GPU USAGE & VRAM (RUN WHILE TRAINING)"
+    "## 📊 STEP 4: MONITOR GPU USAGE & VRAM (RUN WHILE TRAINING)"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": None,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -169,13 +172,13 @@
    "metadata": {},
    "source": [
     "---\n",
-    "## \ud83d\udea8 STEP 5: MANUAL RESCUE & SAVE CHECKPOINTS TO HUGGING FACE\n",
+    "## 🚨 STEP 5: MANUAL RESCUE & SAVE CHECKPOINTS TO HUGGING FACE\n",
     "> Run this cell anytime if training is stopped or before your Kaggle session finishes to ensure all saved weights are in your Hugging Face cloud repository."
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": None,
    "metadata": {},
    "outputs": [],
    "source": [
@@ -200,8 +203,8 @@
     "            repo_type='dataset',\n",
     "            token=HF_TOKEN\n",
     "        )\n",
-    "        print('[DONE \u2713]')\n",
-    "    print('[\u2713] All checkpoints safely secured in Hugging Face Hub!')\n"
+    "        print('[DONE ✓]')\n",
+    "    print('[✓] All checkpoints safely secured in Hugging Face Hub!')\n"
    ]
   }
  ],
@@ -236,3 +239,16 @@
  "nbformat": 4,
  "nbformat_minor": 2
 }
+
+targets = [
+    os.path.join(os.path.dirname(__file__), "..", "notebooks", "5_Kaggle_Model_Trainer.ipynb"),
+    os.path.join(os.path.dirname(__file__), "..", "notebooks", "Kaggle_Dual_T4_Model_Trainer.ipynb"),
+    os.path.join(os.path.dirname(__file__), "..", "Kaggle_Dual_T4_Model_Trainer.ipynb")
+]
+
+for t in targets:
+    t_abs = os.path.abspath(t)
+    os.makedirs(os.path.dirname(t_abs), exist_ok=True)
+    with open(t_abs, "w", encoding="utf-8") as f:
+        json.dump(notebook, f, indent=1)
+    print(f"[+] Successfully generated: {t_abs} ({os.path.getsize(t_abs)} bytes)")

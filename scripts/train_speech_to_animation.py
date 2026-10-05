@@ -43,8 +43,39 @@ class FacialAnimationDataset(Dataset):
         data = np.load(npz_path, allow_pickle=True)
         
         # Audio feature representation: energy, RMS, delta, and spectral components
-        # If preprocessed features exist, load directly; otherwise synthesize aligned features
-        if f"{split}_blendshapes" in data:
+        # If train_split_mask structure from preprocessor is present:
+        if "train_split_mask" in data:
+            mask = data["train_split_mask"] if split == "train" else ~data["train_split_mask"]
+            if "blendshapes" in data and len(data["blendshapes"]) == len(mask):
+                self.blendshapes = torch.from_numpy(data["blendshapes"][mask]).float()
+            elif "expression_deltas" in data and len(data["expression_deltas"]) == len(mask):
+                self.blendshapes = torch.from_numpy(data["expression_deltas"][mask]).float()
+            else:
+                self.blendshapes = torch.zeros((int(np.sum(mask)), 52), dtype=torch.float32)
+
+            n_samples = len(self.blendshapes)
+            if "dental_features" in data and len(data["dental_features"]) == len(mask):
+                self.dental = torch.from_numpy(data["dental_features"][mask]).float()
+            else:
+                self.dental = torch.zeros((n_samples, 4), dtype=torch.float32)
+
+            if "pose_deltas" in data and len(data["pose_deltas"]) == len(mask):
+                self.pose = torch.from_numpy(data["pose_deltas"][mask]).float()
+            else:
+                self.pose = torch.zeros((n_samples, 3), dtype=torch.float32)
+
+            # Audio feature embedding (64 dimensions)
+            self.audio = torch.zeros((n_samples, 64), dtype=torch.float32)
+            if "audio_energy" in data and "audio_speech_prob" in data:
+                ae = torch.from_numpy(data["audio_energy"][mask]).float()
+                ap = torch.from_numpy(data["audio_speech_prob"][mask]).float()
+                self.audio[:, 0] = ae
+                self.audio[:, 1] = ap
+                for lag in range(1, 16):
+                    if 2 * lag + 1 < 64:
+                        self.audio[lag:, 2 * lag] = ae[:-lag]
+                        self.audio[lag:, 2 * lag + 1] = ap[:-lag]
+        elif f"{split}_blendshapes" in data:
             self.blendshapes = torch.from_numpy(data[f"{split}_blendshapes"]).float()
             # If audio features present
             if f"{split}_audio" in data:
@@ -281,6 +312,14 @@ def train_speech_to_animation(
                 output_stats_json=stats_json,
                 val_ratio=0.15
             )
+            # Reclaim disk space by cleaning up temporary downloaded .tar.gz chunks
+            for cf in existing_chunks:
+                try:
+                    if os.path.isfile(cf) and "/FaceKeyDataset" not in cf and "/content/drive" not in cf and "drive/MyDrive" not in cf:
+                        os.remove(cf)
+                except Exception:
+                    pass
+            print("[+] Cleaned up temporary chunk archives to reclaim 100% disk space.")
         elif raw_sessions or npz_candidates:
             from scripts.preprocess_normalized_training_data import preprocess_all_sessions
             print(f"[*] Compiling and normalizing training frames from: {local_data_dir}...")
