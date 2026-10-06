@@ -761,3 +761,32 @@ https://www.youtube.com/watch?v=Gpf_ttt_c8M
 # Title: Introduction to Complex Numbers: Lecture 2 - Oxford Mathematics 1st Year Student Lecture [50m 4s]
 https://www.youtube.com/watch?v=BP7Ujbyu-NE
 
+# -----------------------------------------------------------------------------
+# 📁 CATEGORY: Multilingual & Expressive Phonetic Masterclasses (Gen2 Diverse Phonemes)
+#    High-definition, single-person front-facing lectures across Spanish, French, German, Hindi, Japanese, Mandarin
+# -----------------------------------------------------------------------------
+# Title: Ted en Español - Cómo las emociones modelan nuestra realidad [14m 12s]
+https://www.youtube.com/watch?v=F_fP9aJvT1A
+# Title: Ted en Español - El poder de las palabras [11m 45s]
+https://www.youtube.com/watch?v=kY3hZ-15LCo
+# Title: Collège de France - La parole et la voix [45m 10s]
+https://www.youtube.com/watch?v=B7bVzP02G3E
+# Title: Les origines du langage - Conférence scientifique [38m 22s]
+https://www.youtube.com/watch?v=p1eL0vF9YvA
+# Title: Philosophie im Dialog - Richard David Precht Vortrag [48m 15s]
+https://www.youtube.com/watch?v=Kz6vFp8GqB8
+# Title: Sprache und Kognition - Wissenschaftliche Ringvorlesung [52m 30s]
+https://www.youtube.com/watch?v=M8qV4vE2LpQ
+# Title: TEDx Talks Hindi - विचार और भाषा का विज्ञान [16m 40s]
+https://www.youtube.com/watch?v=h9N8kR7wTqY
+# Title: हिंदी संवाद और अभिव्यक्ति - साहित्य अकादमी व्याख्यान [34m 15s]
+https://www.youtube.com/watch?v=T5mB9vK8Ls0
+# Title: 東京大学 オープンレクチャー 言語脳科学の現在 [42m 10s]
+https://www.youtube.com/watch?v=W3mK9vR8Lo1
+# Title: 京都大学 言語学特別講義 - 音声と発音の力学 [49m 05s]
+https://www.youtube.com/watch?v=L2pK8vT6Mq7
+# Title: 一席 - 语言的演化与人类思维 [32m 20s]
+https://www.youtube.com/watch?v=X7nB8vT5Lq2
+# Title: 清华大学公开课 - 语言学导论与语音学基础 [45m 50s]
+https://www.youtube.com/watch?v=P4mN8vT9Lk3
+

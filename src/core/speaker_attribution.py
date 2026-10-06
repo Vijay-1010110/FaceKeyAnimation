@@ -57,6 +57,17 @@ class VoiceActivityDetector:
         # 3. 64-Band Log-Mel Filterbank Feature Vector
         spectral_features = self.spectral_extractor.extract_frame(audio_samples)
 
+        # 4. Vocal Resonance & Instrument Rejection Filter
+        # Human vocal formants reside within 150 Hz - 3500 Hz (filterbank bands 4..46).
+        # Pure instrumental drones, synthetic pads, cymbals, or background noise dominate extreme frequencies.
+        if len(spectral_features) == 64:
+            vocal_core_energy = float(np.mean(spectral_features[4:46]))
+            extreme_noise_energy = float(np.mean(spectral_features[:3]) + np.mean(spectral_features[52:])) / 2.0
+            if (extreme_noise_energy > vocal_core_energy * 2.5) and (vocal_core_energy < 0.25):
+                raw_speech = False
+                is_speech = False
+                vad_confidence = 0.0
+
         return AudioFrameData(
             timestamp=timestamp,
             energy_rms=round(rms, 5),

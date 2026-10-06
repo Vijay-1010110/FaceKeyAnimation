@@ -64,6 +64,41 @@ def compute_dental_features(clean_bs_row: np.ndarray, bs_names: List[str]) -> np
     return np.array([upper_teeth, lower_teeth, inter_gap, state_id], dtype=np.float32)
 
 
+def compute_emotion_state(clean_bs_row: np.ndarray, bs_names: List[str]) -> int:
+    """Classifies frame emotion into 5 categories based on facial expression blendshapes:
+    0 = NEUTRAL, 1 = HAPPY/SMILE, 2 = ANGRY, 3 = SCARED/SURPRISE, 4 = SAD
+    """
+    bs_map = {name: i for i, name in enumerate(bs_names)}
+    def get_val(name: str) -> float:
+        idx = bs_map.get(name, -1)
+        return float(clean_bs_row[idx]) if 0 <= idx < len(clean_bs_row) else 0.0
+
+    smile = 0.5 * (get_val("mouthSmileLeft") + get_val("mouthSmileRight"))
+    cheek_squint = 0.5 * (get_val("cheekSquintLeft") + get_val("cheekSquintRight"))
+    brow_down = 0.5 * (get_val("browDownLeft") + get_val("browDownRight"))
+    nose_sneer = 0.5 * (get_val("noseSneerLeft") + get_val("noseSneerRight"))
+    mouth_press = 0.5 * (get_val("mouthPressLeft") + get_val("mouthPressRight"))
+    brow_inner_up = get_val("browInnerUp")
+    eye_wide = 0.5 * (get_val("eyeWideLeft") + get_val("eyeWideRight"))
+    mouth_frown = 0.5 * (get_val("mouthFrownLeft") + get_val("mouthFrownRight"))
+    mouth_shrug = get_val("mouthShrugLower")
+
+    # Angry: browDown, noseSneer, mouthPress
+    if (brow_down > 0.35 and nose_sneer > 0.20) or (brow_down > 0.45 and mouth_press > 0.25):
+        return 2  # ANGRY
+    # Scared / Surprised: browInnerUp, eyeWide
+    elif (brow_inner_up > 0.45 and eye_wide > 0.30) or (eye_wide > 0.50):
+        return 3  # SCARED / SURPRISE
+    # Happy / Smile: mouthSmile, cheekSquint
+    elif smile > 0.30 and (cheek_squint > 0.15 or smile > 0.45):
+        return 1  # HAPPY / SMILE
+    # Sad: mouthFrown, mouthShrug
+    elif mouth_frown > 0.30 or (mouth_shrug > 0.35 and brow_inner_up > 0.25):
+        return 4  # SAD
+    else:
+        return 0  # NEUTRAL
+
+
 def preprocess_all_sessions(
     sessions_dir: str,
     output_npz: str,
@@ -92,6 +127,7 @@ def preprocess_all_sessions(
     all_asymmetric_residuals = []
     all_blendshapes = []
     all_dental_features = []
+    all_emotion_ids = []
     all_pose_deltas = []
     all_timestamps_ns = []
     all_session_ids = []
@@ -177,11 +213,13 @@ def preprocess_all_sessions(
         median_pose = np.median(sess_pose, axis=0)
         pose_deltas = (sess_pose - median_pose).astype(np.float32)
 
-        # 4. Extract Dental Features
+        # 4. Extract Dental Features & Emotion States (0..4)
         dental_arr = np.zeros((n_accepted, 4), dtype=np.float32)
+        emotion_arr = np.zeros(n_accepted, dtype=np.int64)
         if clean_blendshapes is not None and len(clean_blendshapes) == n_frames:
             for j, orig_i in enumerate(accepted_indices):
                 dental_arr[j] = compute_dental_features(clean_blendshapes[orig_i], bs_names)
+                emotion_arr[j] = compute_emotion_state(clean_blendshapes[orig_i], bs_names)
 
         # 5. Load Audio Alignment and 64-band Log-Mel Spectral Features
         audio_energy = np.zeros(n_accepted, dtype=np.float32)
@@ -234,6 +272,7 @@ def preprocess_all_sessions(
         if clean_blendshapes is not None:
             all_blendshapes.append(clean_blendshapes[accepted_indices].astype(np.float32))
         all_dental_features.append(dental_arr)
+        all_emotion_ids.append(emotion_arr)
         all_pose_deltas.append(pose_deltas)
         all_timestamps_ns.append((timestamps[accepted_indices] * 1e9).astype(np.int64))
         all_session_ids.extend([s_id] * n_accepted)
@@ -255,6 +294,7 @@ def preprocess_all_sessions(
     sym_lm_all = np.concatenate(all_symmetric_landmarks, axis=0)       # (N, 478, 3)
     asym_res_all = np.concatenate(all_asymmetric_residuals, axis=0)     # (N, 478, 3)
     dental_all = np.concatenate(all_dental_features, axis=0)             # (N, 4)
+    emotion_ids_all = np.concatenate(all_emotion_ids, axis=0)           # (N,)
     pose_deltas_all = np.concatenate(all_pose_deltas, axis=0)           # (N, 3)
     timestamps_all = np.concatenate(all_timestamps_ns, axis=0)           # (N,)
     audio_features_all = np.concatenate(all_audio_features, axis=0)     # (N, 64)
@@ -273,11 +313,16 @@ def preprocess_all_sessions(
     val_indices = np.random.choice(total_accepted_frames, size=n_val, replace=False)
     split_mask[val_indices] = False
 
+    # Compute emotion distribution counts
+    emo_unique, emo_counts = np.unique(emotion_ids_all, return_counts=True)
+    emo_dist = {int(k): int(v) for k, v in zip(emo_unique, emo_counts)}
+
     # Compute Z-score Invertible Statistics
     stats_dict = {
         "total_frames": int(total_accepted_frames),
         "train_frames": int(np.sum(split_mask)),
         "val_frames": int(np.sum(~split_mask)),
+        "emotion_distribution": emo_dist,
         "cranial_bone_variance_reduction_ratio": float(
             np.mean(raw_cranial_variance_accumulator) / max(1e-9, np.mean(norm_cranial_variance_accumulator))
         ),
@@ -327,6 +372,7 @@ def preprocess_all_sessions(
         "symmetric_landmarks": sym_lm_all,
         "asymmetric_residuals": asym_res_all,
         "dental_features": dental_all,
+        "emotion_ids": emotion_ids_all,
         "pose_deltas": pose_deltas_all,
         "timestamps_ns": timestamps_all,
         "session_ids": np.array(all_session_ids),
@@ -384,6 +430,7 @@ def preprocess_from_tar_chunks(
 
     all_blendshapes = []
     all_dental_features = []
+    all_emotion_ids = []
     all_pose_deltas = []
     all_timestamps_ns = []
     all_session_ids = []
@@ -461,11 +508,13 @@ def preprocess_from_tar_chunks(
                     if n_accepted < min_speech_frames_per_session:
                         continue
 
-                    # Extract dental exposure features (4 dimensions)
+                    # Extract dental exposure features (4 dimensions) and emotion states (0..4)
                     dental_arr = np.zeros((n_accepted, 4), dtype=np.float32)
+                    emotion_arr = np.zeros(n_accepted, dtype=np.int64)
                     if clean_blendshapes is not None and len(clean_blendshapes) == n_frames:
                         for j, orig_i in enumerate(accepted_indices):
                             dental_arr[j] = compute_dental_features(clean_blendshapes[orig_i], bs_names)
+                            emotion_arr[j] = compute_emotion_state(clean_blendshapes[orig_i], bs_names)
 
                     # Compute head pose deltas relative to session median (3 dimensions)
                     sess_pose = clean_pose_euler[accepted_indices]
@@ -508,6 +557,7 @@ def preprocess_from_tar_chunks(
                         all_blendshapes.append(np.zeros((n_accepted, 52), dtype=np.float32))
 
                     all_dental_features.append(dental_arr)
+                    all_emotion_ids.append(emotion_arr)
                     all_pose_deltas.append(pose_deltas)
                     all_timestamps_ns.append((timestamps[accepted_indices] * 1e9).astype(np.int64))
                     all_session_ids.extend([s_id] * n_accepted)
@@ -534,6 +584,7 @@ def preprocess_from_tar_chunks(
     # Finalize and export compressed dataset NPZ and stats JSON
     blendshapes_all = np.concatenate(all_blendshapes, axis=0)
     dental_all = np.concatenate(all_dental_features, axis=0)
+    emotion_ids_all = np.concatenate(all_emotion_ids, axis=0)
     pose_deltas_all = np.concatenate(all_pose_deltas, axis=0)
     timestamps_all = np.concatenate(all_timestamps_ns, axis=0)
     audio_features_all = np.concatenate(all_audio_features, axis=0)
@@ -546,10 +597,15 @@ def preprocess_from_tar_chunks(
     val_indices = np.random.choice(total_accepted_frames, size=n_val, replace=False)
     split_mask[val_indices] = False
 
+    # Compute emotion distribution counts
+    emo_unique, emo_counts = np.unique(emotion_ids_all, return_counts=True)
+    emo_dist = {int(k): int(v) for k, v in zip(emo_unique, emo_counts)}
+
     stats_dict = {
         "total_frames": int(total_accepted_frames),
         "train_frames": int(np.sum(split_mask)),
         "val_frames": int(np.sum(~split_mask)),
+        "emotion_distribution": emo_dist,
         "features": {
             "blendshapes": {
                 "mean": blendshapes_all.mean(axis=0).tolist(),
@@ -576,6 +632,7 @@ def preprocess_from_tar_chunks(
     save_kwargs = {
         "blendshapes": blendshapes_all,
         "dental_features": dental_all,
+        "emotion_ids": emotion_ids_all,
         "pose_deltas": pose_deltas_all,
         "timestamps_ns": timestamps_all,
         "session_ids": np.array(all_session_ids),
@@ -593,7 +650,7 @@ def preprocess_from_tar_chunks(
     with open(output_stats_json, "w", encoding="utf-8") as f:
         json.dump(stats_dict, f, indent=2)
 
-    del all_blendshapes, all_dental_features, all_pose_deltas, all_audio_energy, all_audio_speech_prob
+    del all_blendshapes, all_dental_features, all_emotion_ids, all_pose_deltas, all_audio_energy, all_audio_speech_prob
     gc.collect()
 
     file_size_mb = os.path.getsize(output_npz) / (1024 * 1024)

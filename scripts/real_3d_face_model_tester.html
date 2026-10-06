@@ -569,7 +569,12 @@
       // 4. Lip Elevations
       const lowerDown = Math.min(1.0, jaw * 0.65);
       const upperUp = Math.min(1.0, jaw * 0.25);
-      const browUp = Math.min(1.0, smoothDrive * 0.25);
+      const browUp = Math.min(1.0, smoothDrive * 0.35 + (formants ? formants.high * 0.3 : 0));
+      const browDown = smoothDrive > 0.45 ? (smoothDrive - 0.45) * 0.35 : 0.0;
+      const cheekSquint = Math.min(1.0, smile * 0.60 + smoothDrive * 0.15);
+      const noseSneer = smoothDrive > 0.50 ? (smoothDrive - 0.50) * 0.25 : 0.0;
+      // Lingual/dental articulation: tongue stays 0.0 unless lingual dental threshold reached
+      const tongueOut = (formants && formants.high > 0.45 && jaw > 0.20 && jaw < 0.65) ? (formants.high - 0.45) * 0.6 : 0.0;
 
       // Procedural Natural Blinking (keeps model lifelike)
       blinkTimer += delta;
@@ -583,7 +588,7 @@
         blinkValue = 0.0;
       }
 
-      // Apply to 3D Model Morph Targets
+      // 1. Apply to 3D Model Morph Targets (Full Expressive Face)
       setMorphTarget('jawOpen', jaw);
       setMorphTarget('mouthFunnel', funnel);
       setMorphTarget('mouthPucker', pucker);
@@ -595,9 +600,37 @@
       setMorphTarget('mouthUpperUp_R', upperUp);
       setMorphTarget('mouthSmile_L', smile);
       setMorphTarget('mouthSmile_R', smile);
+      setMorphTarget('cheekSquint_L', cheekSquint);
+      setMorphTarget('cheekSquint_R', cheekSquint);
+      setMorphTarget('noseSneer_L', noseSneer);
+      setMorphTarget('noseSneer_R', noseSneer);
       setMorphTarget('browInnerUp', browUp);
+      setMorphTarget('browDown_L', browDown);
+      setMorphTarget('browDown_R', browDown);
+      setMorphTarget('tongueOut', tongueOut);
       setMorphTarget('eyeBlink_L', Math.max(0.0, blinkValue));
       setMorphTarget('eyeBlink_R', Math.max(0.0, blinkValue));
+
+      // 2. Natural Dynamic Head Mobility (Never frozen facing in one direction!)
+      if (currentModel) {
+        // A. Subtle Organic Breathing & Idle Saccade Sway (~0.22 Hz)
+        const idlePitch = Math.sin(time * 0.0009) * 0.022; // ~1.3 deg breathing nod
+        const idleYaw = Math.cos(time * 0.0007) * 0.038;   // ~2.2 deg gentle conversational head glance
+        const idleRoll = Math.sin(time * 0.0005) * 0.015;  // ~0.9 deg head tilt
+
+        // B. Speech-Prosodic Cadence (Accented syllable nods & expressive question tilts)
+        const speechNod = smoothDrive * 0.075 * (0.8 + 0.4 * Math.sin(time * 0.004));
+        const speechTilt = ((formants ? formants.high - formants.low : 0.0) * 0.06);
+
+        // Smooth Exponential Lerp
+        const targetRotX = idlePitch + speechNod;
+        const targetRotY = idleYaw + speechTilt;
+        const targetRotZ = idleRoll - (speechTilt * 0.5);
+
+        currentModel.rotation.x = THREE.MathUtils.lerp(currentModel.rotation.x, targetRotX, 0.10);
+        currentModel.rotation.y = THREE.MathUtils.lerp(currentModel.rotation.y, targetRotY, 0.08);
+        currentModel.rotation.z = THREE.MathUtils.lerp(currentModel.rotation.z, targetRotZ, 0.08);
+      }
 
       // Telemetry UI Updates
       document.getElementById('val-jaw').innerText = jaw.toFixed(3);
@@ -633,7 +666,10 @@
         mouthSmile_R: smile,
         mouthStretch_L: stretch,
         mouthStretch_R: stretch,
+        cheekSquint_L: cheekSquint,
+        cheekSquint_R: cheekSquint,
         browInnerUp: browUp,
+        tongueOut: tongueOut,
         eyeBlink_L: Math.max(0.0, blinkValue),
         eyeBlink_R: Math.max(0.0, blinkValue)
       });

@@ -60,6 +60,11 @@ class FacialAnimationDataset(Dataset):
             else:
                 self.dental = torch.zeros((n_samples, 4), dtype=torch.float32)
 
+            if "emotion_ids" in data and len(data["emotion_ids"]) == len(mask):
+                self.emotions = torch.from_numpy(data["emotion_ids"][mask]).long()
+            else:
+                self.emotions = torch.zeros(n_samples, dtype=torch.long)
+
             if "pose_deltas" in data and len(data["pose_deltas"]) == len(mask):
                 self.pose = torch.from_numpy(data["pose_deltas"][mask]).float()
             else:
@@ -95,6 +100,13 @@ class FacialAnimationDataset(Dataset):
             else:
                 self.dental = torch.zeros((len(self.blendshapes), 4), dtype=torch.float32)
 
+            if f"{split}_emotions" in data:
+                self.emotions = torch.from_numpy(data[f"{split}_emotions"]).long()
+            elif "emotion_ids" in data and len(data["emotion_ids"]) == len(self.blendshapes):
+                self.emotions = torch.from_numpy(data["emotion_ids"]).long()
+            else:
+                self.emotions = torch.zeros(len(self.blendshapes), dtype=torch.long)
+
             if f"{split}_pose" in data:
                 self.pose = torch.from_numpy(data[f"{split}_pose"]).float()
             else:
@@ -117,6 +129,11 @@ class FacialAnimationDataset(Dataset):
             else:
                 self.audio = torch.randn(len(self.blendshapes), 64, dtype=torch.float32)
             self.dental = torch.zeros((len(self.blendshapes), 4), dtype=torch.float32)
+            if "emotion_ids" in data:
+                raw_emo = data["emotion_ids"]
+                self.emotions = torch.from_numpy(raw_emo[:split_idx] if split == "train" else raw_emo[split_idx:]).long()
+            else:
+                self.emotions = torch.zeros(len(self.blendshapes), dtype=torch.long)
             self.pose = torch.zeros((len(self.blendshapes), 3), dtype=torch.float32)
 
         self.num_sequences = max(1, (len(self.blendshapes) - self.seq_len) // self.stride)
@@ -132,7 +149,8 @@ class FacialAnimationDataset(Dataset):
             self.audio[s:e],
             self.blendshapes[s:e],
             self.dental[s:e],
-            self.pose[s:e]
+            self.pose[s:e],
+            self.emotions[s:e]
         )
 
 
@@ -430,7 +448,8 @@ def train_speech_to_animation(
         hidden_dim=256,
         num_lstm_layers=2,
         num_blendshapes=52,
-        num_dental=4
+        num_dental=4,
+        num_emotions=5
     ).to(device)
 
     # Multi-GPU DataParallel wrap
@@ -441,7 +460,12 @@ def train_speech_to_animation(
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2)
-    criterion = AnimationCriterion(velocity_weight=0.5, dental_weight=0.3).to(device)
+    criterion = AnimationCriterion(
+        velocity_weight=0.5,
+        dental_weight=0.3,
+        pose_weight=0.4,
+        pose_velocity_weight=0.25
+    ).to(device)
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
 
     # 6. Checkpoint Directory Resolution & Auto-Resume
@@ -536,14 +560,16 @@ def train_speech_to_animation(
         train_metrics_total = {}
         optimizer.zero_grad(set_to_none=True)
 
-        for step, (b_audio, b_bs, b_dental, b_pose) in enumerate(train_loader, 1):
+        for step, (b_audio, b_bs, b_dental, b_pose, b_emo) in enumerate(train_loader, 1):
             b_audio = b_audio.to(device, non_blocking=True)
             b_bs = b_bs.to(device, non_blocking=True)
             b_dental = b_dental.to(device, non_blocking=True)
+            b_pose = b_pose.to(device, non_blocking=True)
+            b_emo = b_emo.to(device, non_blocking=True)
 
             with torch.cuda.amp.autocast(enabled=torch.cuda.is_available()):
-                pred_bs, pred_dental, pred_pose = model(b_audio)
-                loss, metrics = criterion(pred_bs, b_bs, pred_dental, b_dental)
+                pred_bs, pred_dental, pred_pose = model(b_audio, emotion_id=b_emo)
+                loss, metrics = criterion(pred_bs, b_bs, pred_dental, b_dental, pred_pose, b_pose)
                 loss = loss / accum_steps
 
             # Safety: Detect and discard NaN / Inf loss spikes to prevent exploding gradients
@@ -569,7 +595,9 @@ def train_speech_to_animation(
                 lr_cur = optimizer.param_groups[0]["lr"]
                 recon_l = metrics.get('recon_loss', 0.0)
                 vel_l = metrics.get('vel_loss', 0.0)
-                print(f"  Epoch [{epoch:03d}/{epochs}] | Step [{step:04d}/{len(train_loader)}] | Loss: {loss.item() * accum_steps:.4f} (Recon: {recon_l:.4f}, Vel: {vel_l:.4f}) | LR: {lr_cur:.2e}")
+                pose_l = metrics.get('pose_loss', 0.0)
+                tongue_l = metrics.get('tongue_loss', 0.0)
+                print(f"  Epoch [{epoch:03d}/{epochs}] | Step [{step:04d}/{len(train_loader)}] | Loss: {loss.item() * accum_steps:.4f} (Recon: {recon_l:.4f}, Vel: {vel_l:.4f}, Pose: {pose_l:.4f}, Tongue: {tongue_l:.4f}) | LR: {lr_cur:.2e}")
 
         scheduler.step()
         avg_train_loss = train_loss_total / max(1, len(train_loader))
@@ -578,13 +606,15 @@ def train_speech_to_animation(
         model.eval()
         val_loss_total = 0.0
         with torch.no_grad():
-            for b_audio, b_bs, b_dental, b_pose in val_loader:
+            for b_audio, b_bs, b_dental, b_pose, b_emo in val_loader:
                 b_audio = b_audio.to(device, non_blocking=True)
                 b_bs = b_bs.to(device, non_blocking=True)
                 b_dental = b_dental.to(device, non_blocking=True)
+                b_pose = b_pose.to(device, non_blocking=True)
+                b_emo = b_emo.to(device, non_blocking=True)
                 with torch.cuda.amp.autocast(enabled=torch.cuda.is_available()):
-                    pred_bs, pred_dental, pred_pose = model(b_audio)
-                    v_loss, _ = criterion(pred_bs, b_bs, pred_dental, b_dental)
+                    pred_bs, pred_dental, pred_pose = model(b_audio, emotion_id=b_emo)
+                    v_loss, _ = criterion(pred_bs, b_bs, pred_dental, b_dental, pred_pose, b_pose)
                 val_loss_total += v_loss.item()
 
         avg_val_loss = val_loss_total / max(1, len(val_loader))

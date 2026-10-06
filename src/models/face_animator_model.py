@@ -164,7 +164,9 @@ class AnimationCriterion(nn.Module):
         cosine_weight: float = 0.8,
         velocity_weight: float = 0.6,
         accel_weight: float = 0.3,
-        dental_weight: float = 0.4
+        dental_weight: float = 0.4,
+        pose_weight: float = 0.4,
+        pose_velocity_weight: float = 0.25
     ):
         super().__init__()
         self.huber = nn.SmoothL1Loss(beta=0.02, reduction="none")
@@ -175,14 +177,21 @@ class AnimationCriterion(nn.Module):
         self.velocity_weight = velocity_weight
         self.accel_weight = accel_weight
         self.dental_weight = dental_weight
+        self.pose_weight = pose_weight
+        self.pose_velocity_weight = pose_velocity_weight
 
         # 52 ARKit Channel Weights: High priority for speech articulations
         weights = torch.ones(52, dtype=torch.float32) * 0.5  # default base weight for eyes/ears
         
-        # Brows & Cheeks (Expressive & Inflections)
-        for idx in [0, 7, 41, 42, 43, 44, 45, 46, 47, 48]:
+        # Eyes (Blinks & Emotional squints / wides)
+        for idx in [0, 5, 6, 7, 12, 13]:
+            weights[idx] = 1.2
+
+        # Brows, Cheeks & Nose (Expressive dynamics & conversational inflections)
+        # 41..45: brows, 46..48: cheeks, 49..50: nose sneer
+        for idx in range(41, 51):
             if idx < 52:
-                weights[idx] = 1.5
+                weights[idx] = 2.0
 
         # Speech Articulation Channels (Jaw, Lips, Mouth, Tongue) -> 4.0x Priority
         # 14: jawForward, 15: jawLeft, 16: jawRight, 17: jawOpen
@@ -200,9 +209,11 @@ class AnimationCriterion(nn.Module):
         pred_bs: torch.Tensor,
         target_bs: torch.Tensor,
         pred_dental: torch.Tensor,
-        target_dental: torch.Tensor
+        target_dental: torch.Tensor,
+        pred_pose: Optional[torch.Tensor] = None,
+        target_pose: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
-        """Computes multi-component phonetic loss."""
+        """Computes multi-component phonetic and head kinematic loss."""
         # 1. Base Element-wise Huber Loss
         raw_huber = self.huber(pred_bs, target_bs)
 
@@ -245,6 +256,19 @@ class AnimationCriterion(nn.Module):
         active_tongue = torch.abs(tongue_pred - tongue_target) * (tongue_target >= 0.05).float()
         tongue_loss = (2.5 * spurious_tongue + 1.5 * active_tongue).mean()
 
+        # 8. Head Orientation Kinematics & Prosodic Gesture Loss (Pitch, Yaw, Roll)
+        if pred_pose is not None and target_pose is not None:
+            pose_loss = F.smooth_l1_loss(pred_pose, target_pose, beta=0.1)
+            if pred_pose.shape[1] > 1:
+                pred_p_vel = pred_pose[:, 1:, :] - pred_pose[:, :-1, :]
+                target_p_vel = target_pose[:, 1:, :] - target_pose[:, :-1, :]
+                pose_vel_loss = self.l1(pred_p_vel, target_p_vel)
+            else:
+                pose_vel_loss = torch.tensor(0.0, device=pred_pose.device)
+        else:
+            pose_loss = torch.tensor(0.0, device=pred_bs.device)
+            pose_vel_loss = torch.tensor(0.0, device=pred_bs.device)
+
         # Total Composite Loss
         total_loss = (
             recon_loss
@@ -253,6 +277,8 @@ class AnimationCriterion(nn.Module):
             + (self.accel_weight * acc_loss)
             + (self.dental_weight * dental_loss)
             + (0.4 * tongue_loss)
+            + (self.pose_weight * pose_loss)
+            + (self.pose_velocity_weight * pose_vel_loss)
         )
 
         metrics = {
@@ -262,6 +288,8 @@ class AnimationCriterion(nn.Module):
             "acc_loss": float(acc_loss.item()),
             "dental_loss": float(dental_loss.item()),
             "tongue_loss": float(tongue_loss.item()),
+            "pose_loss": float(pose_loss.item()),
+            "pose_vel_loss": float(pose_vel_loss.item()),
             "total_loss": float(total_loss.item())
         }
         return total_loss, metrics

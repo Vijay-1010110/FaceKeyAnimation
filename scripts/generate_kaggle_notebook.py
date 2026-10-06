@@ -101,16 +101,16 @@ notebook = {
     "\n",
     "APP_DIR = '/kaggle/working/FaceKeyAnimation'\n",
     "if os.path.isdir(os.path.join(APP_DIR, '.git')):\n",
-    "    print('[*] Updating FaceKeyAnimation to latest GitHub main...')\n",
-    "    !cd {APP_DIR} && git fetch --all --prune && git reset --hard origin/main && git clean -fd\n",
+    "    print('[*] Updating FaceKeyAnimation to latest GitHub Gen2 branch...')\n",
+    "    !cd {APP_DIR} && git fetch --all --prune && git checkout Gen2 && git reset --hard origin/Gen2 && git clean -fd\n",
     "else:\n",
-    "    print('[*] Fresh clone of FaceKeyAnimation from GitHub...')\n",
+    "    print('[*] Fresh clone of FaceKeyAnimation (Gen2 branch) from GitHub...')\n",
     "    !rm -rf {APP_DIR}\n",
-    "    !git clone https://github.com/Vijay-1010110/FaceKeyAnimation.git {APP_DIR}\n",
+    "    !git clone -b Gen2 https://github.com/Vijay-1010110/FaceKeyAnimation.git {APP_DIR}\n",
     "\n",
     "%cd {APP_DIR}\n",
     "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy\n",
-    "print('[+] Deep Learning Training environment ready with latest GitHub code!')\n"
+    "print('[+] Gen2 Deep Learning Training environment ready with latest GitHub code!')\n"
    ]
   },
   {
@@ -269,9 +269,7 @@ notebook = {
 }
 
 targets = [
-    os.path.join(os.path.dirname(__file__), "..", "notebooks", "5_Kaggle_Model_Trainer.ipynb"),
-    os.path.join(os.path.dirname(__file__), "..", "notebooks", "Kaggle_Dual_T4_Model_Trainer.ipynb"),
-    os.path.join(os.path.dirname(__file__), "..", "Kaggle_Dual_T4_Model_Trainer.ipynb")
+    os.path.join(os.path.dirname(__file__), "..", "notebooks", "5_Kaggle_Model_Trainer.ipynb")
 ]
 
 for t in targets:
