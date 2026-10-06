@@ -14,7 +14,7 @@ mkdir -p "${DRIVE_DIR}/chunks" "${DRIVE_DIR}/checkpoints"
 
 # Pull latest Gen2 branch code
 cd "${STUDIO_DIR}/FaceKeyAnimation" 2>/dev/null || cd /teamspace/studios/this_studio
-git fetch origin Gen2 && git checkout Gen2 && git pull origin Gen2
+git fetch origin main && git checkout main && git pull origin main
 
 # Ensure dependencies
 pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy

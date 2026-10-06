@@ -14,7 +14,7 @@ mkdir -p "${DRIVE_DIR}/chunks" "${DRIVE_DIR}/checkpoints" "${DRIVE_DIR}/locks" "
 
 # Ensure latest Gen2 branch code is checked out
 cd "${STUDIO_DIR}/FaceKeyAnimation" 2>/dev/null || cd /teamspace/studios/this_studio
-git fetch origin Gen2 && git checkout Gen2 && git pull origin Gen2
+git fetch origin main && git checkout main && git pull origin main
 
 # Upgrade yt-dlp and install dependencies (pinned numpy<2 for media/ML compatibility, pysocks for SOCKS5 proxy)
 pip install -q -U "numpy<2" "yt-dlp[default]" mediapipe opencv-python-headless sounddevice mss av scipy huggingface_hub pysocks
