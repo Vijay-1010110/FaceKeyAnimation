@@ -87,14 +87,20 @@ fi
 QUEUE_FILE="${1:-sessions/youtube_urls_lightning.txt}"
 echo "[*] Using URLs queue file: ${QUEUE_FILE}"
 
-# Run Collector on Lightning's 4 CPU cores
-python scripts/cloud_data_collector.py \
-    --drive-dir "${DRIVE_DIR}" \
-    --worker-id "lightning-worker-1" \
-    --urls-file "${QUEUE_FILE}" \
-    --chunk-size 1 \
-    --quality 480p \
-    --num-workers 3 \
-    ${PROXY_FLAG} \
-    ${COOKIES_FLAG} \
-    ${HF_FLAG}
+# Run Collector on Lightning's 4 CPU cores with self-healing auto-restart loop
+while true; do
+    echo "[*] Starting Lightning CPU Collector (multi-worker)..."
+    python scripts/cloud_data_collector.py \
+        --drive-dir "${DRIVE_DIR}" \
+        --worker-id "lightning-worker-1" \
+        --urls-file "${QUEUE_FILE}" \
+        --chunk-size 1 \
+        --quality 480p \
+        --num-workers 3 \
+        ${PROXY_FLAG} \
+        ${COOKIES_FLAG} \
+        ${HF_FLAG}
+    EXIT_CODE=$?
+    echo "[!] Collector process ended with exit code ${EXIT_CODE}. Auto-resuming in 10 seconds..."
+    sleep 10
+done
