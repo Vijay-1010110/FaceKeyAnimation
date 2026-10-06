@@ -99,7 +99,26 @@ class DatasetWriter:
             if role_name in role_counts:
                 role_counts[role_name] += 1
 
-        # 2. Save Columnar Binary File (face_motion.npz)
+        # 2. Extract and Align Audio Features (64-band Log-Mel filterbanks)
+        audio_features = np.zeros((total_samples, 64), dtype=np.float32)
+        audio_energy = np.zeros(total_samples, dtype=np.float32)
+        audio_speech_prob = np.zeros(total_samples, dtype=np.float32)
+
+        if audio_frames:
+            aud_timestamps = np.array([a.timestamp for a in audio_frames], dtype=np.float32)
+            for i, frame in enumerate(face_frames):
+                if len(audio_frames) == total_samples:
+                    a_match = audio_frames[i]
+                else:
+                    closest_idx = int(np.argmin(np.abs(aud_timestamps - frame.timestamp)))
+                    a_match = audio_frames[closest_idx]
+
+                audio_energy[i] = a_match.energy_rms
+                audio_speech_prob[i] = a_match.vad_confidence
+                if a_match.spectral_features is not None and len(a_match.spectral_features) == 64:
+                    audio_features[i] = a_match.spectral_features
+
+        # 3. Save Columnar Binary File (face_motion.npz)
         npz_path = os.path.join(session_dir, "face_motion.npz")
         np.savez_compressed(
             npz_path,
@@ -121,7 +140,10 @@ class DatasetWriter:
             is_valid=is_valid,
             eligibility_levels=eligibility,
             speaker_probabilities=speaker_probs,
-            roles=np.array(roles)
+            roles=np.array(roles),
+            audio_features=audio_features,
+            audio_energy=audio_energy,
+            audio_speech_prob=audio_speech_prob
         )
 
         # 3. Save Audio Features JSON

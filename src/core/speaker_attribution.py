@@ -7,10 +7,11 @@ import numpy as np
 
 from src.schema import FaceRole, EligibilityLevel, AudioFrameData, QualityMetrics
 from src.config import SpeakerAttributionConfig
+from src.core.audio_features import LogMelFilterbankExtractor
 
 
 class VoiceActivityDetector:
-    """Lightweight in-memory Voice Activity Detection using energy and spectral flux."""
+    """Lightweight in-memory Voice Activity Detection using energy, spectral flux, and 64-band Mel filterbanks."""
 
     def __init__(self, sample_rate: int = 16000, energy_threshold: float = 0.008):
         self.sample_rate = sample_rate
@@ -18,11 +19,18 @@ class VoiceActivityDetector:
         self.noise_floor: float = 0.004
         self.last_speech_time: float = -1.0
         self.speech_hangover_sec: float = 0.38
+        self.spectral_extractor = LogMelFilterbankExtractor(sample_rate=sample_rate, n_mels=64)
 
     def process_chunk(self, audio_samples: np.ndarray, timestamp: float) -> AudioFrameData:
-        """Compute short-time RMS energy and speech activity decision with adaptive noise floor."""
+        """Compute short-time RMS energy, speech activity decision, and 64-band spectral filterbank."""
         if audio_samples is None or len(audio_samples) == 0:
-            return AudioFrameData(timestamp=timestamp, energy_rms=0.0, is_speech=False, vad_confidence=0.0)
+            return AudioFrameData(
+                timestamp=timestamp,
+                energy_rms=0.0,
+                is_speech=False,
+                vad_confidence=0.0,
+                spectral_features=np.zeros(64, dtype=np.float32)
+            )
 
         # 1. Root-Mean-Square Energy
         rms = float(np.sqrt(np.mean(np.square(audio_samples))))
@@ -46,11 +54,15 @@ class VoiceActivityDetector:
         is_speech = raw_speech or (self.last_speech_time > 0 and (timestamp - self.last_speech_time) <= self.speech_hangover_sec)
         vad_confidence = min(1.0, rms / max(1e-4, dynamic_threshold * 2.5)) if is_speech else 0.0
 
+        # 3. 64-Band Log-Mel Filterbank Feature Vector
+        spectral_features = self.spectral_extractor.extract_frame(audio_samples)
+
         return AudioFrameData(
             timestamp=timestamp,
             energy_rms=round(rms, 5),
             is_speech=is_speech,
-            vad_confidence=round(vad_confidence, 3)
+            vad_confidence=round(vad_confidence, 3),
+            spectral_features=spectral_features
         )
 
 

@@ -25,6 +25,7 @@ from src.core.canonical_normalizer import (
     JAW_LANDMARKS,
     BilateralSymmetryNormalizer
 )
+from src.core.audio_features import LogMelFilterbankExtractor
 
 
 def compute_dental_features(clean_bs_row: np.ndarray, bs_names: List[str]) -> np.ndarray:
@@ -95,6 +96,7 @@ def preprocess_all_sessions(
     all_timestamps_ns = []
     all_session_ids = []
     all_roles = []
+    all_audio_features = []
     all_audio_energy = []
     all_audio_speech_prob = []
 
@@ -181,19 +183,40 @@ def preprocess_all_sessions(
             for j, orig_i in enumerate(accepted_indices):
                 dental_arr[j] = compute_dental_features(clean_blendshapes[orig_i], bs_names)
 
-        # 5. Load Audio Alignment if available
+        # 5. Load Audio Alignment and 64-band Log-Mel Spectral Features
         audio_energy = np.zeros(n_accepted, dtype=np.float32)
         audio_prob = np.ones(n_accepted, dtype=np.float32)
-        if os.path.exists(audio_file):
+        audio_feats = np.zeros((n_accepted, 64), dtype=np.float32)
+
+        if "audio_features" in data and len(data["audio_features"]) == n_frames:
+            audio_feats = data["audio_features"][accepted_indices].astype(np.float32)
+            if "audio_energy" in data and len(data["audio_energy"]) == n_frames:
+                audio_energy = data["audio_energy"][accepted_indices].astype(np.float32)
+            if "audio_speech_prob" in data and len(data["audio_speech_prob"]) == n_frames:
+                audio_prob = data["audio_speech_prob"][accepted_indices].astype(np.float32)
+        elif os.path.exists(audio_file):
             try:
                 with open(audio_file, "r", encoding="utf-8") as af:
                     aud_list = json.load(af)
                     for j, orig_i in enumerate(accepted_indices):
                         if orig_i < len(aud_list):
-                            audio_energy[j] = float(aud_list[orig_i].get("energy_rms", 0.02))
-                            audio_prob[j] = float(aud_list[orig_i].get("vad_confidence", 0.8))
+                            item = aud_list[orig_i]
+                            audio_energy[j] = float(item.get("energy_rms", 0.02))
+                            audio_prob[j] = float(item.get("vad_confidence", 0.8))
+                            if "spectral_features" in item and len(item["spectral_features"]) == 64:
+                                audio_feats[j] = np.array(item["spectral_features"], dtype=np.float32)
             except Exception:
                 pass
+
+        # Distribute energy across typical vocal spectrum bands if features are unpopulated
+        if np.max(audio_feats) < 1e-5 and np.max(audio_energy) > 1e-4:
+            for j in range(n_accepted):
+                ae_val = audio_energy[j]
+                ap_val = audio_prob[j]
+                audio_feats[j, :8] = ae_val * 0.8
+                audio_feats[j, 8:24] = ae_val * 1.0
+                audio_feats[j, 24:48] = ae_val * 0.6
+                audio_feats[j, 48:64] = ae_val * 0.3 * ap_val
 
         # Diagnostic variance sampling
         raw_cranial_var = np.var(clean_landmarks[accepted_indices][:, CRANIAL_BONE_ANCHORS], axis=0).mean()
@@ -215,6 +238,7 @@ def preprocess_all_sessions(
         all_timestamps_ns.append((timestamps[accepted_indices] * 1e9).astype(np.int64))
         all_session_ids.extend([s_id] * n_accepted)
         all_roles.extend(roles[accepted_indices].tolist() if len(roles) == n_frames else ["SPEAKER"] * n_accepted)
+        all_audio_features.append(audio_feats)
         all_audio_energy.append(audio_energy)
         all_audio_speech_prob.append(audio_prob)
 
@@ -233,6 +257,7 @@ def preprocess_all_sessions(
     dental_all = np.concatenate(all_dental_features, axis=0)             # (N, 4)
     pose_deltas_all = np.concatenate(all_pose_deltas, axis=0)           # (N, 3)
     timestamps_all = np.concatenate(all_timestamps_ns, axis=0)           # (N,)
+    audio_features_all = np.concatenate(all_audio_features, axis=0)     # (N, 64)
     audio_energy_all = np.concatenate(all_audio_energy, axis=0)         # (N,)
     audio_prob_all = np.concatenate(all_audio_speech_prob, axis=0)       # (N,)
 
@@ -306,6 +331,7 @@ def preprocess_all_sessions(
         "timestamps_ns": timestamps_all,
         "session_ids": np.array(all_session_ids),
         "roles": np.array(all_roles),
+        "audio_features": audio_features_all,
         "audio_energy": audio_energy_all,
         "audio_speech_prob": audio_prob_all,
         "train_split_mask": split_mask
@@ -362,6 +388,7 @@ def preprocess_from_tar_chunks(
     all_timestamps_ns = []
     all_session_ids = []
     all_roles = []
+    all_audio_features = []
     all_audio_energy = []
     all_audio_speech_prob = []
 
@@ -445,14 +472,34 @@ def preprocess_from_tar_chunks(
                     median_pose = np.median(sess_pose, axis=0)
                     pose_deltas = (sess_pose - median_pose).astype(np.float32)
 
-                    # Acoustic features (energy and speech probability)
+                    # Acoustic features (64-band log-Mel + energy + speech prob)
                     audio_energy = np.zeros(n_accepted, dtype=np.float32)
                     audio_prob = np.ones(n_accepted, dtype=np.float32)
-                    if aud_list:
+                    audio_feats = np.zeros((n_accepted, 64), dtype=np.float32)
+
+                    if "audio_features" in data and len(data["audio_features"]) == n_frames:
+                        audio_feats = data["audio_features"][accepted_indices].astype(np.float32)
+                        if "audio_energy" in data and len(data["audio_energy"]) == n_frames:
+                            audio_energy = data["audio_energy"][accepted_indices].astype(np.float32)
+                        if "audio_speech_prob" in data and len(data["audio_speech_prob"]) == n_frames:
+                            audio_prob = data["audio_speech_prob"][accepted_indices].astype(np.float32)
+                    elif aud_list:
                         for j, orig_i in enumerate(accepted_indices):
                             if orig_i < len(aud_list):
-                                audio_energy[j] = float(aud_list[orig_i].get("energy_rms", 0.02))
-                                audio_prob[j] = float(aud_list[orig_i].get("vad_confidence", 0.8))
+                                item = aud_list[orig_i]
+                                audio_energy[j] = float(item.get("energy_rms", 0.02))
+                                audio_prob[j] = float(item.get("vad_confidence", 0.8))
+                                if "spectral_features" in item and len(item["spectral_features"]) == 64:
+                                    audio_feats[j] = np.array(item["spectral_features"], dtype=np.float32)
+
+                    if np.max(audio_feats) < 1e-5 and np.max(audio_energy) > 1e-4:
+                        for j in range(n_accepted):
+                            ae_val = audio_energy[j]
+                            ap_val = audio_prob[j]
+                            audio_feats[j, :8] = ae_val * 0.8
+                            audio_feats[j, 8:24] = ae_val * 1.0
+                            audio_feats[j, 24:48] = ae_val * 0.6
+                            audio_feats[j, 48:64] = ae_val * 0.3 * ap_val
 
                     # Blendshapes (52 dimensions)
                     if clean_blendshapes is not None:
@@ -465,6 +512,7 @@ def preprocess_from_tar_chunks(
                     all_timestamps_ns.append((timestamps[accepted_indices] * 1e9).astype(np.int64))
                     all_session_ids.extend([s_id] * n_accepted)
                     all_roles.extend(roles[accepted_indices].tolist() if len(roles) == n_frames else ["SPEAKER"] * n_accepted)
+                    all_audio_features.append(audio_feats)
                     all_audio_energy.append(audio_energy)
                     all_audio_speech_prob.append(audio_prob)
                     total_accepted_frames += n_accepted
@@ -488,6 +536,7 @@ def preprocess_from_tar_chunks(
     dental_all = np.concatenate(all_dental_features, axis=0)
     pose_deltas_all = np.concatenate(all_pose_deltas, axis=0)
     timestamps_all = np.concatenate(all_timestamps_ns, axis=0)
+    audio_features_all = np.concatenate(all_audio_features, axis=0)
     audio_energy_all = np.concatenate(all_audio_energy, axis=0)
     audio_prob_all = np.concatenate(all_audio_speech_prob, axis=0)
 
@@ -531,6 +580,7 @@ def preprocess_from_tar_chunks(
         "timestamps_ns": timestamps_all,
         "session_ids": np.array(all_session_ids),
         "roles": np.array(all_roles),
+        "audio_features": audio_features_all,
         "audio_energy": audio_energy_all,
         "audio_speech_prob": audio_prob_all,
         "train_split_mask": split_mask

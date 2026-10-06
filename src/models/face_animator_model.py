@@ -131,14 +131,53 @@ class SpeechToFaceAnimator(nn.Module):
 
 
 class AnimationCriterion(nn.Module):
-    """Composite loss function with Huber regression, velocity smoothness, and dental loss."""
+    """Phonetically-Grounded Viseme & Articulation Composite Loss Function.
+    
+    Tackles the "open/close volume collapse" problem by:
+      1. Viseme Channel Weighting: 4x weight on 28 mouth/speech visemes vs static face channels.
+      2. Active-Phoneme Loss: Penalizes flat predictions heavily when target visemes are active (>0.1).
+      3. Directional Cosine Loss: Forces matching of the phonetic mouth shape vector (pucker vs smile vs open).
+      4. Velocity & Acceleration Loss: Forces snappy, distinct phonetic transitions and stops jitter.
+      5. Dental Exposure Dynamics Loss: Aligns teeth reveal with open vowels and labiodentals.
+    """
 
-    def __init__(self, velocity_weight: float = 0.5, dental_weight: float = 0.3):
+    def __init__(
+        self,
+        viseme_weight: float = 3.5,
+        active_boost: float = 3.0,
+        cosine_weight: float = 0.8,
+        velocity_weight: float = 0.6,
+        accel_weight: float = 0.3,
+        dental_weight: float = 0.4
+    ):
         super().__init__()
-        self.huber = nn.SmoothL1Loss(beta=0.02)
-        self.mse = nn.MSELoss()
+        self.huber = nn.SmoothL1Loss(beta=0.02, reduction="none")
+        self.l1 = nn.L1Loss()
+        self.viseme_weight = viseme_weight
+        self.active_boost = active_boost
+        self.cosine_weight = cosine_weight
         self.velocity_weight = velocity_weight
+        self.accel_weight = accel_weight
         self.dental_weight = dental_weight
+
+        # 52 ARKit Channel Weights: High priority for speech articulations
+        weights = torch.ones(52, dtype=torch.float32) * 0.5  # default base weight for eyes/ears
+        
+        # Brows & Cheeks (Expressive & Inflections)
+        for idx in [0, 7, 41, 42, 43, 44, 45, 46, 47, 48]:
+            if idx < 52:
+                weights[idx] = 1.5
+
+        # Speech Articulation Channels (Jaw, Lips, Mouth, Tongue) -> 4.0x Priority
+        # 14: jawForward, 15: jawLeft, 16: jawRight, 17: jawOpen
+        # 18-40: mouthClose, mouthFunnel, mouthPucker, mouthSmile, mouthStretch, mouthRoll, etc.
+        # 51: tongueOut
+        speech_indices = list(range(14, 41)) + [51]
+        for idx in speech_indices:
+            if idx < 52:
+                weights[idx] = 4.0
+
+        self.register_buffer("channel_weights", weights.view(1, 1, 52))
 
     def forward(
         self,
@@ -147,26 +186,55 @@ class AnimationCriterion(nn.Module):
         pred_dental: torch.Tensor,
         target_dental: torch.Tensor
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
-        # 1. Reconstruction Loss on Blendshapes
-        recon_loss = self.huber(pred_bs, target_bs)
+        """Computes multi-component phonetic loss."""
+        # 1. Base Element-wise Huber Loss
+        raw_huber = self.huber(pred_bs, target_bs)
 
-        # 2. Velocity / Smoothness Loss (Inter-frame delta consistency)
+        # 2. Viseme Channel Weighting + Active-Phoneme Magnitude Scaling
+        # When target has strong expression (e.g. pucker=0.8), scale loss up so it cannot be ignored
+        active_scale = 1.0 + (self.active_boost * target_bs)
+        weighted_loss = raw_huber * self.channel_weights * active_scale
+        recon_loss = weighted_loss.mean()
+
+        # 3. Directional Cosine Viseme Loss on Mouth Shapes (Indices 14..40)
+        mouth_pred = pred_bs[:, :, 14:41]
+        mouth_target = target_bs[:, :, 14:41]
+        cos_sim = F.cosine_similarity(mouth_pred + 1e-6, mouth_target + 1e-6, dim=-1)
+        cos_loss = (1.0 - cos_sim).mean()
+
+        # 4. First-Order Velocity Loss (Snappy phoneme onsets/offsets)
         if pred_bs.shape[1] > 1:
             pred_vel = pred_bs[:, 1:, :] - pred_bs[:, :-1, :]
             target_vel = target_bs[:, 1:, :] - target_bs[:, :-1, :]
-            vel_loss = self.mse(pred_vel, target_vel)
+            vel_loss = self.l1(pred_vel, target_vel)
         else:
             vel_loss = torch.tensor(0.0, device=pred_bs.device)
 
-        # 3. Dental Exposure Dynamics Loss
-        dental_loss = self.huber(pred_dental, target_dental)
+        # 5. Second-Order Acceleration Loss (Zero jitter & crisp syllable stops)
+        if pred_bs.shape[1] > 2:
+            pred_acc = pred_vel[:, 1:, :] - pred_vel[:, :-1, :]
+            target_acc = target_vel[:, 1:, :] - target_vel[:, :-1, :]
+            acc_loss = self.l1(pred_acc, target_acc)
+        else:
+            acc_loss = torch.tensor(0.0, device=pred_bs.device)
 
-        # Total Loss
-        total_loss = recon_loss + (self.velocity_weight * vel_loss) + (self.dental_weight * dental_loss)
+        # 6. Dental Exposure Dynamics Loss
+        dental_loss = F.smooth_l1_loss(pred_dental, target_dental, beta=0.02)
+
+        # Total Composite Loss
+        total_loss = (
+            recon_loss
+            + (self.cosine_weight * cos_loss)
+            + (self.velocity_weight * vel_loss)
+            + (self.accel_weight * acc_loss)
+            + (self.dental_weight * dental_loss)
+        )
 
         metrics = {
             "recon_loss": float(recon_loss.item()),
+            "cos_loss": float(cos_loss.item()),
             "vel_loss": float(vel_loss.item()),
+            "acc_loss": float(acc_loss.item()),
             "dental_loss": float(dental_loss.item()),
             "total_loss": float(total_loss.item())
         }

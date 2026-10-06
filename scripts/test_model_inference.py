@@ -26,6 +26,7 @@ import torch.nn as nn
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.models.face_animator_model import SpeechToFaceAnimator
+from src.core.audio_features import LogMelFilterbankExtractor
 
 STANDARD_ARKIT_NAMES = [
     "eyeBlinkLeft", "eyeLookDownLeft", "eyeLookInLeft", "eyeLookOutLeft", "eyeLookUpLeft", "eyeSquintLeft", "eyeWideLeft",
@@ -114,17 +115,20 @@ def evaluate_on_validation_data(
     end_idx = start_idx + eval_len
 
     gt_blendshapes = data["blendshapes"][start_idx:end_idx]      # (N, 52)
-    ae = data["audio_energy"][start_idx:end_idx]                 # (N,)
-    ap = data["audio_speech_prob"][start_idx:end_idx]            # (N,)
+    ae = data["audio_energy"][start_idx:end_idx] if "audio_energy" in data else np.zeros(eval_len, dtype=np.float32)
+    ap = data["audio_speech_prob"][start_idx:end_idx] if "audio_speech_prob" in data else np.ones(eval_len, dtype=np.float32)
 
-    # Construct 64-dim acoustic embedding
-    audio_feat = np.zeros((eval_len, 64), dtype=np.float32)
-    audio_feat[:, 0] = ae
-    audio_feat[:, 1] = ap
-    for lag in range(1, 16):
-        if 2 * lag + 1 < 64:
-            audio_feat[lag:, 2 * lag] = ae[:-lag]
-            audio_feat[lag:, 2 * lag + 1] = ap[:-lag]
+    # Load 64-band Log-Mel spectral features if available, else construct legacy lag features
+    if "audio_features" in data:
+        audio_feat = data["audio_features"][start_idx:end_idx].astype(np.float32)
+    else:
+        audio_feat = np.zeros((eval_len, 64), dtype=np.float32)
+        audio_feat[:, 0] = ae
+        audio_feat[:, 1] = ap
+        for lag in range(1, 16):
+            if 2 * lag + 1 < 64:
+                audio_feat[lag:, 2 * lag] = ae[:-lag]
+                audio_feat[lag:, 2 * lag + 1] = ap[:-lag]
 
     # Model inference
     inp_tensor = torch.from_numpy(audio_feat).unsqueeze(0).to(device)  # (1, N, 64)
@@ -298,28 +302,17 @@ def infer_on_audio_file(
 
     print(f"[*] Audio length: {len(samples) / sr:.2f}s | Sample Rate: {sr} Hz | Animation Frames @ {fps}fps: {n_frames}")
 
-    # Compute short-term RMS energy and speech probability
-    ae = np.zeros(n_frames, dtype=np.float32)
-    ap = np.zeros(n_frames, dtype=np.float32)
+    # Extract 64-band Log-Mel Filterbank spectral features matching the training pipeline
+    extractor = LogMelFilterbankExtractor(sample_rate=sr, n_mels=64)
+    audio_feat = extractor.extract_sequence(samples, sample_rate=sr, fps=fps, num_frames=n_frames)
 
+    # Compute short-term RMS energy curve for telemetry and visualization
+    ae = np.zeros(n_frames, dtype=np.float32)
     for i in range(n_frames):
         chunk = samples[i * hop_length:(i + 1) * hop_length]
-        rms = float(np.sqrt(np.mean(chunk**2))) if len(chunk) > 0 else 0.0
-        ae[i] = rms
-        ap[i] = 1.0 if rms > 0.02 else (rms / 0.02)
-
-    # Normalize energy
+        ae[i] = float(np.sqrt(np.mean(chunk**2))) if len(chunk) > 0 else 0.0
     if ae.max() > 0:
         ae = ae / ae.max()
-
-    # Construct 64-dim lag features
-    audio_feat = np.zeros((n_frames, 64), dtype=np.float32)
-    audio_feat[:, 0] = ae
-    audio_feat[:, 1] = ap
-    for lag in range(1, 16):
-        if 2 * lag + 1 < 64:
-            audio_feat[lag:, 2 * lag] = ae[:-lag]
-            audio_feat[lag:, 2 * lag + 1] = ap[:-lag]
 
     inp_tensor = torch.from_numpy(audio_feat).unsqueeze(0).to(device)
 

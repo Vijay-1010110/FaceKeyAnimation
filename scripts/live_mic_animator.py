@@ -231,18 +231,11 @@ class LiveFaceAnimatorApp:
                 else:
                     self.peak_energy = max(0.02, 0.998 * self.peak_energy)
 
-                # Update Lag Buffer
-                self.lag_history_ae.insert(0, ae)
-                self.lag_history_ae.pop()
-                self.lag_history_ap.insert(0, ap)
-                self.lag_history_ap.pop()
-
-                # 3. Construct 64-dim lag acoustic features
-                feat = np.zeros((1, 1, 64), dtype=np.float32)
-                for lag in range(16):
-                    if 2 * lag + 1 < 64:
-                        feat[0, 0, 2 * lag] = self.lag_history_ae[lag]
-                        feat[0, 0, 2 * lag + 1] = self.lag_history_ap[lag]
+                # 3. 64-dim Phonetic Log-Mel Spectral Features directly from VoiceActivityDetector
+                if vad_res.spectral_features is not None:
+                    feat = vad_res.spectral_features.reshape(1, 1, 64).astype(np.float32)
+                else:
+                    feat = np.zeros((1, 1, 64), dtype=np.float32)
 
                 # 4. Neural Network Inference
                 inp_tensor = torch.from_numpy(feat).to(self.device)

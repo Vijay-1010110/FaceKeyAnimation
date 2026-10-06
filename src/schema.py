@@ -96,6 +96,7 @@ class AudioFrameData:
     is_speech: bool                   # Voice activity detection decision
     vad_confidence: float             # Confidence in speech presence [0.0, 1.0]
     is_narration: bool = False        # True when speech is detected but no visible face is speaking
+    spectral_features: Optional[np.ndarray] = None  # 64-band Log-Mel / Formant spectral filterbank
     active_speaker_face_id: Optional[int] = None # Face ID of the active speaker if identified
     # Atomic Clocking
     timestamp_ns: int = 0             # Monotonic atomic master clock in nanoseconds

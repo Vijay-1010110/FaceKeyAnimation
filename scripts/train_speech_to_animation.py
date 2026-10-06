@@ -65,9 +65,11 @@ class FacialAnimationDataset(Dataset):
             else:
                 self.pose = torch.zeros((n_samples, 3), dtype=torch.float32)
 
-            # Audio feature embedding (64 dimensions)
+            # Audio feature embedding (64 dimensions: Log-Mel spectral filterbanks)
             self.audio = torch.zeros((n_samples, 64), dtype=torch.float32)
-            if "audio_energy" in data and "audio_speech_prob" in data:
+            if "audio_features" in data and len(data["audio_features"]) == len(mask):
+                self.audio = torch.from_numpy(data["audio_features"][mask]).float()
+            elif "audio_energy" in data and "audio_speech_prob" in data:
                 ae = torch.from_numpy(data["audio_energy"][mask]).float()
                 ap = torch.from_numpy(data["audio_speech_prob"][mask]).float()
                 self.audio[:, 0] = ae
@@ -79,7 +81,9 @@ class FacialAnimationDataset(Dataset):
         elif f"{split}_blendshapes" in data:
             self.blendshapes = torch.from_numpy(data[f"{split}_blendshapes"]).float()
             # If audio features present
-            if f"{split}_audio" in data:
+            if f"{split}_audio_features" in data:
+                self.audio = torch.from_numpy(data[f"{split}_audio_features"]).float()
+            elif f"{split}_audio" in data:
                 self.audio = torch.from_numpy(data[f"{split}_audio"]).float()
             else:
                 # Synthesize 64-dim acoustic feature space aligned with motion
@@ -106,7 +110,12 @@ class FacialAnimationDataset(Dataset):
                 self.blendshapes = torch.from_numpy(raw_bs[:split_idx]).float()
             else:
                 self.blendshapes = torch.from_numpy(raw_bs[split_idx:]).float()
-            self.audio = torch.randn(len(self.blendshapes), 64, dtype=torch.float32)
+
+            if "audio_features" in data:
+                raw_aud = data["audio_features"]
+                self.audio = torch.from_numpy(raw_aud[:split_idx] if split == "train" else raw_aud[split_idx:]).float()
+            else:
+                self.audio = torch.randn(len(self.blendshapes), 64, dtype=torch.float32)
             self.dental = torch.zeros((len(self.blendshapes), 4), dtype=torch.float32)
             self.pose = torch.zeros((len(self.blendshapes), 3), dtype=torch.float32)
 

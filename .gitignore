@@ -54,3 +54,7 @@ env/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Local test outputs and checkpoints
+test_results/
+test_results_epoch10/
