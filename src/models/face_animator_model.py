@@ -43,11 +43,13 @@ class SpeechToFaceAnimator(nn.Module):
         num_lstm_layers: int = 2,    # Bi-directional LSTM depth
         num_blendshapes: int = 52,   # Standard ARKit blendshapes
         num_dental: int = 4,         # [upper_teeth, lower_teeth, inter_dental_gap, state]
+        num_emotions: int = 5,       # 0: Neutral, 1: Happy/Smile, 2: Angry, 3: Scared/Shock, 4: Sad
         dropout: float = 0.15
     ):
         super().__init__()
         self.audio_in_dim = audio_in_dim
         self.hidden_dim = hidden_dim
+        self.num_emotions = num_emotions
 
         # 1. Acoustic Audio Projection
         self.audio_proj = nn.Sequential(
@@ -57,14 +59,17 @@ class SpeechToFaceAnimator(nn.Module):
             nn.Dropout(dropout)
         )
 
-        # 2. Multi-Scale Temporal Convolutions (Dilations: 1, 2, 4)
+        # 2. Emotional Expression Conditioning Embeddings (Happy, Angry, Scared, Sad, Neutral)
+        self.emotion_embed = nn.Embedding(num_emotions, hidden_dim)
+
+        # 3. Multi-Scale Temporal Convolutions (Dilations: 1, 2, 4)
         self.tcn_blocks = nn.ModuleList([
             ConvTemporalBlock(hidden_dim, kernel_size=3, dilation=1, dropout=dropout),
             ConvTemporalBlock(hidden_dim, kernel_size=3, dilation=2, dropout=dropout),
             ConvTemporalBlock(hidden_dim, kernel_size=3, dilation=4, dropout=dropout)
         ])
 
-        # 3. Bi-directional LSTM for long-range coarticulation and sentence context
+        # 4. Bi-directional LSTM for long-range coarticulation and sentence context
         self.bilstm = nn.LSTM(
             input_size=hidden_dim,
             hidden_size=hidden_dim // 2,
@@ -74,7 +79,7 @@ class SpeechToFaceAnimator(nn.Module):
             dropout=dropout if num_lstm_layers > 1 else 0.0
         )
 
-        # 4. Multi-Head Output Decoders
+        # 5. Multi-Head Output Decoders
         # Head A: 52 ARKit Blendshapes (Constrained to [0.0, 1.0] via Sigmoid)
         self.blendshape_head = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim // 2),
@@ -100,11 +105,14 @@ class SpeechToFaceAnimator(nn.Module):
 
     def forward(
         self,
-        audio_features: torch.Tensor
+        audio_features: torch.Tensor,
+        emotion_id: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Forward pass.
         Args:
             audio_features: (batch_size, seq_len, audio_in_dim)
+            emotion_id    : Optional tensor (batch_size,) or (batch_size, seq_len) in [0..4]
+                            (0=Neutral, 1=Happy/Smile, 2=Angry, 3=Scared, 4=Sad)
         Returns:
             pred_blendshapes: (batch_size, seq_len, 52)
             pred_dental     : (batch_size, seq_len, 4)
@@ -112,6 +120,14 @@ class SpeechToFaceAnimator(nn.Module):
         """
         # (B, T, D) -> Proj
         x = self.audio_proj(audio_features)
+
+        # Inject Emotional Expression Conditioning if specified
+        if emotion_id is not None:
+            if emotion_id.dim() == 1:
+                e = self.emotion_embed(emotion_id).unsqueeze(1)  # (B, 1, D)
+            else:
+                e = self.emotion_embed(emotion_id)              # (B, T, D)
+            x = x + e
 
         # (B, T, D) -> (B, D, T) for Convolutions
         x_t = x.transpose(1, 2)
@@ -221,6 +237,14 @@ class AnimationCriterion(nn.Module):
         # 6. Dental Exposure Dynamics Loss
         dental_loss = F.smooth_l1_loss(pred_dental, target_dental, beta=0.02)
 
+        # 7. Tongue Articulation Dynamics & Invisibility Guard (Index 51)
+        # Keeps tongue hidden (0.0) during normal speech; only permits emergence when lingual target is active
+        tongue_pred = pred_bs[:, :, 51]
+        tongue_target = target_bs[:, :, 51]
+        spurious_tongue = torch.relu(tongue_pred - 0.05) * (tongue_target < 0.05).float()
+        active_tongue = torch.abs(tongue_pred - tongue_target) * (tongue_target >= 0.05).float()
+        tongue_loss = (2.5 * spurious_tongue + 1.5 * active_tongue).mean()
+
         # Total Composite Loss
         total_loss = (
             recon_loss
@@ -228,6 +252,7 @@ class AnimationCriterion(nn.Module):
             + (self.velocity_weight * vel_loss)
             + (self.accel_weight * acc_loss)
             + (self.dental_weight * dental_loss)
+            + (0.4 * tongue_loss)
         )
 
         metrics = {
@@ -236,6 +261,7 @@ class AnimationCriterion(nn.Module):
             "vel_loss": float(vel_loss.item()),
             "acc_loss": float(acc_loss.item()),
             "dental_loss": float(dental_loss.item()),
+            "tongue_loss": float(tongue_loss.item()),
             "total_loss": float(total_loss.item())
         }
         return total_loss, metrics
