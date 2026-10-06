@@ -241,7 +241,9 @@ def generate_colab_collector_notebook():
             }
         ],
         "metadata": {
-            "accelerator": "CPU",
+            "colab": {
+                "provenance": []
+            },
             "language_info": {
                 "name": "python"
             }
@@ -447,7 +449,6 @@ def generate_kaggle_collector_notebook():
             }
         ],
         "metadata": {
-            "accelerator": "CPU",
             "kaggle": {
                 "accelerator": "none",
                 "dataSources": [],
@@ -639,7 +640,6 @@ def generate_lightning_collector_notebook():
             }
         ],
         "metadata": {
-            "accelerator": "CPU",
             "language_info": {
                 "name": "python"
             }

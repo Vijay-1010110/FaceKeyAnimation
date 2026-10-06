@@ -201,7 +201,6 @@ def generate_kaggle_notebook():
             }
         ],
         "metadata": {
-            "accelerator": "GPU",
             "kaggle": {
                 "accelerator": "gpu",
                 "dataSources": [],
@@ -462,6 +461,10 @@ def generate_colab_notebook():
         ],
         "metadata": {
             "accelerator": "GPU",
+            "colab": {
+                "gpuType": "T4",
+                "provenance": []
+            },
             "language_info": {
                 "name": "python"
             }
@@ -636,7 +639,6 @@ def generate_lightning_ai_notebook():
             }
         ],
         "metadata": {
-            "accelerator": "GPU",
             "language_info": {
                 "name": "python"
             }
