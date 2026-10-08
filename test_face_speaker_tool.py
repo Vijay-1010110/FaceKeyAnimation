@@ -955,6 +955,10 @@ def main():
                         help="Audio device index or name (e.g. 'ASUS', 'VAC', or 8) for internal silent capture")
     parser.add_argument("--max-faces", type=int, default=1,
                         help="Maximum faces to track concurrently (default: 1 for single-face verified-speaking dataset collection)")
+    parser.add_argument("--max-duration", type=float, default=900.0,
+                        help="Maximum content duration in seconds to capture per video (default: 900s / 15 mins for rapid batching)")
+    parser.add_argument("--max-frames", type=int, default=27000,
+                        help="Maximum frames to capture per video before packaging (default: 27000 / ~15 mins @ 30 FPS)")
     parser.add_argument("--list-audio-devices", action="store_true", default=False,
                         help="List available audio input/virtual recording devices and exit")
     args = parser.parse_args()
@@ -1468,6 +1472,16 @@ def main():
             # 3. Check if video stream finished playback (EOF)
             if screen_src and getattr(screen_src, "is_completed", False):
                 print("\n[*] Video stream playback completed (reached end of video). Finalizing and saving...")
+                app_controls["quit_requested"] = True
+                break
+
+            # 4. Check if max duration or max frames limit reached (rapid cloud batching)
+            if args.max_duration and (session_speech_sec + session_pause_sec + session_inter_word_sec) >= args.max_duration:
+                print(f"\n[*] Target duration threshold reached ({args.max_duration:.0f}s / {args.max_duration/60:.1f}m). Finalizing video session peacefully...")
+                app_controls["quit_requested"] = True
+                break
+            if args.max_frames and recorded_frames_count >= args.max_frames:
+                print(f"\n[*] Target frame count threshold reached ({args.max_frames} frames). Finalizing video session peacefully...")
                 app_controls["quit_requested"] = True
                 break
 
