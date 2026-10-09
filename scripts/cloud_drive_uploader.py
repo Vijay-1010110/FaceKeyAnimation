@@ -210,20 +210,35 @@ def upload_to_hf_hub(
         print("[*] No .tar.gz chunks found to upload.")
         return 0
 
+    # Load tracker for already-uploaded chunks (vital for Google Drive preserving local copies)
+    uploaded_marker_file = os.path.join(chunks_dir, ".hf_uploaded.json")
+    already_uploaded = set()
+    if os.path.exists(uploaded_marker_file):
+        try:
+            with open(uploaded_marker_file, "r", encoding="utf-8") as uf:
+                already_uploaded = set(json.load(uf))
+        except Exception:
+            pass
+
+    pending_chunks = [cf for cf in chunk_files if os.path.basename(cf) not in already_uploaded]
+    if not pending_chunks:
+        print(f"[*] All {len(chunk_files)} chunks in {chunks_dir} are already synced to Hugging Face Hub.")
+        return 0
+
     print("=" * 75)
     print(" [CLOUD-TO-CLOUD] HUGGINGFACE HUB DATASET BRIDGE (0 MB LOCAL DATA)")
     print(f" Source Directory  : {chunks_dir}")
     print(f" Target Dataset    : https://huggingface.co/datasets/{repo_id} (Private)")
-    print(f" Pending Chunks    : {len(chunk_files)}")
+    print(f" New Chunks to Sync: {len(pending_chunks)} (out of {len(chunk_files)} total)")
     print("=" * 75)
 
     uploaded_count = 0
     total_freed_mb = 0.0
 
-    for idx, cf in enumerate(chunk_files, 1):
+    for idx, cf in enumerate(pending_chunks, 1):
         filename = os.path.basename(cf)
         filesize_mb = os.path.getsize(cf) / (1024 * 1024)
-        print(f"[{idx}/{len(chunk_files)}] Uploading '{filename}' ({filesize_mb:.1f} MB)...", end=" ", flush=True)
+        print(f"[{idx}/{len(pending_chunks)}] Uploading '{filename}' ({filesize_mb:.1f} MB)...", end=" ", flush=True)
 
         try:
             api.upload_file(
@@ -234,6 +249,13 @@ def upload_to_hf_hub(
             )
             print("[DONE]")
             uploaded_count += 1
+            already_uploaded.add(filename)
+            try:
+                with open(uploaded_marker_file, "w", encoding="utf-8") as uf:
+                    json.dump(sorted(list(already_uploaded)), uf, indent=2)
+            except Exception:
+                pass
+
             if purge_after_upload:
                 try:
                     cf_norm = os.path.normpath(os.path.abspath(cf)).lower()

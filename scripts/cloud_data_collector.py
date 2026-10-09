@@ -594,8 +594,8 @@ def worker_process_loop(
                     "--max-faces", "1",
                     "--turbo",
                     "--headless",
-                    "--max-duration", "900",
-                    "--max-frames", "27000",
+                    "--max-duration", "300",
+                    "--max-frames", "9000",
                     "--stream-title", title,
                     "--canonical-url", canonical_url
                 ]
@@ -651,8 +651,8 @@ def worker_process_loop(
                     "--quality", quality,
                     "--max-faces", "1",
                     "--headless",
-                    "--max-duration", "900",
-                    "--max-frames", "27000",
+                    "--max-duration", "300",
+                    "--max-frames", "9000",
                     "--stream-title", title,
                     "--canonical-url", canonical_url
                 ]
