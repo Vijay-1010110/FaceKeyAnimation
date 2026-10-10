@@ -252,10 +252,10 @@ def train_speech_to_animation(
         print("[*] CUDA Acceleration  : Tensor Cores Enabled (FP16 Mixed Precision)")
         if gpu_count > 1:
             print(f"[+] DUAL GPU BOOST     : DataParallel ENABLED across {gpu_count} GPUs! (Maximum Kaggle Utilization)")
-            # Auto-scale batch size if using multi-GPU
+            # Auto-scale batch size if using multi-GPU to fully saturate 30 GB VRAM & Tensor Cores
             if batch_size <= 64:
-                batch_size = 128
-                print(f"[*] Auto-Scaled Batch  : {batch_size} (distributed evenly across {gpu_count} GPUs)")
+                batch_size = 256
+                print(f"[*] Auto-Scaled Batch  : {batch_size} (128 per GPU to maximize Tensor Cores & VRAM utilization)")
     else:
         print("[!] Warning: CUDA not available. Running on CPU (slower).")
 
@@ -434,7 +434,7 @@ def train_speech_to_animation(
     }
     if num_workers > 0:
         loader_kwargs["persistent_workers"] = True
-        loader_kwargs["prefetch_factor"] = 4
+        loader_kwargs["prefetch_factor"] = 8
 
     train_loader = DataLoader(
         train_ds,
