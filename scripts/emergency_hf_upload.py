@@ -143,7 +143,7 @@ if not chunk_files:
 # 4. Ensure Private Repo Exists
 api = HfApi(token=token)
 try:
-    create_repo(repo_id=repo_id, repo_type="dataset", private=True, token=token, exist_ok=True)
+    create_repo(repo_id=repo_id, repo_type="dataset", private=False, token=token, exist_ok=True)
 except Exception:
     pass
 
