@@ -135,7 +135,9 @@ class SpeechToFaceAnimator(nn.Module):
             x_t = block(x_t)
         x = x_t.transpose(1, 2)
 
-        # BiLSTM Context
+        # BiLSTM Context with contiguous cuDNN fused kernel optimization
+        if self.training:
+            self.bilstm.flatten_parameters()
         lstm_out, _ = self.bilstm(x)
 
         # Output Heads
@@ -211,7 +213,8 @@ class AnimationCriterion(nn.Module):
         pred_dental: torch.Tensor,
         target_dental: torch.Tensor,
         pred_pose: Optional[torch.Tensor] = None,
-        target_pose: Optional[torch.Tensor] = None
+        target_pose: Optional[torch.Tensor] = None,
+        compute_metrics: bool = True
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """Computes multi-component phonetic and head kinematic loss."""
         # 1. Base Element-wise Huber Loss
@@ -281,15 +284,18 @@ class AnimationCriterion(nn.Module):
             + (self.pose_velocity_weight * pose_vel_loss)
         )
 
-        metrics = {
-            "recon_loss": float(recon_loss.item()),
-            "cos_loss": float(cos_loss.item()),
-            "vel_loss": float(vel_loss.item()),
-            "acc_loss": float(acc_loss.item()),
-            "dental_loss": float(dental_loss.item()),
-            "tongue_loss": float(tongue_loss.item()),
-            "pose_loss": float(pose_loss.item()),
-            "pose_vel_loss": float(pose_vel_loss.item()),
-            "total_loss": float(total_loss.item())
-        }
+        if compute_metrics:
+            metrics = {
+                "recon_loss": float(recon_loss.item()),
+                "cos_loss": float(cos_loss.item()),
+                "vel_loss": float(vel_loss.item()),
+                "acc_loss": float(acc_loss.item()),
+                "dental_loss": float(dental_loss.item()),
+                "tongue_loss": float(tongue_loss.item()),
+                "pose_loss": float(pose_loss.item()),
+                "pose_vel_loss": float(pose_vel_loss.item()),
+                "total_loss": float(total_loss.item())
+            }
+        else:
+            metrics = {}
         return total_loss, metrics

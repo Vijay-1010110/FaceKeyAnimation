@@ -573,8 +573,7 @@ def train_speech_to_animation(
     for epoch in range(start_epoch, epochs + 1):
         t_epoch_start = time.perf_counter()
         model.train()
-        train_loss_total = 0.0
-        train_metrics_total = {}
+        train_loss_total = torch.tensor(0.0, device=device)
         optimizer.zero_grad(set_to_none=True)
 
         for step, (b_audio, b_bs, b_dental, b_pose, b_emo) in enumerate(train_loader, 1):
@@ -584,9 +583,14 @@ def train_speech_to_animation(
             b_pose = b_pose.to(device, non_blocking=True)
             b_emo = b_emo.to(device, non_blocking=True)
 
+            is_logging_step = (step % 20 == 0 or step == len(train_loader))
+
             with torch.cuda.amp.autocast(enabled=torch.cuda.is_available()):
                 pred_bs, pred_dental, pred_pose = model(b_audio, emotion_id=b_emo)
-                loss, metrics = criterion(pred_bs, b_bs, pred_dental, b_dental, pred_pose, b_pose)
+                loss, metrics = criterion(
+                    pred_bs, b_bs, pred_dental, b_dental, pred_pose, b_pose,
+                    compute_metrics=is_logging_step
+                )
                 loss = loss / accum_steps
 
             # Safety: Detect and discard NaN / Inf loss spikes to prevent exploding gradients
@@ -604,24 +608,23 @@ def train_speech_to_animation(
                 scaler.update()
                 optimizer.zero_grad(set_to_none=True)
 
-            train_loss_total += loss.item() * accum_steps
-            for k, v in metrics.items():
-                train_metrics_total[k] = train_metrics_total.get(k, 0.0) + v
+            train_loss_total += loss.detach()
 
-            if step % 20 == 0 or step == len(train_loader):
+            if is_logging_step:
                 lr_cur = optimizer.param_groups[0]["lr"]
+                step_loss_val = (loss * accum_steps).item()
                 recon_l = metrics.get('recon_loss', 0.0)
                 vel_l = metrics.get('vel_loss', 0.0)
                 pose_l = metrics.get('pose_loss', 0.0)
                 tongue_l = metrics.get('tongue_loss', 0.0)
-                print(f"  Epoch [{epoch:03d}/{epochs}] | Step [{step:04d}/{len(train_loader)}] | Loss: {loss.item() * accum_steps:.4f} (Recon: {recon_l:.4f}, Vel: {vel_l:.4f}, Pose: {pose_l:.4f}, Tongue: {tongue_l:.4f}) | LR: {lr_cur:.2e}")
+                print(f"  Epoch [{epoch:03d}/{epochs}] | Step [{step:04d}/{len(train_loader)}] | Loss: {step_loss_val:.4f} (Recon: {recon_l:.4f}, Vel: {vel_l:.4f}, Pose: {pose_l:.4f}, Tongue: {tongue_l:.4f}) | LR: {lr_cur:.2e}")
 
         scheduler.step()
-        avg_train_loss = train_loss_total / max(1, len(train_loader))
+        avg_train_loss = (train_loss_total.item() * accum_steps) / max(1, len(train_loader))
 
-        # 8. Validation Loop
+        # 8. Validation Loop (Asynchronous GPU execution with zero host stalls)
         model.eval()
-        val_loss_total = 0.0
+        val_loss_total = torch.tensor(0.0, device=device)
         with torch.no_grad():
             for b_audio, b_bs, b_dental, b_pose, b_emo in val_loader:
                 b_audio = b_audio.to(device, non_blocking=True)
@@ -631,10 +634,13 @@ def train_speech_to_animation(
                 b_emo = b_emo.to(device, non_blocking=True)
                 with torch.cuda.amp.autocast(enabled=torch.cuda.is_available()):
                     pred_bs, pred_dental, pred_pose = model(b_audio, emotion_id=b_emo)
-                    v_loss, _ = criterion(pred_bs, b_bs, pred_dental, b_dental, pred_pose, b_pose)
-                val_loss_total += v_loss.item()
+                    v_loss, _ = criterion(
+                        pred_bs, b_bs, pred_dental, b_dental, pred_pose, b_pose,
+                        compute_metrics=False
+                    )
+                val_loss_total += v_loss.detach()
 
-        avg_val_loss = val_loss_total / max(1, len(val_loader))
+        avg_val_loss = val_loss_total.item() / max(1, len(val_loader))
         epoch_sec = time.perf_counter() - t_epoch_start
 
         is_best = avg_val_loss < best_val_loss
