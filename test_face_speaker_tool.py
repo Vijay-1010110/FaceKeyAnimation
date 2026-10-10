@@ -955,10 +955,10 @@ def main():
                         help="Audio device index or name (e.g. 'ASUS', 'VAC', or 8) for internal silent capture")
     parser.add_argument("--max-faces", type=int, default=1,
                         help="Maximum faces to track concurrently (default: 1 for single-face verified-speaking dataset collection)")
-    parser.add_argument("--max-duration", type=float, default=300.0,
-                        help="Maximum content duration in seconds to capture per video (default: 300s / 5 mins for instant chunking)")
-    parser.add_argument("--max-frames", type=int, default=9000,
-                        help="Maximum frames to capture per video before packaging (default: 9000 / ~5 mins @ 30 FPS)")
+    parser.add_argument("--max-duration", type=float, default=None,
+                        help="Maximum content duration in seconds to capture per video (default: None for full video capture)")
+    parser.add_argument("--max-frames", type=int, default=None,
+                        help="Maximum frames to capture per video before packaging (default: None for full video capture)")
     parser.add_argument("--list-audio-devices", action="store_true", default=False,
                         help="List available audio input/virtual recording devices and exit")
     args = parser.parse_args()

@@ -201,7 +201,7 @@ def upload_to_hf_hub(
 
     api = HfApi(token=hf_token)
     try:
-        create_repo(repo_id=repo_id, repo_type="dataset", private=False, token=hf_token, exist_ok=True)
+        create_repo(repo_id=repo_id, repo_type="dataset", private=True, token=hf_token, exist_ok=True)
     except Exception:
         pass
 

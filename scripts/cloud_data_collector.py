@@ -236,7 +236,9 @@ def worker_process_loop(
     folder_id: str = "11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA",
     hf_token: Optional[str] = None,
     hf_repo: Optional[str] = None,
-    proxy: Optional[str] = None
+    proxy: Optional[str] = None,
+    max_duration: Optional[float] = None,
+    max_frames: Optional[int] = None
 ):
     """Execution loop for an individual cloud worker."""
     python_exe = sys.executable
@@ -594,11 +596,13 @@ def worker_process_loop(
                     "--max-faces", "1",
                     "--turbo",
                     "--headless",
-                    "--max-duration", "300",
-                    "--max-frames", "9000",
                     "--stream-title", title,
                     "--canonical-url", canonical_url
                 ]
+                if max_duration:
+                    cmd.extend(["--max-duration", str(max_duration)])
+                if max_frames:
+                    cmd.extend(["--max-frames", str(max_frames)])
             else:
                 if proxy:
                     raise RuntimeError(f"Could not download scratch video through proxy for '{raw_url}'. Skipping streaming fallback.")
@@ -651,11 +655,13 @@ def worker_process_loop(
                     "--quality", quality,
                     "--max-faces", "1",
                     "--headless",
-                    "--max-duration", "300",
-                    "--max-frames", "9000",
                     "--stream-title", title,
                     "--canonical-url", canonical_url
                 ]
+                if max_duration:
+                    cmd.extend(["--max-duration", str(max_duration)])
+                if max_frames:
+                    cmd.extend(["--max-frames", str(max_frames)])
         except Exception as e:
             err = str(e)
             is_bot_check = "Sign in to confirm you’re not a bot" in err or "confirm you're not a bot" in err.lower() or "bot" in err.lower()
@@ -823,7 +829,9 @@ def run_cloud_collector(
     folder_id: str = "11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA",
     hf_token: Optional[str] = None,
     hf_repo: Optional[str] = None,
-    proxy: Optional[str] = None
+    proxy: Optional[str] = None,
+    max_duration: Optional[float] = None,
+    max_frames: Optional[int] = None
 ):
     print("=" * 84)
     print(" [CLOUD] FACEKEY TURBO MULTI-WORKER CLOUD COLLECTOR & DISTRIBUTED LOCK MANAGER")
@@ -970,7 +978,9 @@ def run_cloud_collector(
             folder_id=folder_id,
             hf_token=active_hf_token,
             hf_repo=active_hf_repo,
-            proxy=proxy
+            proxy=proxy,
+            max_duration=max_duration,
+            max_frames=max_frames
         )
     else:
         stop_event = threading.Event()
@@ -996,7 +1006,9 @@ def run_cloud_collector(
                     "folder_id": folder_id,
                     "hf_token": active_hf_token,
                     "hf_repo": active_hf_repo,
-                    "proxy": proxy
+                    "proxy": proxy,
+                    "max_duration": max_duration,
+                    "max_frames": max_frames
                 },
                 name=f"Thread-{sub_id}"
             )
@@ -1041,6 +1053,8 @@ if __name__ == "__main__":
     parser.add_argument("--hf-token", type=str, default=None, help="Hugging Face Write Token for private dataset backup")
     parser.add_argument("--hf-repo", type=str, default="VijayTheOne/facekey-dataset-chunks", help="Hugging Face repository ID")
     parser.add_argument("--proxy", type=str, default=None, help="HTTP/SOCKS5 proxy URL for yt-dlp (e.g. socks5://127.0.0.1:40000)")
+    parser.add_argument("--max-duration", type=float, default=None, help="Maximum duration in seconds per video (default None for full length)")
+    parser.add_argument("--max-frames", type=int, default=None, help="Maximum frames per video (default None for full length)")
     args = parser.parse_args()
 
     run_cloud_collector(
@@ -1058,5 +1072,7 @@ if __name__ == "__main__":
         folder_id=args.folder_id,
         hf_token=args.hf_token,
         hf_repo=args.hf_repo,
-        proxy=args.proxy
+        proxy=args.proxy,
+        max_duration=args.max_duration,
+        max_frames=args.max_frames
     )
