@@ -35,10 +35,11 @@ from src.storage.cloud_sync import CloudDriveSync
 class FacialAnimationDataset(Dataset):
     """Memory-mapped PyTorch dataset loading normalized animation arrays with audio features."""
 
-    def __init__(self, npz_path: str, seq_len: int = 64, stride: int = 16, split: str = "train"):
+    def __init__(self, npz_path: str, seq_len: int = 64, stride: int = 16, split: str = "train", augment: bool = False):
         self.seq_len = seq_len
         self.stride = max(1, stride)
         self.split = split
+        self.augment = augment and (split == "train")
         
         print(f"[*] Loading dataset from: {npz_path}...")
         data = np.load(npz_path, allow_pickle=True)
@@ -145,12 +146,41 @@ class FacialAnimationDataset(Dataset):
     def __getitem__(self, idx: int):
         s = idx * self.stride
         e = s + self.seq_len
+        audio_seq = self.audio[s:e]
+        bs_seq = self.blendshapes[s:e]
+        dental_seq = self.dental[s:e]
+        pose_seq = self.pose[s:e]
+        emo_seq = self.emotions[s:e]
+
+        if self.augment:
+            audio_seq = audio_seq.clone()
+            # 1. Gain/Amplitude Jitter (±15% volume perturbation)
+            gain = torch.empty(1).uniform_(0.85, 1.15).item()
+            audio_seq = audio_seq * gain
+
+            # 2. Additive Background Gaussian Noise (SNR variation / mic hiss)
+            if torch.rand(1).item() < 0.5:
+                noise = torch.randn_like(audio_seq) * 0.02
+                audio_seq = audio_seq + noise
+
+            # 3. SpecAugment: Frequency Band Masking (simulate mic frequency drop)
+            if torch.rand(1).item() < 0.4:
+                num_freq = audio_seq.shape[-1]
+                f_idx = torch.randint(0, max(1, num_freq - 4), (1,)).item()
+                f_width = torch.randint(1, 4, (1,)).item()
+                audio_seq[:, f_idx:f_idx + f_width] = 0.0
+
+            # 4. SpecAugment: Time Frame Masking (simulate packet/audio dropouts)
+            if torch.rand(1).item() < 0.3:
+                t_idx = torch.randint(0, max(1, self.seq_len - 3), (1,)).item()
+                audio_seq[t_idx:t_idx + 2, :] = 0.0
+
         return (
-            self.audio[s:e],
-            self.blendshapes[s:e],
-            self.dental[s:e],
-            self.pose[s:e],
-            self.emotions[s:e]
+            audio_seq,
+            bs_seq,
+            dental_seq,
+            pose_seq,
+            emo_seq
         )
 
 
@@ -212,14 +242,16 @@ def train_speech_to_animation(
     hf_repo: Optional[str] = "VijayTheOne/facekey-dataset-chunks",
     model_repo: Optional[str] = "VijayTheOne/facekey-speech-to-animator",
     hf_token: Optional[str] = None,
-    epochs: int = 50,
-    batch_size: int = 64,
-    lr: float = 1e-4,
+    epochs: int = 100,
+    batch_size: int = 2048,
+    lr: float = 5e-4,
     seq_len: int = 64,
     stride: int = 16,
-    accum_steps: int = 2,
+    accum_steps: int = 1,
     num_workers: Optional[int] = None,
-    max_chunks: Optional[int] = None
+    max_chunks: Optional[int] = None,
+    augment: bool = False,
+    fresh: bool = False
 ):
     print("=" * 82)
     print(" 🚀 FACEKEY STUDIO - MULTI-GPU CLOUD TRAINING ENGINE (KAGGLE / COLAB / CLOUD)")
@@ -421,8 +453,8 @@ def train_speech_to_animation(
         raise FileNotFoundError(f"Could not locate or generate normalized dataset at: {norm_npz}")
 
     # 4. Initialize DataLoaders
-    train_ds = FacialAnimationDataset(norm_npz, seq_len=seq_len, stride=stride, split="train")
-    val_ds = FacialAnimationDataset(norm_npz, seq_len=seq_len, stride=stride, split="val")
+    train_ds = FacialAnimationDataset(norm_npz, seq_len=seq_len, stride=stride, split="train", augment=augment)
+    val_ds = FacialAnimationDataset(norm_npz, seq_len=seq_len, stride=stride, split="val", augment=False)
 
     if num_workers is None:
         num_workers = min(4, os.cpu_count() or 2) if torch.cuda.is_available() else 0
@@ -497,67 +529,72 @@ def train_speech_to_animation(
     start_epoch = 1
     best_val_loss = float("inf")
 
-    # If checkpoint doesn't exist locally, check Hugging Face model repo first, then fallback to dataset repo
-    if not os.path.exists(latest_ckpt_path):
-        target_check_repos = []
-        if model_repo:
-            target_check_repos.append((model_repo, "model", ["checkpoint_latest.pt", "checkpoint_best.pt"]))
-        if hf_repo:
-            target_check_repos.append((hf_repo, "dataset", ["checkpoints/checkpoint_latest.pt", "checkpoints/checkpoint_best.pt"]))
-
-        for r_id, r_type, cand_files in target_check_repos:
-            try:
-                from huggingface_hub import hf_hub_download
-                print(f"[*] Checking Hugging Face ({r_id}) for existing checkpoint...")
-                for candidate_ckpt in cand_files:
-                    try:
-                        downloaded = hf_hub_download(
-                            repo_id=r_id,
-                            filename=candidate_ckpt,
-                            repo_type=r_type,
-                            token=hf_token,
-                            local_dir=ckpts_dir
-                        )
-                        if downloaded and os.path.exists(downloaded):
-                            latest_ckpt_path = downloaded
-                            print(f"[✓] Retrieved remote checkpoint '{candidate_ckpt}' from Hugging Face ({r_id})!")
-                            break
-                    except Exception:
-                        continue
-                if os.path.exists(latest_ckpt_path):
-                    break
-            except Exception as e:
-                print(f"[*] Note: Remote checkpoint search ({e})")
-
-    if os.path.exists(latest_ckpt_path):
-        print(f"\n[*] FOUND EXISTING CHECKPOINT: '{latest_ckpt_path}'")
-        print("[*] Resuming model weights, optimizer, and training epoch state...")
-        try:
-            ckpt = torch.load(latest_ckpt_path, map_location=device)
-            state_dict = ckpt["model_state_dict"]
-            # Clean module. prefix if needed
-            cleaned_state = {k[7:] if k.startswith("module.") else k: v for k, v in state_dict.items()}
-            raw_model = model.module if hasattr(model, "module") else model
-            raw_model.load_state_dict(cleaned_state)
-
-            optimizer.load_state_dict(ckpt["optimizer_state_dict"])
-            if lr:
-                for pg in optimizer.param_groups:
-                    pg["lr"] = lr
-            if "scheduler_state_dict" in ckpt:
-                scheduler.load_state_dict(ckpt["scheduler_state_dict"])
-            if "scaler_state_dict" in ckpt and torch.cuda.is_available():
-                scaler.load_state_dict(ckpt["scaler_state_dict"])
-            start_epoch = ckpt.get("epoch", 0) + 1
-            best_val_loss = ckpt.get("best_val_loss", float("inf"))
-            history = ckpt.get("history", {"epochs": [], "train_loss": [], "val_loss": []})
-            print(f"[✓] Successfully resumed from Epoch {start_epoch - 1} (Best Val Loss: {best_val_loss:.5f})!\n")
-        except Exception as e:
-            print(f"[!] Warning: Could not resume from checkpoint ({e}). Starting fresh.")
-            history = {"epochs": [], "train_loss": [], "val_loss": []}
-    else:
+    # Checkpoint resolution (ignored if fresh is True)
+    if fresh:
+        print("\n[*] FRESH TRAINING MODE (--fresh): Ignoring existing checkpoints, starting clean run from Epoch 1!")
         history = {"epochs": [], "train_loss": [], "val_loss": []}
-        print(f"[*] No previous checkpoint found. Starting fresh training run.")
+    else:
+        # If checkpoint doesn't exist locally, check Hugging Face model repo first, then fallback to dataset repo
+        if not os.path.exists(latest_ckpt_path):
+            target_check_repos = []
+            if model_repo:
+                target_check_repos.append((model_repo, "model", ["checkpoint_latest.pt", "checkpoint_best.pt"]))
+            if hf_repo:
+                target_check_repos.append((hf_repo, "dataset", ["checkpoints/checkpoint_latest.pt", "checkpoints/checkpoint_best.pt"]))
+
+            for r_id, r_type, cand_files in target_check_repos:
+                try:
+                    from huggingface_hub import hf_hub_download
+                    print(f"[*] Checking Hugging Face ({r_id}) for existing checkpoint...")
+                    for candidate_ckpt in cand_files:
+                        try:
+                            downloaded = hf_hub_download(
+                                repo_id=r_id,
+                                filename=candidate_ckpt,
+                                repo_type=r_type,
+                                token=hf_token,
+                                local_dir=ckpts_dir
+                            )
+                            if downloaded and os.path.exists(downloaded):
+                                latest_ckpt_path = downloaded
+                                print(f"[✓] Retrieved remote checkpoint '{candidate_ckpt}' from Hugging Face ({r_id})!")
+                                break
+                        except Exception:
+                            continue
+                    if os.path.exists(latest_ckpt_path):
+                        break
+                except Exception as e:
+                    print(f"[*] Note: Remote checkpoint search ({e})")
+
+        if os.path.exists(latest_ckpt_path):
+            print(f"\n[*] FOUND EXISTING CHECKPOINT: '{latest_ckpt_path}'")
+            print("[*] Resuming model weights, optimizer, and training epoch state...")
+            try:
+                ckpt = torch.load(latest_ckpt_path, map_location=device)
+                state_dict = ckpt["model_state_dict"]
+                # Clean module. prefix if needed
+                cleaned_state = {k[7:] if k.startswith("module.") else k: v for k, v in state_dict.items()}
+                raw_model = model.module if hasattr(model, "module") else model
+                raw_model.load_state_dict(cleaned_state)
+
+                optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+                if lr:
+                    for pg in optimizer.param_groups:
+                        pg["lr"] = lr
+                if "scheduler_state_dict" in ckpt:
+                    scheduler.load_state_dict(ckpt["scheduler_state_dict"])
+                if "scaler_state_dict" in ckpt and torch.cuda.is_available():
+                    scaler.load_state_dict(ckpt["scaler_state_dict"])
+                start_epoch = ckpt.get("epoch", 0) + 1
+                best_val_loss = ckpt.get("best_val_loss", float("inf"))
+                history = ckpt.get("history", {"epochs": [], "train_loss": [], "val_loss": []})
+                print(f"[✓] Successfully resumed from Epoch {start_epoch - 1} (Best Val Loss: {best_val_loss:.5f})!\n")
+            except Exception as e:
+                print(f"[!] Warning: Could not resume from checkpoint ({e}). Starting fresh.")
+                history = {"epochs": [], "train_loss": [], "val_loss": []}
+        else:
+            history = {"epochs": [], "train_loss": [], "val_loss": []}
+            print(f"[*] No previous checkpoint found. Starting fresh training run.")
 
     print("=" * 82)
     print(f"  TRAINING SPECIFICATION:")
@@ -780,7 +817,7 @@ if __name__ == "__main__":
     parser.add_argument("--hf-repo", type=str, default="VijayTheOne/facekey-dataset-chunks", help="Hugging Face repo for dataset chunks")
     parser.add_argument("--model-repo", type=str, default="VijayTheOne/facekey-speech-to-animator", help="Dedicated HF repo for model checkpoints")
     parser.add_argument("--hf-token", type=str, default=None, help="Hugging Face token")
-    parser.add_argument("--epochs", type=int, default=50, help="Total training epochs")
+    parser.add_argument("--epochs", type=int, default=100, help="Total training epochs (default: 100)")
     parser.add_argument("--batch-size", type=int, default=2048, help="Batch size (auto-scaled to 2048 on Dual T4)")
     parser.add_argument("--lr", type=float, default=5e-4, help="Initial learning rate")
     parser.add_argument("--seq-len", type=int, default=64, help="Temporal sequence length in frames (~2.1 seconds)")
@@ -788,6 +825,8 @@ if __name__ == "__main__":
     parser.add_argument("--accum-steps", type=int, default=1, help="Gradient accumulation steps")
     parser.add_argument("--num-workers", type=int, default=None, help="DataLoader workers (default min(4, cpu_count))")
     parser.add_argument("--max-chunks", type=int, default=None, help="Maximum number of dataset chunks to download/use (ideal for Kaggle disk limits)")
+    parser.add_argument("--augment", action="store_true", default=False, help="Enable CPU-side real-time acoustic data augmentation")
+    parser.add_argument("--fresh", action="store_true", default=False, help="Start fresh from Epoch 1 (ignore existing checkpoints)")
     args = parser.parse_args()
 
     train_speech_to_animation(
@@ -804,5 +843,7 @@ if __name__ == "__main__":
         stride=args.stride,
         accum_steps=args.accum_steps,
         num_workers=args.num_workers,
-        max_chunks=args.max_chunks
+        max_chunks=args.max_chunks,
+        augment=args.augment,
+        fresh=args.fresh
     )
