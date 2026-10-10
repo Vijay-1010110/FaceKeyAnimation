@@ -725,7 +725,7 @@ def train_speech_to_animation(
                     from huggingface_hub import HfApi
                     api = HfApi()
                     try:
-                        api.create_repo(repo_id=target_model_repo, repo_type="model", private=True, token=hf_token, exist_ok=True)
+                        api.create_repo(repo_id=target_model_repo, repo_type="model", private=False, token=hf_token, exist_ok=True)
                     except Exception:
                         pass
                     api.upload_file(
