@@ -171,10 +171,11 @@ def generate_kaggle_notebook():
                     "    --model-repo \"{HF_MODEL_REPO}\" \\\n",
                     "    --hf-token \"{HF_TOKEN}\" \\\n",
                     "    --epochs 50 \\\n",
-                    "    --batch-size 512 \\\n",
-                    "    --lr 0.0003 \\\n",
+                    "    --batch-size 1024 \\\n",
+                    "    --lr 0.0004 \\\n",
                     "    --seq-len 64 \\\n",
                     "    --stride 16 \\\n",
+                    "    --num-workers 4 \\\n",
                     "    --accum-steps 1\n"
                 ]
             },
