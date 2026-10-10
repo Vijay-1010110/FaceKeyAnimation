@@ -120,7 +120,7 @@ def generate_kaggle_notebook():
                     "    !git clone https://github.com/Vijay-1010110/FaceKeyAnimation.git {APP_DIR}\n",
                     "\n",
                     "%cd {APP_DIR}\n",
-                    "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy\n",
+                    "!pip install -q huggingface_hub \"numpy<2\" scipy matplotlib\n",
                     "print('[+] Gen2 Deep Learning Training environment ready with latest GitHub code!')\n"
                 ]
             },
@@ -660,6 +660,7 @@ def main():
     targets = {
         os.path.join(notebooks_dir, "2_Colab_Model_Trainer.ipynb"): generate_colab_notebook(),
         os.path.join(notebooks_dir, "5_Kaggle_Model_Trainer.ipynb"): generate_kaggle_notebook(),
+        os.path.join(notebooks_dir, "Kaggle_Dual_T4_Model_Trainer.ipynb"): generate_kaggle_notebook(),
         os.path.join(notebooks_dir, "6_Lightning_AI_Model_Trainer.ipynb"): generate_lightning_ai_notebook()
     }
 
