@@ -575,6 +575,13 @@ def preprocess_from_tar_chunks(
                         os.remove(c_path)
                 except Exception:
                     pass
+                try:
+                    hf_cache = os.path.expanduser("~/.cache/huggingface/hub")
+                    if os.path.exists(hf_cache):
+                        import shutil
+                        shutil.rmtree(hf_cache, ignore_errors=True)
+                except Exception:
+                    pass
             gc.collect()
 
     if total_accepted_frames == 0:
