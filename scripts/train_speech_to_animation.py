@@ -210,6 +210,7 @@ def train_speech_to_animation(
     data_dir: Optional[str] = None,
     checkpoints_dir: Optional[str] = None,
     hf_repo: Optional[str] = "VijayTheOne/facekey-dataset-chunks",
+    model_repo: Optional[str] = "VijayTheOne/facekey-speech-to-animator",
     hf_token: Optional[str] = None,
     epochs: int = 50,
     batch_size: int = 64,
@@ -496,28 +497,37 @@ def train_speech_to_animation(
     start_epoch = 1
     best_val_loss = float("inf")
 
-    # If checkpoint doesn't exist locally, check Hugging Face repo (try latest, then fallback to best)
-    if not os.path.exists(latest_ckpt_path) and hf_repo:
-        try:
-            from huggingface_hub import hf_hub_download
-            print(f"[*] Checking Hugging Face '{hf_repo}' for existing checkpoint...")
-            for candidate_ckpt in ["checkpoints/checkpoint_latest.pt", "checkpoints/checkpoint_best.pt"]:
-                try:
-                    downloaded = hf_hub_download(
-                        repo_id=hf_repo,
-                        filename=candidate_ckpt,
-                        repo_type="dataset",
-                        token=hf_token,
-                        local_dir=ckpts_dir
-                    )
-                    if downloaded and os.path.exists(downloaded):
-                        latest_ckpt_path = downloaded
-                        print(f"[✓] Retrieved remote checkpoint '{candidate_ckpt}' from Hugging Face!")
-                        break
-                except Exception:
-                    continue
-        except Exception as e:
-            print(f"[*] Note: Remote checkpoint search ({e})")
+    # If checkpoint doesn't exist locally, check Hugging Face model repo first, then fallback to dataset repo
+    if not os.path.exists(latest_ckpt_path):
+        target_check_repos = []
+        if model_repo:
+            target_check_repos.append((model_repo, "model", ["checkpoint_latest.pt", "checkpoint_best.pt"]))
+        if hf_repo:
+            target_check_repos.append((hf_repo, "dataset", ["checkpoints/checkpoint_latest.pt", "checkpoints/checkpoint_best.pt"]))
+
+        for r_id, r_type, cand_files in target_check_repos:
+            try:
+                from huggingface_hub import hf_hub_download
+                print(f"[*] Checking Hugging Face ({r_id}) for existing checkpoint...")
+                for candidate_ckpt in cand_files:
+                    try:
+                        downloaded = hf_hub_download(
+                            repo_id=r_id,
+                            filename=candidate_ckpt,
+                            repo_type=r_type,
+                            token=hf_token,
+                            local_dir=ckpts_dir
+                        )
+                        if downloaded and os.path.exists(downloaded):
+                            latest_ckpt_path = downloaded
+                            print(f"[✓] Retrieved remote checkpoint '{candidate_ckpt}' from Hugging Face ({r_id})!")
+                            break
+                    except Exception:
+                        continue
+                if os.path.exists(latest_ckpt_path):
+                    break
+            except Exception as e:
+                print(f"[*] Note: Remote checkpoint search ({e})")
 
     if os.path.exists(latest_ckpt_path):
         print(f"\n[*] FOUND EXISTING CHECKPOINT: '{latest_ckpt_path}'")
@@ -706,37 +716,42 @@ def train_speech_to_animation(
         except Exception:
             loss_plot_path = None
 
-        # 11. Auto-sync Checkpoint & Loss Curve to Hugging Face Hub (on new best, every 5 epochs, or final epoch)
+        # 11. Auto-sync Checkpoint & Loss Curve to Dedicated Hugging Face Model Hub
         should_sync_remote = is_best or (epoch % 5 == 0) or (epoch == epochs)
-        if hf_repo and hf_token and should_sync_remote:
+        target_model_repo = model_repo or "VijayTheOne/facekey-speech-to-animator"
+        if target_model_repo and hf_token and should_sync_remote:
             for upload_attempt in range(1, 4):
                 try:
                     from huggingface_hub import HfApi
                     api = HfApi()
+                    try:
+                        api.create_repo(repo_id=target_model_repo, repo_type="model", private=True, token=hf_token, exist_ok=True)
+                    except Exception:
+                        pass
                     api.upload_file(
                         path_or_fileobj=latest_ckpt_path,
-                        path_in_repo="checkpoints/checkpoint_latest.pt",
-                        repo_id=hf_repo,
-                        repo_type="dataset",
+                        path_in_repo="checkpoint_latest.pt",
+                        repo_id=target_model_repo,
+                        repo_type="model",
                         token=hf_token
                     )
                     if is_best:
                         api.upload_file(
                             path_or_fileobj=best_ckpt_path,
-                            path_in_repo="checkpoints/checkpoint_best.pt",
-                            repo_id=hf_repo,
-                            repo_type="dataset",
+                            path_in_repo="checkpoint_best.pt",
+                            repo_id=target_model_repo,
+                            repo_type="model",
                             token=hf_token
                         )
                     if loss_plot_path and os.path.exists(loss_plot_path):
                         api.upload_file(
                             path_or_fileobj=loss_plot_path,
-                            path_in_repo="checkpoints/loss_curve.png",
-                            repo_id=hf_repo,
-                            repo_type="dataset",
+                            path_in_repo="loss_curve.png",
+                            repo_id=target_model_repo,
+                            repo_type="model",
                             token=hf_token
                         )
-                    print(f"[+] Checkpoints & graphical loss curve synced to Hugging Face Hub: {hf_repo}/checkpoints/")
+                    print(f"[+] Checkpoints & graphical loss curve synced to Hugging Face Model Hub: https://huggingface.co/{target_model_repo}")
                     break
                 except Exception as e:
                     if upload_attempt < 3:
@@ -756,13 +771,14 @@ if __name__ == "__main__":
     parser.add_argument("--drive-dir", type=str, default=None, help="Google Drive path for checkpoints & chunks")
     parser.add_argument("--data-dir", type=str, default=None, help="Local training data / chunks directory")
     parser.add_argument("--checkpoints-dir", type=str, default=None, help="Directory to save checkpoints")
-    parser.add_argument("--hf-repo", type=str, default="VijayTheOne/facekey-dataset-chunks", help="Hugging Face repo for dataset & checkpoints")
+    parser.add_argument("--hf-repo", type=str, default="VijayTheOne/facekey-dataset-chunks", help="Hugging Face repo for dataset chunks")
+    parser.add_argument("--model-repo", type=str, default="VijayTheOne/facekey-speech-to-animator", help="Dedicated HF repo for model checkpoints")
     parser.add_argument("--hf-token", type=str, default=None, help="Hugging Face token")
     parser.add_argument("--epochs", type=int, default=50, help="Total training epochs")
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size (auto-scaled to 128 on Dual T4)")
     parser.add_argument("--lr", type=float, default=1e-4, help="Initial learning rate")
     parser.add_argument("--seq-len", type=int, default=64, help="Temporal sequence length in frames (~2.1 seconds)")
-    parser.add_argument("--stride", type=int, default=1, help="Temporal sequence subsampling stride (default: 1; use 16 for 16x faster training epochs)")
+    parser.add_argument("--stride", type=int, default=16, help="Temporal sequence subsampling stride (default: 16)")
     parser.add_argument("--accum-steps", type=int, default=2, help="Gradient accumulation steps")
     parser.add_argument("--num-workers", type=int, default=None, help="DataLoader workers (default min(4, cpu_count))")
     parser.add_argument("--max-chunks", type=int, default=None, help="Maximum number of dataset chunks to download/use (ideal for Kaggle disk limits)")
@@ -773,6 +789,7 @@ if __name__ == "__main__":
         data_dir=args.data_dir,
         checkpoints_dir=args.checkpoints_dir,
         hf_repo=args.hf_repo,
+        model_repo=args.model_repo,
         hf_token=args.hf_token,
         epochs=args.epochs,
         batch_size=args.batch_size,
