@@ -254,8 +254,8 @@ def train_speech_to_animation(
             print(f"[+] DUAL GPU BOOST     : DataParallel ENABLED across {gpu_count} GPUs! (Maximum Kaggle Utilization)")
             # Auto-scale batch size if using multi-GPU to fully saturate 30 GB VRAM & Tensor Cores
             if batch_size <= 64:
-                batch_size = 512
-                print(f"[*] Auto-Scaled Batch  : {batch_size} (256 per GPU to maximize Tensor Cores & VRAM utilization)")
+                batch_size = 2048
+                print(f"[*] Auto-Scaled Batch  : {batch_size} (1024 per GPU to maximize Tensor Cores & VRAM utilization)")
     else:
         print("[!] Warning: CUDA not available. Running on CPU (slower).")
 
@@ -781,8 +781,8 @@ if __name__ == "__main__":
     parser.add_argument("--model-repo", type=str, default="VijayTheOne/facekey-speech-to-animator", help="Dedicated HF repo for model checkpoints")
     parser.add_argument("--hf-token", type=str, default=None, help="Hugging Face token")
     parser.add_argument("--epochs", type=int, default=50, help="Total training epochs")
-    parser.add_argument("--batch-size", type=int, default=512, help="Batch size (auto-scaled to 512 on Dual T4)")
-    parser.add_argument("--lr", type=float, default=3e-4, help="Initial learning rate")
+    parser.add_argument("--batch-size", type=int, default=2048, help="Batch size (auto-scaled to 2048 on Dual T4)")
+    parser.add_argument("--lr", type=float, default=5e-4, help="Initial learning rate")
     parser.add_argument("--seq-len", type=int, default=64, help="Temporal sequence length in frames (~2.1 seconds)")
     parser.add_argument("--stride", type=int, default=16, help="Temporal sequence subsampling stride (default: 16)")
     parser.add_argument("--accum-steps", type=int, default=1, help="Gradient accumulation steps")
