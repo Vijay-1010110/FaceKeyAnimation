@@ -359,20 +359,27 @@ def train_speech_to_animation(
                     total_count=len(chunk_files)
                 )
 
-                # Cache compiled dataset to Hugging Face Hub for instant loads in all future sessions
+                # Cache compiled dataset to Hugging Face Hub only if comfortable storage headroom exists
                 if os.path.exists(norm_npz):
                     try:
-                        print("[*] Caching compiled normalized dataset to Hugging Face Hub...")
-                        api.upload_file(
-                            path_or_fileobj=norm_npz,
-                            path_in_repo="training_data/normalized_training_dataset.npz",
-                            repo_id=hf_repo,
-                            repo_type="dataset",
-                            token=hf_token
-                        )
-                        print("[✓] Compiled dataset cached to Hugging Face Hub successfully!")
+                        npz_size_gb = os.path.getsize(norm_npz) / 1e9
+                        repo_meta = api.repo_info(repo_id=hf_repo, repo_type="dataset", files_metadata=True)
+                        used_gb = sum(s.size for s in repo_meta.siblings if s.size) / 1e9
+                        free_gb = 100.0 - used_gb
+                        if free_gb < (npz_size_gb + 2.5):
+                            print(f"[*] Skipping remote upload of compiled dataset ({npz_size_gb:.2f} GB) to keep {free_gb:.2f} GB free for model training checkpoints!")
+                        else:
+                            print(f"[*] Caching compiled normalized dataset ({npz_size_gb:.2f} GB) to Hugging Face Hub...")
+                            api.upload_file(
+                                path_or_fileobj=norm_npz,
+                                path_in_repo="training_data/normalized_training_dataset.npz",
+                                repo_id=hf_repo,
+                                repo_type="dataset",
+                                token=hf_token
+                            )
+                            print("[✓] Compiled dataset cached to Hugging Face Hub successfully!")
                     except Exception as upload_err:
-                        print(f"[!] Notice: Could not cache compiled dataset ({upload_err})")
+                        print(f"[!] Notice: Remote dataset cache bypassed ({upload_err})")
 
             except Exception as e:
                 print(f"[!] Warning: Chunk processing encounter issue: ({e})")
@@ -699,8 +706,9 @@ def train_speech_to_animation(
         except Exception:
             loss_plot_path = None
 
-        # 11. Auto-sync Checkpoint & Loss Curve to Hugging Face Hub (With 3-attempt exponential retry)
-        if hf_repo and hf_token:
+        # 11. Auto-sync Checkpoint & Loss Curve to Hugging Face Hub (on new best, every 5 epochs, or final epoch)
+        should_sync_remote = is_best or (epoch % 5 == 0) or (epoch == epochs)
+        if hf_repo and hf_token and should_sync_remote:
             for upload_attempt in range(1, 4):
                 try:
                     from huggingface_hub import HfApi

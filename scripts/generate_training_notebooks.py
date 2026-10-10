@@ -171,7 +171,7 @@ def generate_kaggle_notebook():
                     "    --batch-size 64 \\\n",
                     "    --lr 0.0001 \\\n",
                     "    --seq-len 64 \\\n",
-                    "    --stride 1 \\\n",
+                    "    --stride 16 \\\n",
                     "    --accum-steps 2\n"
                 ]
             },
@@ -373,7 +373,7 @@ def generate_colab_notebook():
                     "    --batch-size 64 \\\n",
                     "    --lr 0.0001 \\\n",
                     "    --seq-len 64 \\\n",
-                    "    --stride 1 \\\n",
+                    "    --stride 16 \\\n",
                     "    --accum-steps 2\n"
                 ]
             },
@@ -404,7 +404,7 @@ def generate_colab_notebook():
                     "    --batch-size 64 \\\n",
                     "    --lr 0.0001 \\\n",
                     "    --seq-len 64 \\\n",
-                    "    --stride 1 \\\n",
+                    "    --stride 16 \\\n",
                     "    --accum-steps 2 > {LOG_FILE} 2>&1 &\n",
                     "'''\n",
                     "subprocess.Popen(cmd, shell=True, executable='/bin/bash')\n",
@@ -583,7 +583,7 @@ def generate_lightning_ai_notebook():
                     "    --batch-size 64 \\\n",
                     "    --lr 0.0001 \\\n",
                     "    --seq-len 64 \\\n",
-                    "    --stride 1 \\\n",
+                    "    --stride 16 \\\n",
                     "    --accum-steps 2 > \"{LOG_FILE}\" 2>&1 &\n",
                     "'''\n",
                     "subprocess.Popen(cmd, shell=True, executable='/bin/bash')\n",
