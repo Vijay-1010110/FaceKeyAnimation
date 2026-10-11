@@ -173,17 +173,17 @@
           <div class="bg-slate-900/70 border border-slate-800 p-2.5 rounded-xl flex flex-col gap-1">
             <div class="flex justify-between text-xs">
               <span class="text-slate-300 font-medium">Mic Gain</span>
-              <span id="val-sens" class="font-mono text-cyan-300 font-bold">2.5x</span>
+              <span id="val-sens" class="font-mono text-cyan-300 font-bold">1.5x</span>
             </div>
-            <input type="range" id="sens-slider" min="0.5" max="6.0" step="0.1" value="2.5" class="slider cursor-pointer w-full">
+            <input type="range" id="sens-slider" min="0.5" max="4.0" step="0.1" value="1.5" class="slider cursor-pointer w-full">
           </div>
 
           <div class="bg-slate-900/70 border border-slate-800 p-2.5 rounded-xl flex flex-col gap-1">
             <div class="flex justify-between text-xs">
               <span class="text-slate-300 font-medium">Mouth Boost</span>
-              <span id="val-scale" class="font-mono text-amber-300 font-bold">1.5x</span>
+              <span id="val-scale" class="font-mono text-amber-300 font-bold">1.0x</span>
             </div>
-            <input type="range" id="scale-slider" min="0.5" max="3.0" step="0.1" value="1.5" class="slider cursor-pointer w-full">
+            <input type="range" id="scale-slider" min="0.5" max="2.5" step="0.1" value="1.0" class="slider cursor-pointer w-full">
           </div>
         </div>
 
@@ -553,8 +553,8 @@
 
     // Dynamic Kinematics & Spectral Formant Viseme Decomposition Loop
     function updateAnimation(rmsEnergy, formants, delta, time = performance.now()) {
-      const sens = parseFloat(sensSlider.value);
-      const boost = parseFloat(scaleSlider.value);
+      const sens = parseFloat(sensSlider.value || 1.5);
+      const boost = parseFloat(scaleSlider.value || 1.0);
 
       const adjustedEnergy = rmsEnergy * sens;
       document.getElementById('audio-energy-text').innerText = adjustedEnergy.toFixed(3);
@@ -563,36 +563,48 @@
       if (adjustedEnergy > peakEnergy) {
         peakEnergy = 0.90 * peakEnergy + 0.10 * adjustedEnergy;
       } else {
-        peakEnergy = Math.max(0.012, 0.998 * peakEnergy);
+        peakEnergy = Math.max(0.018, 0.998 * peakEnergy);
       }
 
-      const normEnergy = Math.min(1.0, adjustedEnergy / Math.max(1e-4, peakEnergy * 0.85));
+      const normEnergy = Math.min(1.0, adjustedEnergy / Math.max(1e-4, peakEnergy * 0.90));
       const rawDrive = Math.max(0.0, normEnergy);
 
-      // Attack / Release envelope for overall syllabic drive
-      const alpha = rawDrive > smoothDrive ? 0.70 : 0.22;
+      // Attack / Release envelope for natural speech pacing
+      const alpha = rawDrive > smoothDrive ? 0.65 : 0.20;
       smoothDrive = alpha * rawDrive + (1.0 - alpha) * smoothDrive;
 
-      // Acoustic Formants (Visemes):
-      // 1. Open Vowels ("AA", "AH"): mid formant drives strong visible jaw drop
-      const jaw = Math.min(1.0, (smoothDrive * 0.75 + (formants ? formants.mid * 2.2 : 0)) * boost);
+      // Realistic Conversational Kinematics (Phoneme Competition instead of compounding)
+      const fMid = formants ? (formants.mid || 0.0) : 0.0;
+      const fLow = formants ? (formants.low || 0.0) : 0.0;
+      const fHigh = formants ? (formants.high || 0.0) : 0.0;
 
-      // 2. Rounded Vowels ("OO", "OH", "W"): low formant drives lip funnel & pucker
-      const pucker = Math.min(1.0, (formants ? formants.low * 2.0 : smoothDrive * 0.3) * boost);
-      const funnel = Math.min(1.0, (formants ? formants.low * 1.8 + formants.mid * 0.5 : smoothDrive * 0.5) * boost);
+      // 1. Jaw Opening: Natural conversational range (max 0.48, never maxes at 1.0)
+      const jaw = Math.min(0.48, (smoothDrive * 0.34 + fMid * 0.22) * boost);
 
-      // 3. Spread Vowels & Sibilants ("EE", "AY", "S"): high formant drives lateral stretch and smile
-      const smile = Math.min(1.0, (formants ? formants.high * 1.8 : smoothDrive * 0.3) * boost);
-      const stretch = Math.min(1.0, (formants ? formants.high * 1.6 : smoothDrive * 0.25) * boost);
+      // 2. Competing Visemes: Rounded ('OO' / 'W') vs Spread ('EE' / 'S') are mutually exclusive
+      let funnel = 0.0;
+      let pucker = 0.0;
+      let smile = 0.0;
+      let stretch = 0.0;
 
-      // 4. Lip Elevations
-      const lowerDown = Math.min(1.0, jaw * 0.85);
-      const upperUp = Math.min(1.0, jaw * 0.35);
-      const browUp = Math.min(1.0, smoothDrive * 0.4 + (formants ? formants.high * 0.35 : 0));
-      const browDown = smoothDrive > 0.45 ? (smoothDrive - 0.45) * 0.35 : 0.0;
-      const cheekSquint = Math.min(1.0, smile * 0.60 + smoothDrive * 0.15);
-      const noseSneer = smoothDrive > 0.50 ? (smoothDrive - 0.50) * 0.25 : 0.0;
-      const tongueOut = (formants && formants.high > 0.45 && jaw > 0.20 && jaw < 0.65) ? (formants.high - 0.45) * 0.6 : 0.0;
+      if (fLow > fHigh * 1.15) {
+        // Dominant rounded vowel (/o/, /u/, /w/)
+        funnel = Math.min(0.38, (fLow * 0.40 + smoothDrive * 0.12) * boost);
+        pucker = Math.min(0.32, (fLow * 0.35) * boost);
+      } else if (fHigh > fLow * 1.15) {
+        // Dominant spread vowel or sibilant (/i/, /e/, /s/)
+        smile = Math.min(0.35, (fHigh * 0.40 + smoothDrive * 0.12) * boost);
+        stretch = Math.min(0.30, (fHigh * 0.32) * boost);
+      }
+
+      // 3. Gentle Anatomical Lip Follow-Through (never tears mesh)
+      const lowerDown = Math.min(0.22, jaw * 0.28);
+      const upperUp = Math.min(0.12, jaw * 0.15);
+      const browUp = Math.min(0.35, (smoothDrive * 0.22 + fHigh * 0.15));
+      const browDown = smoothDrive > 0.55 ? (smoothDrive - 0.55) * 0.18 : 0.0;
+      const cheekSquint = Math.min(0.25, smile * 0.40);
+      const noseSneer = smoothDrive > 0.60 ? (smoothDrive - 0.60) * 0.15 : 0.0;
+      const tongueOut = 0.0; // Keep tongue naturally concealed inside cavity
 
       // Procedural Natural Blinking
       blinkTimer += delta;
@@ -864,6 +876,11 @@
         source.connect(analyser);
 
         isMicActive = true;
+        engineMode = 'formant';
+        document.getElementById('btn-engine-icon').innerText = '🎙️';
+        document.getElementById('btn-engine-label').innerText = 'Engine: Acoustic Formants (Live Mic)';
+        btnToggleEngine.className = 'px-4 py-3 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 border border-cyan-700/60 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer shadow';
+
         document.getElementById('btn-mic-icon').innerText = '⏹️';
         document.getElementById('btn-mic-label').innerText = 'Stop Microphone';
         btnToggleMic.classList.replace('bg-cyan-500', 'bg-rose-500');
@@ -924,6 +941,14 @@
         isTestPlaying = true;
         testAudioStartTime = audioCtx.currentTime;
         playbackStartPerfTime = performance.now() / 1000.0;
+
+        if (aiAnimationData) {
+          engineMode = 'neural';
+          document.getElementById('btn-engine-icon').innerText = '🧠';
+          document.getElementById('btn-engine-label').innerText = 'Engine: 100-Epoch Neural AI';
+          btnToggleEngine.className = 'px-4 py-3 rounded-xl bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-700/60 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer shadow';
+        }
+
         document.getElementById('btn-test-icon').innerText = '⏹️';
         document.getElementById('btn-test-label').innerText = 'Stop Test Audio';
         btnTestSpeech.classList.replace('bg-slate-800', 'bg-amber-500');
