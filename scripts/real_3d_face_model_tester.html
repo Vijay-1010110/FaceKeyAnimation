@@ -712,52 +712,17 @@
         activeMap[key] = frameBS[i];
       }
 
-      // Strongly articulated mouth and jaw dynamics calibrated for vivid 3D mesh rendering
-      const rawJaw = activeMap['jawOpen'] || 0.0;
-      const jaw = Math.min(1.0, Math.max(0.0, (rawJaw - 0.045) / 0.14) * 1.5 * boost);
-      const rawFunnel = activeMap['mouthFunnel'] || 0.0;
-      const funnel = Math.min(0.75, Math.max(0.0, (rawFunnel - 0.47) / 0.08) * boost);
-      const rawPucker = activeMap['mouthPucker'] || 0.0;
-      const pucker = Math.min(0.65, Math.max(0.0, (rawPucker - 0.30) / 0.10) * boost);
-      const rawLower = Math.max(activeMap['mouthLowerDownLeft'] || 0.0, activeMap['mouthLowerDownRight'] || 0.0);
-      const lowerDown = Math.min(1.0, (Math.max(0.0, (rawLower - 0.03) / 0.15) * 0.70 + jaw * 0.45) * boost);
-      const rawUpper = Math.max(activeMap['mouthUpperUpLeft'] || 0.0, activeMap['mouthUpperUpRight'] || 0.0);
-      const upperUp = Math.min(1.0, (jaw * 0.35 + Math.max(0.0, (rawUpper - 0.01) * 2.0)) * boost);
-      const smileL = Math.min(1.0, (activeMap['mouthSmileLeft'] || activeMap['mouthSmile_L'] || 0.0) * 2.2 * boost);
-      const smileR = Math.min(1.0, (activeMap['mouthSmileRight'] || activeMap['mouthSmile_R'] || 0.0) * 2.2 * boost);
-      const stretch = Math.min(1.0, (activeMap['mouthStretchLeft'] || 0.0) * 2.0 * boost);
-      const browUp = Math.min(1.0, (activeMap['browInnerUp'] || 0.0) * 2.5);
-
-      // Apply directly to 3D mesh morph targets
-      setMorphTarget('jawOpen', jaw);
-      setMorphTarget('mouthClose', 0.0); // Never clamp lips closed during speech
-      setMorphTarget('mouthFunnel', funnel);
-      setMorphTarget('mouthPucker', pucker);
-      setMorphTarget('mouthLowerDown_L', lowerDown);
-      setMorphTarget('mouthLowerDown_R', lowerDown);
-      setMorphTarget('mouthUpperUp_L', upperUp);
-      setMorphTarget('mouthUpperUp_R', upperUp);
-      setMorphTarget('mouthSmile_L', smileL);
-      setMorphTarget('mouthSmile_R', smileR);
-      setMorphTarget('mouthStretch_L', stretch);
-      setMorphTarget('mouthStretch_R', stretch);
-      setMorphTarget('browInnerUp', browUp);
-
-      // Procedural Natural Blinking
-      blinkTimer += delta;
-      if (blinkTimer > 3.5) {
-        blinkValue = Math.sin((blinkTimer - 3.5) * Math.PI / 0.25);
-        if (blinkTimer > 3.75) {
-          blinkTimer = Math.random() * 1.5;
-          blinkValue = 0.0;
-        }
-      } else {
-        blinkValue = 0.0;
+      // PURE DIRECT NEURAL INFERENCE PASSTHROUGH:
+      // Drive all 52 ARKit facial blendshapes directly from the trained neural network predictions
+      for (let i = 0; i < aiAnimationData.blendshape_names.length; i++) {
+        const key = aiAnimationData.blendshape_names[i];
+        const rawVal = frameBS[i];
+        const val = Math.min(1.0, Math.max(0.0, rawVal * boost));
+        setMorphTarget(key, val);
+        activeMap[key] = val;
       }
-      setMorphTarget('eyeBlink_L', Math.max(0.0, blinkValue));
-      setMorphTarget('eyeBlink_R', Math.max(0.0, blinkValue));
 
-      // 3D Head Pose Orientation: Pitch (X), Yaw (Y), Roll (Z) from trained neural network
+      // 3D Head Pose Orientation: Pitch (X), Yaw (Y), Roll (Z) direct from trained neural network
       if (aiAnimationData.head_pose && aiAnimationData.head_pose[frameIdx] && currentModel) {
         const pose = aiAnimationData.head_pose[frameIdx];
         const pitchRad = (pose[0] * Math.PI) / 180.0;
@@ -768,15 +733,20 @@
         currentModel.rotation.z = THREE.MathUtils.lerp(currentModel.rotation.z, -rollRad * 0.45, 0.15);
       }
 
-      // Primary HUD metrics
+      // Primary HUD metrics (direct neural predictions)
+      const jaw = activeMap['jawOpen'] || 0.0;
+      const funnel = activeMap['mouthFunnel'] || 0.0;
+      const smile = activeMap['mouthSmileLeft'] || activeMap['mouthSmile_L'] || 0.0;
+      const brow = activeMap['browInnerUp'] || 0.0;
+
       document.getElementById('val-jaw').innerText = jaw.toFixed(3);
       document.getElementById('bar-jaw').style.width = Math.min(100, jaw * 100) + '%';
       document.getElementById('val-funnel').innerText = funnel.toFixed(3);
       document.getElementById('bar-funnel').style.width = Math.min(100, funnel * 100) + '%';
-      document.getElementById('val-smile').innerText = smileL.toFixed(3);
-      document.getElementById('bar-smile').style.width = Math.min(100, smileL * 100) + '%';
-      document.getElementById('val-brow').innerText = browUp.toFixed(3);
-      document.getElementById('bar-brow').style.width = Math.min(100, browUp * 100) + '%';
+      document.getElementById('val-smile').innerText = smile.toFixed(3);
+      document.getElementById('bar-smile').style.width = Math.min(100, smile * 100) + '%';
+      document.getElementById('val-brow').innerText = brow.toFixed(3);
+      document.getElementById('bar-brow').style.width = Math.min(100, brow * 100) + '%';
 
       if (analyser && dataArray) {
         analyser.getFloatTimeDomainData(dataArray);
@@ -790,20 +760,7 @@
       micBadge.innerText = `🤖 100-EPOCH AI (FRAME ${frameIdx}/${aiAnimationData.total_frames})`;
       micBadge.className = 'text-xs font-bold px-3 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30';
 
-      updateBlendshapesUI({
-        jawOpen: jaw,
-        mouthFunnel: funnel,
-        mouthPucker: pucker,
-        mouthLowerDown_L: lowerDown,
-        mouthLowerDown_R: lowerDown,
-        mouthUpperUp_L: upperUp,
-        mouthUpperUp_R: upperUp,
-        mouthSmile_L: smileL,
-        mouthSmile_R: smileR,
-        mouthStretch_L: stretch,
-        mouthStretch_R: stretch,
-        browInnerUp: browUp
-      });
+      updateBlendshapesUI(activeMap);
     }
 
     // Audio Analysis & Render Loop

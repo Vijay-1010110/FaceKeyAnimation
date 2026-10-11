@@ -60,9 +60,9 @@ def build_player():
         blink_l_val = float(f[blink_l_idx])
         blink_r_val = float(f[blink_r_idx])
         
-        # Audio drive envelope from jaw and visemes
-        drive_val = min(1.0, max(0.0, jaw_val * 2.5 + funnel_val * 0.5))
-        effective_jaw = jaw_val * 1.8
+        # Direct neural jaw and audio drive
+        drive_val = jaw_val
+        effective_jaw = jaw_val
 
         pose = head_poses[i] if i < len(head_poses) else [0, 0, 0]
         dental = dentals[i] if i < len(dentals) else [0, 0, 0, 0]
