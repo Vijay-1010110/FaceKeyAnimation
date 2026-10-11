@@ -3,6 +3,7 @@ Decouples skull morphology, head pose, camera distance, and structural asymmetry
 Projects all subjects onto an Invariant Universal Canonical Reference Face.
 """
 
+import os
 import math
 from typing import Dict, List, Tuple, Optional, Any
 import numpy as np
@@ -195,7 +196,11 @@ class UniversalCanonicalFace:
     @classmethod
     def get_template(cls) -> np.ndarray:
         if cls._instance is None:
-            cls._instance = cls._generate_canonical_template()
+            npy_path = os.path.join(os.path.dirname(__file__), "canonical_template_478.npy")
+            if os.path.exists(npy_path):
+                cls._instance = np.load(npy_path).astype(np.float32)
+            else:
+                cls._instance = cls._generate_canonical_template()
         return cls._instance.copy()
 
     @classmethod

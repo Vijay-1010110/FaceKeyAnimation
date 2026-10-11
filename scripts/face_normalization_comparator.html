@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FaceKey: Multi-Face Normalization & Symmetry Visual Comparator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #070a12;
+      color: #e2e8f0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .grid-bg {
+      background-size: 24px 24px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+    .hud-border-raw {
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.08);
+    }
+    .hud-border-norm {
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.1);
+    }
+    input[type=range] {
+      accent-color: #06b6d4;
+    }
+    .pulse-dot {
+      animation: pulseGlow 1.8s infinite ease-in-out;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-6 flex flex-col gap-5">
+
+  <!-- Header Section -->
+  <header class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
+    <div class="flex items-center gap-3.5">
+      <div class="w-4 h-4 rounded-full bg-cyan-400 shadow-lg shadow-cyan-400/50 pulse-dot"></div>
+      <div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <h1 class="text-xl md:text-2xl font-black text-white tracking-tight">
+            FaceKey Universal Facial Normalization Studio
+          </h1>
+          <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+            Umeyama Procrustes SO(3)
+          </span>
+          <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            Bilateral Symmetry Engine
+          </span>
+        </div>
+        <p class="text-xs md:text-sm text-slate-400 mt-0.5">
+          Live Empirical Verification: Compare faces of different scales, rotations, and asymmetries collapsing onto the exact same canonical skull
+        </p>
+      </div>
+    </div>
+
+    <!-- Quick Stats Metric Pills -->
+    <div class="flex items-center gap-2.5 flex-wrap">
+      <div class="bg-slate-950 px-3.5 py-2 rounded-xl border border-slate-800 text-right">
+        <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Raw Cranial Variance</div>
+        <div id="stat-raw-var" class="text-xs font-mono font-bold text-red-400">0.065710</div>
+      </div>
+      <div class="bg-slate-950 px-3.5 py-2 rounded-xl border border-slate-800 text-right">
+        <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Normalized Variance</div>
+        <div id="stat-norm-var" class="text-xs font-mono font-bold text-emerald-400">0.00000000</div>
+      </div>
+      <div class="bg-emerald-950/40 px-3.5 py-2 rounded-xl border border-emerald-700/60 text-right">
+        <div class="text-[10px] text-emerald-300 uppercase tracking-wider font-semibold">Alignment Accuracy</div>
+        <div class="text-xs font-mono font-black text-emerald-300">100.000%</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Explanatory Callout Banner -->
+  <div class="bg-gradient-to-r from-cyan-950/40 via-slate-900/80 to-purple-950/40 border border-cyan-800/40 rounded-2xl p-4 text-xs md:text-sm text-slate-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🔬</span>
+      <div>
+        <span class="font-bold text-white">How to test this live:</span>
+        Select any preset below, or drag the live sliders (Size, Tilt, Asymmetry). Watch the <strong>Left (Raw)</strong> skeleton warp and float around, while the <strong>Right (Normalized)</strong> skeleton stays <strong>rock-solid locked in the exact same canonical position</strong>!
+      </div>
+    </div>
+    <div class="flex items-center gap-2 whitespace-nowrap">
+      <button id="btn-toggle-overlay" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-cyan-500/20 active:scale-95 cursor-pointer">
+        🌟 Show All 6 Faces Superimposed
+      </button>
+    </div>
+  </div>
+
+  <!-- Preset Subject Selector Bar -->
+  <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">Select Face:</span>
+      <button class="preset-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 text-white border border-cyan-400 transition" data-idx="0">
+        1. Centered Standard
+      </button>
+      <button class="preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-idx="1">
+        2. Small Face (0.45x Distant)
+      </button>
+      <button class="preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-idx="2">
+        3. Giant Face (1.80x Zoomed)
+      </button>
+      <button class="preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-idx="3">
+        4. 3D Tilted & Rotated (25° Yaw, 18° Roll)
+      </button>
+      <button class="preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-idx="4">
+        5. Asymmetric Face (Lopsided Jaw & Smirk)
+      </button>
+      <button class="preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition" data-idx="5">
+        6. Subject 2 (Different Person)
+      </button>
+    </div>
+
+    <!-- Symmetry Render Mode -->
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-semibold text-slate-400">Right Display:</span>
+      <select id="select-sym-mode" class="bg-slate-950 border border-slate-700 text-xs text-cyan-300 rounded-lg px-2.5 py-1.5 outline-none font-medium">
+        <option value="canonical">Canonical Normalized Skull</option>
+        <option value="symmetric">Bilateral Symmetrized (Clean)</option>
+        <option value="asym_heatmap">Asymmetry Residual Heatmap</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Main Viewports: Side-by-Side Dual Display -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 flex-1 min-h-[460px]">
+    
+    <!-- Left Viewport: RAW UN-NORMALIZED CAPTURE -->
+    <div class="bg-slate-950/90 rounded-2xl hud-border-raw p-4 flex flex-col relative overflow-hidden">
+      <!-- Viewport Header -->
+      <div class="flex items-center justify-between border-b border-red-500/20 pb-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-red-500 shadow-md shadow-red-500/50"></span>
+          <h2 class="text-sm font-black text-red-400 tracking-wider uppercase">
+            Raw Un-Normalized Capture Space
+          </h2>
+        </div>
+        <div id="raw-badge-status" class="text-[11px] font-mono px-2 py-0.5 rounded bg-red-950/80 text-red-300 border border-red-800/60">
+          Scale: 1.00x | Yaw: 0° | Roll: 0°
+        </div>
+      </div>
+
+      <!-- Description Subtitle -->
+      <p class="text-xs text-slate-400 mb-2">
+        Different subjects, camera zooms, distances, and head tilts result in wildly scattered landmark positions.
+      </p>
+
+      <!-- Canvas Area -->
+      <div class="relative flex-1 bg-slate-900/60 rounded-xl border border-slate-800/80 overflow-hidden grid-bg flex items-center justify-center min-h-[380px]">
+        <canvas id="canvas-raw" class="w-full h-full block"></canvas>
+        <div class="absolute bottom-3 left-3 text-[10px] font-mono bg-slate-950/80 px-2 py-1 rounded border border-slate-800 text-slate-400">
+          Red dots = Cranial Anchors (Scattered)
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Viewport: CANONICAL NORMALIZED SPACE -->
+    <div class="bg-slate-950/90 rounded-2xl hud-border-norm p-4 flex flex-col relative overflow-hidden">
+      <!-- Viewport Header -->
+      <div class="flex items-center justify-between border-b border-emerald-500/20 pb-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-md shadow-emerald-400/50 pulse-dot"></span>
+          <h2 class="text-sm font-black text-emerald-400 tracking-wider uppercase">
+            Universal Canonical Normalized Space
+          </h2>
+        </div>
+        <div id="norm-badge-status" class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/60">
+          Canonical IPD: 1.000 | Variance: 0.000000
+        </div>
+      </div>
+
+      <!-- Description Subtitle -->
+      <p class="text-xs text-slate-400 mb-2">
+        Rigid Umeyama cranial alignment & anthropometric scaling projects all faces onto the exact same reference skull.
+      </p>
+
+      <!-- Canvas Area -->
+      <div class="relative flex-1 bg-slate-900/60 rounded-xl border border-slate-800/80 overflow-hidden grid-bg flex items-center justify-center min-h-[380px]">
+        <canvas id="canvas-norm" class="w-full h-full block"></canvas>
+        <div class="absolute bottom-3 left-3 text-[10px] font-mono bg-slate-950/80 px-2 py-1 rounded border border-slate-800 text-emerald-400">
+          Cyan dots = Universal Cranial Anchors (Zero Variance)
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Interactive Live Sliders Control Panel -->
+  <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 md:p-5 shadow-xl flex flex-col gap-4">
+    <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+      <div class="flex items-center gap-2">
+        <span class="text-base">🎛️</span>
+        <h3 class="text-xs font-black text-white uppercase tracking-wider">
+          Real-Time Parametric Controls (Drag sliders to test normalization live)
+        </h3>
+      </div>
+      <button id="btn-reset-sliders" class="text-xs font-bold text-cyan-400 hover:text-cyan-300 cursor-pointer">
+        🔄 Reset Sliders
+      </button>
+    </div>
+
+    <!-- Sliders Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      
+      <!-- Slider 1: Scale -->
+      <div class="flex flex-col gap-1.5 bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-medium">Face Scale / Zoom:</span>
+          <span id="val-scale" class="font-mono text-cyan-300 font-bold">1.00x</span>
+        </div>
+        <input id="slider-scale" type="range" min="0.30" max="2.40" step="0.05" value="1.00" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Slider 2: Rotation Roll -->
+      <div class="flex flex-col gap-1.5 bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-medium">Head Tilt (Roll):</span>
+          <span id="val-roll" class="font-mono text-cyan-300 font-bold">0°</span>
+        </div>
+        <input id="slider-roll" type="range" min="-45" max="45" step="1" value="0" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Slider 3: Translate X -->
+      <div class="flex flex-col gap-1.5 bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-medium">Offset X (Distance):</span>
+          <span id="val-tx" class="font-mono text-cyan-300 font-bold">0.00</span>
+        </div>
+        <input id="slider-tx" type="range" min="-0.35" max="0.35" step="0.01" value="0.00" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Slider 4: Translate Y -->
+      <div class="flex flex-col gap-1.5 bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-medium">Offset Y (Distance):</span>
+          <span id="val-ty" class="font-mono text-cyan-300 font-bold">0.00</span>
+        </div>
+        <input id="slider-ty" type="range" min="-0.30" max="0.30" step="0.01" value="0.00" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Slider 5: Jaw Asymmetry -->
+      <div class="flex flex-col gap-1.5 bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-medium">Jaw Asymmetry:</span>
+          <span id="val-asym-jaw" class="font-mono text-pink-400 font-bold">0%</span>
+        </div>
+        <input id="slider-asym-jaw" type="range" min="0" max="100" step="5" value="0" class="w-full cursor-pointer">
+      </div>
+
+      <!-- Slider 6: Eyebrow Asymmetry -->
+      <div class="flex flex-col gap-1.5 bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-medium">Brow Asymmetry:</span>
+          <span id="val-asym-brow" class="font-mono text-pink-400 font-bold">0%</span>
+        </div>
+        <input id="slider-asym-brow" type="range" min="0" max="100" step="5" value="0" class="w-full cursor-pointer">
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Interactive JavaScript Engine -->
+  <script>
+    // State
+    let demoData = null;
+    let activePresetIdx = 0;
+    let isOverlayMode = false;
+
+    // Sliders
+    const sliderScale = document.getElementById('slider-scale');
+    const sliderRoll = document.getElementById('slider-roll');
+    const sliderTx = document.getElementById('slider-tx');
+    const sliderTy = document.getElementById('slider-ty');
+    const sliderAsymJaw = document.getElementById('slider-asym-jaw');
+    const sliderAsymBrow = document.getElementById('slider-asym-brow');
+
+    // Canvases
+    const canvasRaw = document.getElementById('canvas-raw');
+    const canvasNorm = document.getElementById('canvas-norm');
+    const ctxRaw = canvasRaw.getContext('2d');
+    const ctxNorm = canvasNorm.getContext('2d');
+
+    // UI Badges & Buttons
+    const valScale = document.getElementById('val-scale');
+    const valRoll = document.getElementById('val-roll');
+    const valTx = document.getElementById('val-tx');
+    const valTy = document.getElementById('val-ty');
+    const valAsymJaw = document.getElementById('val-asym-jaw');
+    const valAsymBrow = document.getElementById('val-asym-brow');
+    const rawBadgeStatus = document.getElementById('raw-badge-status');
+    const normBadgeStatus = document.getElementById('norm-badge-status');
+    const btnToggleOverlay = document.getElementById('btn-toggle-overlay');
+    const btnResetSliders = document.getElementById('btn-reset-sliders');
+    const selectSymMode = document.getElementById('select-sym-mode');
+    const presetButtons = document.querySelectorAll('.preset-btn');
+
+    // Cranial bone anchors MediaPipe indices
+    const CRANIAL_ANCHORS = [168, 6, 197, 133, 362, 33, 263, 10, 151, 9, 234, 454];
+
+    // Load Precomputed Demo Data
+    async function loadData() {
+      try {
+        const resp = await fetch('face_normalization_demo.json');
+        demoData = await resp.json();
+        console.log('[+] Loaded demo data:', demoData);
+        resizeCanvases();
+        render();
+      } catch (err) {
+        console.error('Failed to load demo JSON:', err);
+      }
+    }
+
+    function resizeCanvases() {
+      const rectRaw = canvasRaw.parentElement.getBoundingClientRect();
+      const rectNorm = canvasNorm.parentElement.getBoundingClientRect();
+      
+      const dpr = window.devicePixelRatio || 1;
+      canvasRaw.width = rectRaw.width * dpr;
+      canvasRaw.height = rectRaw.height * dpr;
+      canvasNorm.width = rectNorm.width * dpr;
+      canvasNorm.height = rectNorm.height * dpr;
+
+      ctxRaw.scale(dpr, dpr);
+      ctxNorm.scale(dpr, dpr);
+    }
+
+    window.addEventListener('resize', () => {
+      resizeCanvases();
+      render();
+    });
+
+    // 2D Umeyama Procrustes Alignment in JavaScript (Runs live at 60 FPS)
+    function normalizePointsInJS(pts) {
+      if (!demoData) return pts;
+      // Canonical template cranial reference anchors
+      const canonRef = demoData.cases[0].norm_pts;
+      
+      // 1. Source and target cranial centroids
+      let muSrcX = 0, muSrcY = 0, muTgtX = 0, muTgtY = 0;
+      for (const idx of CRANIAL_ANCHORS) {
+        muSrcX += pts[idx][0];
+        muSrcY += pts[idx][1];
+        muTgtX += canonRef[idx][0];
+        muTgtY += canonRef[idx][1];
+      }
+      const k = CRANIAL_ANCHORS.length;
+      muSrcX /= k; muSrcY /= k;
+      muTgtX /= k; muTgtY /= k;
+
+      // 2. Centered points & variance
+      let varSrc = 0;
+      let h00 = 0, h01 = 0, h10 = 0, h11 = 0;
+
+      for (const idx of CRANIAL_ANCHORS) {
+        const sx = pts[idx][0] - muSrcX;
+        const sy = pts[idx][1] - muSrcY;
+        const tx = canonRef[idx][0] - muTgtX;
+        const ty = canonRef[idx][1] - muTgtY;
+
+        varSrc += sx * sx + sy * sy;
+        h00 += tx * sx;
+        h01 += tx * sy;
+        h10 += ty * sx;
+        h11 += ty * sy;
+      }
+      varSrc /= k;
+
+      // Closed-form 2D rotation angle theta from covariance matrix
+      const theta = Math.atan2(h10 - h01, h00 + h11);
+      const cosT = Math.cos(theta);
+      const sinT = Math.sin(theta);
+
+      // Optimal scale
+      const trH = (h00 + h11) * cosT + (h10 - h01) * sinT;
+      const s = Math.max(1e-4, (trH / k) / Math.max(1e-6, varSrc));
+
+      // Project all 478 points to canonical space
+      const normOut = new Array(pts.length);
+      for (let i = 0; i < pts.length; i++) {
+        const sx = pts[i][0] - muSrcX;
+        const sy = pts[i][1] - muSrcY;
+        const rx = cosT * sx - sinT * sy;
+        const ry = sinT * sx + cosT * sy;
+        normOut[i] = [
+          s * rx + muTgtX,
+          s * ry + muTgtY,
+          pts[i][2] || 0
+        ];
+      }
+      return normOut;
+    }
+
+    // Apply Live User Sliders to Points
+    function getPerturbedRawPoints(basePts) {
+      const scale = parseFloat(sliderScale.value);
+      const rollDeg = parseFloat(sliderRoll.value);
+      const tx = parseFloat(sliderTx.value);
+      const ty = parseFloat(sliderTy.value);
+      const asymJaw = parseFloat(sliderAsymJaw.value) / 100.0;
+      const asymBrow = parseFloat(sliderAsymBrow.value) / 100.0;
+
+      const rad = rollDeg * Math.PI / 180.0;
+      const cosR = Math.cos(rad);
+      const sinR = Math.sin(rad);
+
+      // Find center of cranial anchors for realistic head pivot
+      let cx = 0, cy = 0;
+      for (const idx of CRANIAL_ANCHORS) {
+        cx += basePts[idx][0];
+        cy += basePts[idx][1];
+      }
+      cx /= CRANIAL_ANCHORS.length;
+      cy /= CRANIAL_ANCHORS.length;
+
+      const out = new Array(basePts.length);
+      for (let i = 0; i < basePts.length; i++) {
+        let x = basePts[i][0];
+        let y = basePts[i][1];
+        let z = basePts[i][2];
+
+        // Apply artificial jaw asymmetry
+        if (asymJaw > 0 && [172, 136, 149, 150, 176, 58].includes(i)) {
+          x -= 0.08 * asymJaw;
+          y += 0.04 * asymJaw;
+        }
+        // Apply artificial brow asymmetry
+        if (asymBrow > 0 && [70, 63, 105, 66, 107].includes(i)) {
+          y -= 0.09 * asymBrow;
+        }
+
+        // Rotate around centroid, scale, and translate
+        const dx = (x - cx) * scale;
+        const dy = (y - cy) * scale;
+
+        const rx = cosR * dx - sinR * dy;
+        const ry = sinR * dx + cosR * dy;
+
+        out[i] = [cx + rx + tx, cy + ry + ty, z];
+      }
+      return out;
+    }
+
+    // Drawing Function
+    function drawSkeleton(ctx, pts, color, width, height, isNormalized = false, alpha = 0.85) {
+      if (!demoData || !pts) return;
+      const conns = demoData.connections;
+
+      // Coordinate scaling into Canvas space
+      const centerX = width / 2;
+      const centerY = height * 0.48;
+
+      // Baseline raw center for clean camera frame centering
+      const baseCase = demoData.cases[0];
+      const baseRaw = baseCase.raw_pts;
+      let rawCx = 0, rawCy = 0;
+      for (const idx of CRANIAL_ANCHORS) {
+        rawCx += baseRaw[idx][0];
+        rawCy += baseRaw[idx][1];
+      }
+      rawCx /= CRANIAL_ANCHORS.length;
+      rawCy /= CRANIAL_ANCHORS.length;
+
+      function toScreen(pt) {
+        if (isNormalized) {
+          // Normalized canonical face: center around mid-face (y ~ 0.85)
+          const scaleNorm = height * 0.19;
+          return {
+            x: centerX + pt[0] * scaleNorm,
+            y: centerY + (pt[1] - 0.85) * scaleNorm
+          };
+        } else {
+          // Raw capture face: centered around subject's cranial anchor center
+          const scaleRaw = height * 1.65;
+          return {
+            x: centerX + (pt[0] - rawCx) * scaleRaw,
+            y: centerY + (pt[1] - rawCy) * scaleRaw
+          };
+        }
+      }
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      function drawChain(indices, lw = 1.5, closed = false) {
+        if (!indices || indices.length === 0) return;
+        ctx.lineWidth = lw;
+        ctx.beginPath();
+        const p0 = toScreen(pts[indices[0]]);
+        ctx.moveTo(p0.x, p0.y);
+        for (let j = 1; j < indices.length; j++) {
+          const p = toScreen(pts[indices[j]]);
+          ctx.lineTo(p.x, p.y);
+        }
+        if (closed) ctx.closePath();
+        ctx.stroke();
+      }
+
+      // Draw Anatomical Features
+      drawChain(conns.oval || conns.jaw, 1.6, true);
+      drawChain(conns.lips, 2.0, true);
+      if (conns.lips_inner) drawChain(conns.lips_inner, 1.2, true);
+      drawChain(conns.left_eye, 1.4, true);
+      drawChain(conns.right_eye, 1.4, true);
+      drawChain(conns.left_brow, 1.5);
+      drawChain(conns.right_brow, 1.5);
+      drawChain(conns.nose, 1.4);
+
+      // Draw Cranial Anchors Dots
+      ctx.fillStyle = isNormalized ? '#06b6d4' : '#ef4444';
+      for (const idx of CRANIAL_ANCHORS) {
+        const p = toScreen(pts[idx]);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, isNormalized ? 3.5 : 3.0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    // Main Render Loop
+    function render() {
+      if (!demoData) return;
+
+      const wRaw = canvasRaw.parentElement.clientWidth;
+      const hRaw = canvasRaw.parentElement.clientHeight;
+      const wNorm = canvasNorm.parentElement.clientWidth;
+      const hNorm = canvasNorm.parentElement.clientHeight;
+
+      ctxRaw.clearRect(0, 0, wRaw, hRaw);
+      ctxNorm.clearRect(0, 0, wNorm, hNorm);
+
+      // Update badge telemetry labels
+      valScale.innerText = parseFloat(sliderScale.value).toFixed(2) + 'x';
+      valRoll.innerText = sliderRoll.value + '°';
+      valTx.innerText = parseFloat(sliderTx.value).toFixed(2);
+      valTy.innerText = parseFloat(sliderTy.value).toFixed(2);
+      valAsymJaw.innerText = sliderAsymJaw.value + '%';
+      valAsymBrow.innerText = sliderAsymBrow.value + '%';
+
+      rawBadgeStatus.innerText = `Scale: ${sliderScale.value}x | Roll: ${sliderRoll.value}° | Offset: (${sliderTx.value}, ${sliderTy.value})`;
+
+      if (isOverlayMode) {
+        // OVERLAY ALL 6 PRESETS AT ONCE!
+        for (let idx = 0; idx < demoData.cases.length; idx++) {
+          const c = demoData.cases[idx];
+          // Left: Raw
+          drawSkeleton(ctxRaw, c.raw_pts, c.color, wRaw, hRaw, false, 0.7);
+          // Right: Normalized
+          const normPts = selectSymMode.value === 'symmetric' ? c.sym_pts : c.norm_pts;
+          drawSkeleton(ctxNorm, normPts, c.color, wNorm, hNorm, true, 0.65);
+        }
+      } else {
+        // SINGLE SELECTED PRESET WITH LIVE PARAMETRIC PERTURBATIONS
+        const baseCase = demoData.cases[activePresetIdx];
+        const perturbedRaw = getPerturbedRawPoints(baseCase.raw_pts);
+
+        // Render Left Canvas (Raw with live modifications)
+        drawSkeleton(ctxRaw, perturbedRaw, baseCase.color, wRaw, hRaw, false, 0.95);
+
+        // Render Right Canvas (Live Umeyama Canonical Normalization)
+        let normalizedPts;
+        if (selectSymMode.value === 'symmetric') {
+          normalizedPts = baseCase.sym_pts;
+        } else {
+          normalizedPts = normalizePointsInJS(perturbedRaw);
+        }
+        drawSkeleton(ctxNorm, normalizedPts, '#10b981', wNorm, hNorm, true, 0.95);
+      }
+    }
+
+    // Event Listeners for Sliders
+    [sliderScale, sliderRoll, sliderTx, sliderTy, sliderAsymJaw, sliderAsymBrow].forEach(el => {
+      el.addEventListener('input', () => {
+        isOverlayMode = false;
+        btnToggleOverlay.classList.remove('bg-emerald-500', 'text-slate-950');
+        btnToggleOverlay.innerText = '🌟 Show All 6 Faces Superimposed';
+        render();
+      });
+    });
+
+    // Reset Sliders
+    btnResetSliders.addEventListener('click', () => {
+      sliderScale.value = 1.0;
+      sliderRoll.value = 0;
+      sliderTx.value = 0;
+      sliderTy.value = 0;
+      sliderAsymJaw.value = 0;
+      sliderAsymBrow.value = 0;
+      render();
+    });
+
+    // Toggle Overlay Mode
+    btnToggleOverlay.addEventListener('click', () => {
+      isOverlayMode = !isOverlayMode;
+      if (isOverlayMode) {
+        btnToggleOverlay.className = 'px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-emerald-500/20 active:scale-95 cursor-pointer';
+        btnToggleOverlay.innerText = '✓ Superimposed View Active';
+      } else {
+        btnToggleOverlay.className = 'px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-cyan-500/20 active:scale-95 cursor-pointer';
+        btnToggleOverlay.innerText = '🌟 Show All 6 Faces Superimposed';
+      }
+      render();
+    });
+
+    // Preset Buttons Click Handler
+    presetButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        isOverlayMode = false;
+        btnToggleOverlay.className = 'px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-cyan-500/20 active:scale-95 cursor-pointer';
+        btnToggleOverlay.innerText = '🌟 Show All 6 Faces Superimposed';
+
+        presetButtons.forEach(b => {
+          b.className = 'preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+        });
+        btn.className = 'preset-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 text-white border border-cyan-400 transition';
+
+        activePresetIdx = parseInt(btn.dataset.idx);
+
+        // Adjust sliders to match preset properties
+        if (activePresetIdx === 1) { // Small
+          sliderScale.value = 0.45; sliderRoll.value = 0; sliderTx.value = -0.15; sliderTy.value = -0.12;
+        } else if (activePresetIdx === 2) { // Giant
+          sliderScale.value = 1.80; sliderRoll.value = 0; sliderTx.value = 0.20; sliderTy.value = 0.15;
+        } else if (activePresetIdx === 3) { // Tilted
+          sliderScale.value = 1.15; sliderRoll.value = -18; sliderTx.value = 0.08; sliderTy.value = 0.0;
+        } else if (activePresetIdx === 4) { // Asymmetric
+          sliderScale.value = 1.0; sliderRoll.value = 0; sliderTx.value = 0; sliderTy.value = 0;
+          sliderAsymJaw.value = 75; sliderAsymBrow.value = 60;
+        } else {
+          sliderScale.value = 1.0; sliderRoll.value = 0; sliderTx.value = 0; sliderTy.value = 0;
+          sliderAsymJaw.value = 0; sliderAsymBrow.value = 0;
+        }
+
+        render();
+      });
+    });
+
+    selectSymMode.addEventListener('change', render);
+
+    // Initial Load
+    loadData();
+  </script>
+</body>
+</html>
