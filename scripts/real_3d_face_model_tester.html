@@ -266,6 +266,10 @@
           <span id="btn-test-icon">🔊</span> <span id="btn-test-label">Play Steve Jobs Speech Audio</span>
         </button>
 
+        <button id="btn-toggle-engine" class="px-4 py-3 rounded-xl bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-700/60 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer shadow">
+          <span id="btn-engine-icon">🧠</span> <span id="btn-engine-label">Engine: 100-Epoch Neural AI</span>
+        </button>
+
         <button id="btn-reset-view" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer border border-slate-700">
           🔄 Reset 3D View
         </button>
@@ -299,6 +303,7 @@
     const hudFps = document.getElementById('hud-fps');
     const btnToggleMic = document.getElementById('btn-toggle-mic');
     const btnTestSpeech = document.getElementById('btn-test-speech');
+    const btnToggleEngine = document.getElementById('btn-toggle-engine');
     const btnResetView = document.getElementById('btn-reset-view');
     const sensSlider = document.getElementById('sens-slider');
     const scaleSlider = document.getElementById('scale-slider');
@@ -324,6 +329,11 @@
     let testAudioBuffer = null;
     let testBufferSource = null;
     let animFrameId = null;
+
+    // AI Neural Engine & Kinematics
+    let engineMode = 'neural'; // 'neural' (100-epoch trained network) or 'formant' (acoustic visemes)
+    let aiAnimationData = null;
+    let testAudioStartTime = 0.0;
 
     // Kinematic Drivers
     let smoothDrive = 0.0;
@@ -675,6 +685,64 @@
       });
     }
 
+    // 100-Epoch Trained Neural Model Driver
+    function updateNeuralAnimation(time, delta) {
+      if (!aiAnimationData || !aiAnimationData.frames || aiAnimationData.frames.length === 0) {
+        return;
+      }
+      const elapsed = (audioCtx ? (audioCtx.currentTime - testAudioStartTime) : 0.0) % (aiAnimationData.duration_seconds || 10.0);
+      const frameIdx = Math.min(aiAnimationData.total_frames - 1, Math.max(0, Math.floor(elapsed * (aiAnimationData.fps || 30.0))));
+      const frameBS = aiAnimationData.frames[frameIdx];
+
+      const activeMap = {};
+      for (let i = 0; i < aiAnimationData.blendshape_names.length; i++) {
+        const key = aiAnimationData.blendshape_names[i];
+        const val = frameBS[i];
+        setMorphTarget(key, val);
+        activeMap[key] = val;
+      }
+
+      // 3D Head Pose Orientation: Pitch (X), Yaw (Y), Roll (Z) from trained neural network
+      if (aiAnimationData.head_pose && aiAnimationData.head_pose[frameIdx] && currentModel) {
+        const pose = aiAnimationData.head_pose[frameIdx];
+        const pitchRad = (pose[0] * Math.PI) / 180.0;
+        const yawRad = (pose[1] * Math.PI) / 180.0;
+        const rollRad = (pose[2] * Math.PI) / 180.0;
+        currentModel.rotation.x = THREE.MathUtils.lerp(currentModel.rotation.x, pitchRad * 0.45, 0.15);
+        currentModel.rotation.y = THREE.MathUtils.lerp(currentModel.rotation.y, yawRad * 0.45, 0.15);
+        currentModel.rotation.z = THREE.MathUtils.lerp(currentModel.rotation.z, -rollRad * 0.45, 0.15);
+      }
+
+      // Primary HUD metrics
+      const jaw = activeMap['jawOpen'] || 0.0;
+      const funnel = activeMap['mouthFunnel'] || 0.0;
+      const smile = activeMap['mouthSmileLeft'] || activeMap['mouthSmile_L'] || 0.0;
+      const brow = activeMap['browInnerUp'] || 0.0;
+
+      document.getElementById('val-jaw').innerText = jaw.toFixed(3);
+      document.getElementById('bar-jaw').style.width = Math.min(100, jaw * 100) + '%';
+      document.getElementById('val-funnel').innerText = funnel.toFixed(3);
+      document.getElementById('bar-funnel').style.width = Math.min(100, funnel * 100) + '%';
+      document.getElementById('val-smile').innerText = smile.toFixed(3);
+      document.getElementById('bar-smile').style.width = Math.min(100, smile * 100) + '%';
+      document.getElementById('val-brow').innerText = brow.toFixed(3);
+      document.getElementById('bar-brow').style.width = Math.min(100, brow * 100) + '%';
+
+      if (analyser && dataArray) {
+        analyser.getFloatTimeDomainData(dataArray);
+        let sumSq = 0;
+        for (let i = 0; i < dataArray.length; i++) sumSq += dataArray[i] * dataArray[i];
+        const rms = Math.sqrt(sumSq / dataArray.length);
+        document.getElementById('audio-energy-text').innerText = (rms * 2.5).toFixed(3);
+        document.getElementById('audio-energy-bar').style.width = Math.min(100, rms * 800) + '%';
+      }
+
+      micBadge.innerText = `🤖 100-EPOCH AI (FRAME ${frameIdx}/${aiAnimationData.total_frames})`;
+      micBadge.className = 'text-xs font-bold px-3 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30';
+
+      updateBlendshapesUI(activeMap);
+    }
+
     // Audio Analysis & Render Loop
     let lastTime = performance.now();
     let frameCount = 0;
@@ -725,7 +793,12 @@
         }
       }
 
-      updateAnimation(rms, formants, delta);
+      if (isTestPlaying && engineMode === 'neural' && aiAnimationData) {
+        updateNeuralAnimation(time, delta);
+      } else {
+        updateAnimation(rms, formants, delta);
+      }
+
       controls.update();
       renderer.render(scene, camera);
     }
@@ -829,13 +902,14 @@
         testBufferSource.start(0);
 
         isTestPlaying = true;
+        testAudioStartTime = audioCtx.currentTime;
         document.getElementById('btn-test-icon').innerText = '⏹️';
         document.getElementById('btn-test-label').innerText = 'Stop Test Audio';
         btnTestSpeech.classList.replace('bg-slate-800', 'bg-amber-500');
         btnTestSpeech.classList.replace('text-amber-300', 'text-slate-950');
         micStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-amber-400 pulse-live';
-        hudStatus.innerText = 'TEST SPEECH';
-        hudStatus.className = 'text-amber-300 font-bold';
+        hudStatus.innerText = engineMode === 'neural' ? '100-EPOCH AI' : 'TEST SPEECH';
+        hudStatus.className = engineMode === 'neural' ? 'text-purple-300 font-bold' : 'text-amber-300 font-bold';
       } catch (err) {
         console.error('Test audio error:', err);
         alert('Test audio error: ' + err.message);
@@ -865,6 +939,24 @@
 
     btnTestSpeech.addEventListener('click', () => {
       if (isTestPlaying) stopTestAudio(); else startTestAudio();
+    });
+
+    btnToggleEngine.addEventListener('click', () => {
+      if (engineMode === 'neural') {
+        engineMode = 'formant';
+        document.getElementById('btn-engine-icon').innerText = '🎙️';
+        document.getElementById('btn-engine-label').innerText = 'Engine: Acoustic Formants';
+        btnToggleEngine.className = 'px-4 py-3 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 border border-cyan-700/60 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer shadow';
+      } else {
+        engineMode = 'neural';
+        document.getElementById('btn-engine-icon').innerText = '🧠';
+        document.getElementById('btn-engine-label').innerText = 'Engine: 100-Epoch Neural AI';
+        btnToggleEngine.className = 'px-4 py-3 rounded-xl bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-700/60 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer shadow';
+      }
+      if (isTestPlaying) {
+        hudStatus.innerText = engineMode === 'neural' ? '100-EPOCH AI' : 'TEST SPEECH';
+        hudStatus.className = engineMode === 'neural' ? 'text-purple-300 font-bold' : 'text-amber-300 font-bold';
+      }
     });
 
     btnResetView.addEventListener('click', () => {
@@ -923,6 +1015,23 @@
     // Initialize WebGL Scene and Load Default ARKit 3D Head Model
     initThree();
     loadModel('http://localhost:8765/facecap.glb');
+
+    // Preload 100-Epoch Neural blendshapes
+    async function loadAIModelData() {
+      try {
+        const resp = await fetch('http://localhost:8765/test_inference_blendshapes.json');
+        if (resp.ok) {
+          aiAnimationData = await resp.json();
+          console.log('[FaceKey] 100-Epoch Neural predictions loaded (' + aiAnimationData.total_frames + ' frames).');
+          const badge = document.getElementById('btn-engine-label');
+          if (badge) badge.innerText = 'Engine: 100-Epoch Neural AI';
+        }
+      } catch (e) {
+        console.warn('[FaceKey] Note: AI json not loaded, fallback to acoustic engine:', e);
+      }
+    }
+    loadAIModelData();
+
     requestAnimationFrame(renderLoop);
 
   </script>
