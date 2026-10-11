@@ -334,6 +334,7 @@
     let engineMode = 'neural'; // 'neural' (100-epoch trained network) or 'formant' (acoustic visemes)
     let aiAnimationData = null;
     let testAudioStartTime = 0.0;
+    let playbackStartPerfTime = 0.0;
 
     // Kinematic Drivers
     let smoothDrive = 0.0;
@@ -442,8 +443,10 @@
         currentModel.traverse((node) => {
           if (node.isMesh && node.morphTargetDictionary && node.morphTargetInfluences) {
             morphMeshes.push(node);
-            for (const key of Object.keys(node.morphTargetDictionary)) {
+            node.normalizedDict = {};
+            for (const [key, idx] of Object.entries(node.morphTargetDictionary)) {
               morphDict[key] = true;
+              node.normalizedDict[normalizeKey(key)] = idx;
             }
           }
         });
@@ -491,16 +494,22 @@
       }
     }
 
+    function normalizeKey(str) {
+      if (!str) return '';
+      return str.toLowerCase().replace(/[\-_]/g, '').replace(/left$/, 'l').replace(/right$/, 'r');
+    }
+
     // Set Morph Target Influence across all meshes
     function setMorphTarget(canonicalName, value) {
-      const aliases = ARKIT_ALIASES[canonicalName] || [canonicalName];
+      const norm = normalizeKey(canonicalName);
+      const clamped = Math.max(0.0, Math.min(1.0, value));
       for (const mesh of morphMeshes) {
-        for (const alias of aliases) {
-          const idx = mesh.morphTargetDictionary[alias];
-          if (idx !== undefined) {
-            mesh.morphTargetInfluences[idx] = Math.max(0.0, Math.min(1.0, value));
-            break;
-          }
+        let idx = mesh.morphTargetDictionary[canonicalName];
+        if (idx === undefined && mesh.normalizedDict) {
+          idx = mesh.normalizedDict[norm];
+        }
+        if (idx !== undefined) {
+          mesh.morphTargetInfluences[idx] = clamped;
         }
       }
     }
@@ -543,7 +552,7 @@
     }
 
     // Dynamic Kinematics & Spectral Formant Viseme Decomposition Loop
-    function updateAnimation(rmsEnergy, formants, delta) {
+    function updateAnimation(rmsEnergy, formants, delta, time = performance.now()) {
       const sens = parseFloat(sensSlider.value);
       const boost = parseFloat(scaleSlider.value);
 
@@ -565,33 +574,32 @@
       smoothDrive = alpha * rawDrive + (1.0 - alpha) * smoothDrive;
 
       // Acoustic Formants (Visemes):
-      // 1. Open Vowels ("AA", "AH"): mid formant (500 - 1800 Hz) drives deep jaw drop
-      const jaw = Math.min(1.0, (smoothDrive * 0.45 + (formants ? formants.mid * 1.5 : 0)) * boost);
+      // 1. Open Vowels ("AA", "AH"): mid formant drives strong visible jaw drop
+      const jaw = Math.min(1.0, (smoothDrive * 0.75 + (formants ? formants.mid * 2.2 : 0)) * boost);
 
-      // 2. Rounded Vowels ("OO", "OH", "W"): low formant (100 - 500 Hz) drives lip funnel & pucker
-      const pucker = Math.min(1.0, (formants ? formants.low * 1.7 : smoothDrive * 0.2) * boost);
-      const funnel = Math.min(1.0, (formants ? formants.low * 1.3 + formants.mid * 0.3 : smoothDrive * 0.35) * boost);
+      // 2. Rounded Vowels ("OO", "OH", "W"): low formant drives lip funnel & pucker
+      const pucker = Math.min(1.0, (formants ? formants.low * 2.0 : smoothDrive * 0.3) * boost);
+      const funnel = Math.min(1.0, (formants ? formants.low * 1.8 + formants.mid * 0.5 : smoothDrive * 0.5) * boost);
 
-      // 3. Spread Vowels & Sibilants ("EE", "AY", "S"): high formant (1800 - 4500 Hz) drives lateral stretch and smile
-      const smile = Math.min(1.0, (formants ? formants.high * 1.6 : smoothDrive * 0.25) * boost);
-      const stretch = Math.min(1.0, (formants ? formants.high * 1.4 : smoothDrive * 0.2) * boost);
+      // 3. Spread Vowels & Sibilants ("EE", "AY", "S"): high formant drives lateral stretch and smile
+      const smile = Math.min(1.0, (formants ? formants.high * 1.8 : smoothDrive * 0.3) * boost);
+      const stretch = Math.min(1.0, (formants ? formants.high * 1.6 : smoothDrive * 0.25) * boost);
 
       // 4. Lip Elevations
-      const lowerDown = Math.min(1.0, jaw * 0.65);
-      const upperUp = Math.min(1.0, jaw * 0.25);
-      const browUp = Math.min(1.0, smoothDrive * 0.35 + (formants ? formants.high * 0.3 : 0));
+      const lowerDown = Math.min(1.0, jaw * 0.85);
+      const upperUp = Math.min(1.0, jaw * 0.35);
+      const browUp = Math.min(1.0, smoothDrive * 0.4 + (formants ? formants.high * 0.35 : 0));
       const browDown = smoothDrive > 0.45 ? (smoothDrive - 0.45) * 0.35 : 0.0;
       const cheekSquint = Math.min(1.0, smile * 0.60 + smoothDrive * 0.15);
       const noseSneer = smoothDrive > 0.50 ? (smoothDrive - 0.50) * 0.25 : 0.0;
-      // Lingual/dental articulation: tongue stays 0.0 unless lingual dental threshold reached
       const tongueOut = (formants && formants.high > 0.45 && jaw > 0.20 && jaw < 0.65) ? (formants.high - 0.45) * 0.6 : 0.0;
 
-      // Procedural Natural Blinking (keeps model lifelike)
+      // Procedural Natural Blinking
       blinkTimer += delta;
       if (blinkTimer > 3.5) {
         blinkValue = Math.sin((blinkTimer - 3.5) * Math.PI / 0.25);
         if (blinkTimer > 3.75) {
-          blinkTimer = Math.random() * 1.5; // Randomize next blink
+          blinkTimer = Math.random() * 1.5;
           blinkValue = 0.0;
         }
       } else {
@@ -600,6 +608,7 @@
 
       // 1. Apply to 3D Model Morph Targets (Full Expressive Face)
       setMorphTarget('jawOpen', jaw);
+      setMorphTarget('mouthClose', 0.0); // Never clamp lips shut during speech
       setMorphTarget('mouthFunnel', funnel);
       setMorphTarget('mouthPucker', pucker);
       setMorphTarget('mouthStretch_L', stretch);
@@ -621,18 +630,16 @@
       setMorphTarget('eyeBlink_L', Math.max(0.0, blinkValue));
       setMorphTarget('eyeBlink_R', Math.max(0.0, blinkValue));
 
-      // 2. Natural Dynamic Head Mobility (Never frozen facing in one direction!)
+      // 2. Natural Dynamic Head Mobility
       if (currentModel) {
-        // A. Subtle Organic Breathing & Idle Saccade Sway (~0.22 Hz)
-        const idlePitch = Math.sin(time * 0.0009) * 0.022; // ~1.3 deg breathing nod
-        const idleYaw = Math.cos(time * 0.0007) * 0.038;   // ~2.2 deg gentle conversational head glance
-        const idleRoll = Math.sin(time * 0.0005) * 0.015;  // ~0.9 deg head tilt
+        const curTime = typeof time === 'number' ? time : performance.now();
+        const idlePitch = Math.sin(curTime * 0.0009) * 0.022;
+        const idleYaw = Math.cos(curTime * 0.0007) * 0.038;
+        const idleRoll = Math.sin(curTime * 0.0005) * 0.015;
 
-        // B. Speech-Prosodic Cadence (Accented syllable nods & expressive question tilts)
-        const speechNod = smoothDrive * 0.075 * (0.8 + 0.4 * Math.sin(time * 0.004));
+        const speechNod = smoothDrive * 0.075 * (0.8 + 0.4 * Math.sin(curTime * 0.004));
         const speechTilt = ((formants ? formants.high - formants.low : 0.0) * 0.06);
 
-        // Smooth Exponential Lerp
         const targetRotX = idlePitch + speechNod;
         const targetRotY = idleYaw + speechTilt;
         const targetRotZ = idleRoll - (speechTilt * 0.5);
@@ -676,6 +683,8 @@
         mouthSmile_R: smile,
         mouthStretch_L: stretch,
         mouthStretch_R: stretch,
+        mouthLowerDown_L: lowerDown,
+        mouthLowerDown_R: lowerDown,
         cheekSquint_L: cheekSquint,
         cheekSquint_R: cheekSquint,
         browInnerUp: browUp,
@@ -686,21 +695,67 @@
     }
 
     // 100-Epoch Trained Neural Model Driver
-    function updateNeuralAnimation(time, delta) {
+    function updateNeuralAnimation(time = performance.now(), delta = 0.016) {
       if (!aiAnimationData || !aiAnimationData.frames || aiAnimationData.frames.length === 0) {
         return;
       }
-      const elapsed = (audioCtx ? (audioCtx.currentTime - testAudioStartTime) : 0.0) % (aiAnimationData.duration_seconds || 10.0);
+      const boost = parseFloat(scaleSlider.value || 1.8);
+      const dur = aiAnimationData.duration_seconds || 10.0;
+      const nowSec = performance.now() / 1000.0;
+      const elapsed = playbackStartPerfTime > 0 ? (nowSec - playbackStartPerfTime) % dur : 0.0;
       const frameIdx = Math.min(aiAnimationData.total_frames - 1, Math.max(0, Math.floor(elapsed * (aiAnimationData.fps || 30.0))));
       const frameBS = aiAnimationData.frames[frameIdx];
 
       const activeMap = {};
       for (let i = 0; i < aiAnimationData.blendshape_names.length; i++) {
         const key = aiAnimationData.blendshape_names[i];
-        const val = frameBS[i];
-        setMorphTarget(key, val);
-        activeMap[key] = val;
+        activeMap[key] = frameBS[i];
       }
+
+      // Strongly articulated mouth and jaw dynamics calibrated for vivid 3D mesh rendering
+      const rawJaw = activeMap['jawOpen'] || 0.0;
+      const jaw = Math.min(1.0, Math.max(0.0, (rawJaw - 0.045) / 0.14) * 1.5 * boost);
+      const rawFunnel = activeMap['mouthFunnel'] || 0.0;
+      const funnel = Math.min(0.75, Math.max(0.0, (rawFunnel - 0.47) / 0.08) * boost);
+      const rawPucker = activeMap['mouthPucker'] || 0.0;
+      const pucker = Math.min(0.65, Math.max(0.0, (rawPucker - 0.30) / 0.10) * boost);
+      const rawLower = Math.max(activeMap['mouthLowerDownLeft'] || 0.0, activeMap['mouthLowerDownRight'] || 0.0);
+      const lowerDown = Math.min(1.0, (Math.max(0.0, (rawLower - 0.03) / 0.15) * 0.70 + jaw * 0.45) * boost);
+      const rawUpper = Math.max(activeMap['mouthUpperUpLeft'] || 0.0, activeMap['mouthUpperUpRight'] || 0.0);
+      const upperUp = Math.min(1.0, (jaw * 0.35 + Math.max(0.0, (rawUpper - 0.01) * 2.0)) * boost);
+      const smileL = Math.min(1.0, (activeMap['mouthSmileLeft'] || activeMap['mouthSmile_L'] || 0.0) * 2.2 * boost);
+      const smileR = Math.min(1.0, (activeMap['mouthSmileRight'] || activeMap['mouthSmile_R'] || 0.0) * 2.2 * boost);
+      const stretch = Math.min(1.0, (activeMap['mouthStretchLeft'] || 0.0) * 2.0 * boost);
+      const browUp = Math.min(1.0, (activeMap['browInnerUp'] || 0.0) * 2.5);
+
+      // Apply directly to 3D mesh morph targets
+      setMorphTarget('jawOpen', jaw);
+      setMorphTarget('mouthClose', 0.0); // Never clamp lips closed during speech
+      setMorphTarget('mouthFunnel', funnel);
+      setMorphTarget('mouthPucker', pucker);
+      setMorphTarget('mouthLowerDown_L', lowerDown);
+      setMorphTarget('mouthLowerDown_R', lowerDown);
+      setMorphTarget('mouthUpperUp_L', upperUp);
+      setMorphTarget('mouthUpperUp_R', upperUp);
+      setMorphTarget('mouthSmile_L', smileL);
+      setMorphTarget('mouthSmile_R', smileR);
+      setMorphTarget('mouthStretch_L', stretch);
+      setMorphTarget('mouthStretch_R', stretch);
+      setMorphTarget('browInnerUp', browUp);
+
+      // Procedural Natural Blinking
+      blinkTimer += delta;
+      if (blinkTimer > 3.5) {
+        blinkValue = Math.sin((blinkTimer - 3.5) * Math.PI / 0.25);
+        if (blinkTimer > 3.75) {
+          blinkTimer = Math.random() * 1.5;
+          blinkValue = 0.0;
+        }
+      } else {
+        blinkValue = 0.0;
+      }
+      setMorphTarget('eyeBlink_L', Math.max(0.0, blinkValue));
+      setMorphTarget('eyeBlink_R', Math.max(0.0, blinkValue));
 
       // 3D Head Pose Orientation: Pitch (X), Yaw (Y), Roll (Z) from trained neural network
       if (aiAnimationData.head_pose && aiAnimationData.head_pose[frameIdx] && currentModel) {
@@ -714,19 +769,14 @@
       }
 
       // Primary HUD metrics
-      const jaw = activeMap['jawOpen'] || 0.0;
-      const funnel = activeMap['mouthFunnel'] || 0.0;
-      const smile = activeMap['mouthSmileLeft'] || activeMap['mouthSmile_L'] || 0.0;
-      const brow = activeMap['browInnerUp'] || 0.0;
-
       document.getElementById('val-jaw').innerText = jaw.toFixed(3);
       document.getElementById('bar-jaw').style.width = Math.min(100, jaw * 100) + '%';
       document.getElementById('val-funnel').innerText = funnel.toFixed(3);
       document.getElementById('bar-funnel').style.width = Math.min(100, funnel * 100) + '%';
-      document.getElementById('val-smile').innerText = smile.toFixed(3);
-      document.getElementById('bar-smile').style.width = Math.min(100, smile * 100) + '%';
-      document.getElementById('val-brow').innerText = brow.toFixed(3);
-      document.getElementById('bar-brow').style.width = Math.min(100, brow * 100) + '%';
+      document.getElementById('val-smile').innerText = smileL.toFixed(3);
+      document.getElementById('bar-smile').style.width = Math.min(100, smileL * 100) + '%';
+      document.getElementById('val-brow').innerText = browUp.toFixed(3);
+      document.getElementById('bar-brow').style.width = Math.min(100, browUp * 100) + '%';
 
       if (analyser && dataArray) {
         analyser.getFloatTimeDomainData(dataArray);
@@ -740,7 +790,20 @@
       micBadge.innerText = `🤖 100-EPOCH AI (FRAME ${frameIdx}/${aiAnimationData.total_frames})`;
       micBadge.className = 'text-xs font-bold px-3 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30';
 
-      updateBlendshapesUI(activeMap);
+      updateBlendshapesUI({
+        jawOpen: jaw,
+        mouthFunnel: funnel,
+        mouthPucker: pucker,
+        mouthLowerDown_L: lowerDown,
+        mouthLowerDown_R: lowerDown,
+        mouthUpperUp_L: upperUp,
+        mouthUpperUp_R: upperUp,
+        mouthSmile_L: smileL,
+        mouthSmile_R: smileR,
+        mouthStretch_L: stretch,
+        mouthStretch_R: stretch,
+        browInnerUp: browUp
+      });
     }
 
     // Audio Analysis & Render Loop
@@ -796,7 +859,7 @@
       if (isTestPlaying && engineMode === 'neural' && aiAnimationData) {
         updateNeuralAnimation(time, delta);
       } else {
-        updateAnimation(rms, formants, delta);
+        updateAnimation(rms, formants, delta, time);
       }
 
       controls.update();
@@ -903,6 +966,7 @@
 
         isTestPlaying = true;
         testAudioStartTime = audioCtx.currentTime;
+        playbackStartPerfTime = performance.now() / 1000.0;
         document.getElementById('btn-test-icon').innerText = '⏹️';
         document.getElementById('btn-test-label').innerText = 'Stop Test Audio';
         btnTestSpeech.classList.replace('bg-slate-800', 'bg-amber-500');
@@ -918,6 +982,7 @@
 
     function stopTestAudio() {
       isTestPlaying = false;
+      playbackStartPerfTime = 0.0;
       if (testBufferSource) {
         try { testBufferSource.stop(); } catch(e) {}
         testBufferSource = null;
@@ -1031,6 +1096,17 @@
       }
     }
     loadAIModelData();
+
+    window.__facekey = {
+      getMorphMeshes: () => morphMeshes,
+      getCurrentModel: () => currentModel,
+      setMorphTarget,
+      updateAnimation,
+      updateNeuralAnimation,
+      getAIData: () => aiAnimationData,
+      startTestAudio,
+      stopTestAudio
+    };
 
     requestAnimationFrame(renderLoop);
 
