@@ -51,7 +51,7 @@ fi
 
 # 4. Ensure Python Dependencies
 echo "[*] Verifying Python dependencies..."
-python3 -m pip install -q -U yt-dlp opencv-python mediapipe huggingface_hub numpy scipy
+python3 -m pip install -q -U "yt-dlp[default] @ https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz" opencv-python mediapipe huggingface_hub numpy scipy
 
 # 4. Resolve Hugging Face Write Token
 TOKEN_FILE="${STUDIO_ROOT}/hf_token.txt"

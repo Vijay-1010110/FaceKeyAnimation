@@ -385,26 +385,20 @@ def worker_process_loop(
                     # 2. Android VR & mobile clients (low bot challenge probability)
                     # 3. Standard clients with authenticated cookies
                     download_attempts = [
-                        {"client": "android_vr", "use_cookies": False},
-                        {"client": "ios", "use_cookies": False},
-                        {"client": "mweb", "use_cookies": False},
                         {"client": "tv_embedded", "use_cookies": False},
-                        {"client": "visionos", "use_cookies": False},
+                        {"client": "android_vr", "use_cookies": False},
                         {"client": "default", "use_cookies": False},
                         {"client": "web", "use_cookies": False},
+                        {"client": "mweb", "use_cookies": False},
+                        {"client": "ios", "use_cookies": False},
                     ]
                     if cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file):
                         download_attempts.extend([
+                            {"client": "tv_embedded", "use_cookies": True},
                             {"client": "android_vr", "use_cookies": True},
-                            {"client": "ios", "use_cookies": True},
-                            {"client": "mweb", "use_cookies": True},
                             {"client": "default", "use_cookies": True},
                             {"client": "web", "use_cookies": True},
-                            {"client": "web_safari", "use_cookies": True},
                         ])
-                    download_attempts.extend([
-                        {"client": "android", "use_cookies": False},
-                    ])
 
                     fmt_spec = "bestvideo[height<=480]+bestaudio/best[height<=480]/bestvideo+bestaudio/best"
 
@@ -413,6 +407,8 @@ def worker_process_loop(
                             break
                         dl_cmd = [
                             sys.executable, "-m", "yt_dlp",
+                            "--force-ipv4",
+                            "--no-cache-dir",
                             "-f", fmt_spec,
                             "--no-warnings",
                             "--sleep-requests", "1",
@@ -421,7 +417,7 @@ def worker_process_loop(
                             raw_url
                         ]
                         if attempt["client"] != "default":
-                            dl_cmd.extend(["--extractor-args", f"youtube:player_client={attempt['client']}"])
+                            dl_cmd.extend(["--extractor-args", f"youtube:player-client={attempt['client']}"])
                         if proxy:
                             dl_cmd.extend(["--proxy", proxy])
                         if attempt["use_cookies"] and cookies_file:
@@ -604,64 +600,19 @@ def worker_process_loop(
                 if max_frames:
                     cmd.extend(["--max-frames", str(max_frames)])
             else:
-                if proxy:
-                    raise RuntimeError(f"Could not download scratch video through proxy for '{raw_url}'. Skipping streaming fallback.")
-                # 100% resilient streaming mode (only for direct/non-proxy environments)
-                import yt_dlp
-                with DOWNLOAD_MUTEX:
-                    ydl_opts = {
-                        'format': 'bestvideo[height<=480]+bestaudio/best[height<=480]/best',
-                        'extractor_args': {'youtube': {'player_client': ['android_vr', 'ios', 'mweb']}},
-                        'js_runtimes': get_js_runtimes(),
-                        'quiet': True,
-                        'no_warnings': True,
-                        'noprogress': True,
-                        'skip_download': True,
-                        'cachedir': False,
-                        'socket_timeout': 30,
-                        'retries': 5
-                    }
-                    if proxy:
-                        ydl_opts['proxy'] = proxy
-                    if cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file):
-                        ydl_opts['cookiefile'] = cookies_file
-                    info = None
+                # Video could not be downloaded to scratch disk.
+                # DO NOT pass naked CDN URLs to OpenCV on datacenter IPs (guarantees 403 / CAP_IMAGES crash).
+                err_msg = f"Video '{title}' cannot be accessed or downloaded (likely SABR-restricted, age-gated, or blocked). Skipping cleanly."
+                print(f"[!] [WORKER {coordinator.worker_id}] {err_msg}")
+                coordinator.release_lock(key)
+                queue.mark_failed(key, err_msg)
+                if scratch_video and os.path.exists(scratch_video):
                     try:
-                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                            info = ydl.extract_info(raw_url, download=False)
+                        os.remove(scratch_video)
                     except Exception:
-                        if cookies_file:
-                            ydl_opts.pop('cookiefile', None)
-                            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                                info = ydl.extract_info(raw_url, download=False)
-                        else:
-                            raise
-                    if not info:
-                        raise RuntimeError(f"Could not extract info for '{raw_url}'")
-                    stream_url = info.get('url')
-                    if not stream_url and info.get('requested_formats'):
-                        stream_url = info['requested_formats'][0].get('url')
-                    title = info.get('title', item_title)
-                    canonical_url = info.get('webpage_url') or canonical_url
-
-                if not stream_url:
-                    raise RuntimeError(f"Could not resolve playable stream URL for '{raw_url}'")
-
-                print(f"[*] [WORKER {coordinator.worker_id}] Streaming live frames from YouTube CDN without 403...")
-                cmd = [
-                    python_exe, os.path.join(script_dir, "test_face_speaker_tool.py"),
-                    "--mode", "stream",
-                    "--stream-url", stream_url,
-                    "--quality", quality,
-                    "--max-faces", "1",
-                    "--headless",
-                    "--stream-title", title,
-                    "--canonical-url", canonical_url
-                ]
-                if max_duration:
-                    cmd.extend(["--max-duration", str(max_duration)])
-                if max_frames:
-                    cmd.extend(["--max-frames", str(max_frames)])
+                        pass
+                time.sleep(2)
+                continue
         except Exception as e:
             err = str(e)
             is_bot_check = "Sign in to confirm you’re not a bot" in err or "confirm you're not a bot" in err.lower() or "bot" in err.lower()

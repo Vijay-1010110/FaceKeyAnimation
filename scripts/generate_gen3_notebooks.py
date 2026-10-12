@@ -367,7 +367,7 @@ def generate_gen3_colab_collector() -> Dict[str, Any]:
             f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
             f"!git fetch origin {BRANCH} && !git reset --hard origin/{BRANCH} && !git pull origin {BRANCH}",
-            "!pip install -q -U yt-dlp opencv-python mediapipe huggingface_hub numpy scipy",
+            "!pip install -q -U \"yt-dlp[default] @ https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz\" opencv-python mediapipe huggingface_hub numpy scipy",
             "print('[+] Gen 3 Data Collector Environment Ready on branch: " + BRANCH + "')"
         ]),
         make_cell("code", [
@@ -434,7 +434,7 @@ def generate_gen3_kaggle_collector() -> Dict[str, Any]:
             f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
             f"!git fetch origin {BRANCH} && !git reset --hard origin/{BRANCH} && !git pull origin {BRANCH}",
-            "!pip install -q -U yt-dlp opencv-python mediapipe huggingface_hub numpy scipy",
+            "!pip install -q -U \"yt-dlp[default] @ https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz\" opencv-python mediapipe huggingface_hub numpy scipy",
             "print('[+] Gen 3 Kaggle Collector Environment Ready on branch: " + BRANCH + "')"
         ]),
         make_cell("code", [
