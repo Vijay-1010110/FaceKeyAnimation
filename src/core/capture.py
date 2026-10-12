@@ -570,7 +570,8 @@ class StreamCaptureSource:
 
     def _worker(self, callback: Callable[[float, np.ndarray], None]):
         import cv2
-        cap = cv2.VideoCapture(self.stream_url)
+        backend = cv2.CAP_FFMPEG if self.stream_url.startswith(("http://", "https://", "rtsp://", "rtmp://")) else cv2.CAP_ANY
+        cap = cv2.VideoCapture(self.stream_url, backend)
         session_start = time.perf_counter()
         consecutive_empty = 0
         try:
@@ -591,7 +592,7 @@ class StreamCaptureSource:
                         except Exception:
                             pass
                     break
-                cap = cv2.VideoCapture(self.stream_url)
+                cap = cv2.VideoCapture(self.stream_url, backend)
                 continue
 
             if self.paused:

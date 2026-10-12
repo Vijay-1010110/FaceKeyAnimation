@@ -385,28 +385,28 @@ def worker_process_loop(
                     # 2. Android VR & mobile clients (low bot challenge probability)
                     # 3. Standard clients with authenticated cookies
                     download_attempts = [
-                        {"client": "visionos", "use_cookies": False},
                         {"client": "android_vr", "use_cookies": False},
-                        {"client": "tv", "use_cookies": False},
-                        {"client": "tv_embedded", "use_cookies": False},
-                        {"client": "default", "use_cookies": False},
+                        {"client": "ios", "use_cookies": False},
                         {"client": "mweb", "use_cookies": False},
+                        {"client": "tv_embedded", "use_cookies": False},
+                        {"client": "visionos", "use_cookies": False},
+                        {"client": "default", "use_cookies": False},
                         {"client": "web", "use_cookies": False},
                     ]
                     if cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file):
                         download_attempts.extend([
-                            {"client": "visionos", "use_cookies": True},
+                            {"client": "android_vr", "use_cookies": True},
+                            {"client": "ios", "use_cookies": True},
+                            {"client": "mweb", "use_cookies": True},
                             {"client": "default", "use_cookies": True},
                             {"client": "web", "use_cookies": True},
-                            {"client": "mweb", "use_cookies": True},
                             {"client": "web_safari", "use_cookies": True},
                         ])
                     download_attempts.extend([
                         {"client": "android", "use_cookies": False},
-                        {"client": "ios", "use_cookies": False},
                     ])
 
-                    fmt_spec = "18/bestvideo[height<=480][vcodec^=avc1]+bestaudio[ext=m4a]/best[height<=480][vcodec^=avc1]/best[height<=480][ext=mp4]/best"
+                    fmt_spec = "bestvideo[height<=480]+bestaudio/best[height<=480]/bestvideo+bestaudio/best"
 
                     for attempt in download_attempts:
                         if download_success:
@@ -610,8 +610,8 @@ def worker_process_loop(
                 import yt_dlp
                 with DOWNLOAD_MUTEX:
                     ydl_opts = {
-                        'format': '18/best[height<=480][ext=mp4]/best',
-                        'extractor_args': {'youtube': {'player_client': ['android', 'android_vr']}},
+                        'format': 'bestvideo[height<=480]+bestaudio/best[height<=480]/best',
+                        'extractor_args': {'youtube': {'player_client': ['android_vr', 'ios', 'mweb']}},
                         'js_runtimes': get_js_runtimes(),
                         'quiet': True,
                         'no_warnings': True,

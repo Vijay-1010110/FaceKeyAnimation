@@ -1139,14 +1139,14 @@ def main():
             try:
                 import yt_dlp
                 fmt_map = {
-                    "480p": "18/best[height<=480]/bestvideo[height<=480]/best",
-                    "720p": "22/18/best[height<=720]/bestvideo[height<=720]/best",
-                    "1080p": "best[height<=1080]/bestvideo[height<=1080]/best",
-                    "best": "18/best/bestvideo/best"
+                    "480p": "bestvideo[height<=480]+bestaudio/best[height<=480]/best",
+                    "720p": "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
+                    "1080p": "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+                    "best": "bestvideo+bestaudio/best"
                 }
                 ydl_opts = {
                     'format': fmt_map.get(args.quality, fmt_map["480p"]),
-                    'extractor_args': {'youtube': {'player_client': ['android', 'ios']}},
+                    'extractor_args': {'youtube': {'player_client': ['android_vr', 'ios', 'mweb', 'web']}},
                     'js_runtimes': {'node': {}, 'deno': {}},
                     'quiet': True,
                     'no_warnings': True,
