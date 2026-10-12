@@ -201,7 +201,8 @@ def upload_to_hf_hub(
 
     api = HfApi(token=hf_token)
     try:
-        create_repo(repo_id=repo_id, repo_type="dataset", private=True, token=hf_token, exist_ok=True)
+        create_repo(repo_id=repo_id, repo_type="dataset", private=False, token=hf_token, exist_ok=True)
+        api.update_repo_visibility(repo_id=repo_id, repo_type="dataset", private=False)
     except Exception:
         pass
 
@@ -228,7 +229,7 @@ def upload_to_hf_hub(
     print("=" * 75)
     print(" [CLOUD-TO-CLOUD] HUGGINGFACE HUB DATASET BRIDGE (0 MB LOCAL DATA)")
     print(f" Source Directory  : {chunks_dir}")
-    print(f" Target Dataset    : https://huggingface.co/datasets/{repo_id} (Private)")
+    print(f" Target Dataset    : https://huggingface.co/datasets/{repo_id} (Public)")
     print(f" New Chunks to Sync: {len(pending_chunks)} (out of {len(chunk_files)} total)")
     print("=" * 75)
 

@@ -353,15 +353,29 @@ def train_speech_to_animation(
             print(f"[*] Querying Hugging Face repository '{hf_repo}' for dataset chunks...")
             try:
                 from huggingface_hub import HfApi, hf_hub_download
-                api = HfApi(token=hf_token)
-                remote_files = api.list_repo_tree(repo_id=hf_repo, repo_type="dataset", path_in_repo="chunks")
-                # Exclude duplicate copies (e.g. ' (1)')
-                chunk_files = [f for f in remote_files if f.path.endswith(".tar.gz") and " (1)" not in f.path]
+                active_repo = hf_repo
+                try:
+                    remote_files = api.list_repo_tree(repo_id=active_repo, repo_type="dataset", path_in_repo="chunks")
+                    chunk_files = [f for f in remote_files if f.path.endswith(".tar.gz") and " (1)" not in f.path]
+                except Exception as repo_err:
+                    chunk_files = []
+
+                if not chunk_files and active_repo != "VijayTheOne/facekey-dataset-chunks":
+                    print(f"[*] Repository '{active_repo}' has no chunks yet. Checking fallback repo: 'VijayTheOne/facekey-dataset-chunks'...")
+                    try:
+                        remote_files = api.list_repo_tree(repo_id="VijayTheOne/facekey-dataset-chunks", repo_type="dataset", path_in_repo="chunks")
+                        chunk_files = [f for f in remote_files if f.path.endswith(".tar.gz") and " (1)" not in f.path]
+                        if chunk_files:
+                            active_repo = "VijayTheOne/facekey-dataset-chunks"
+                            print(f"[✓] Found {len(chunk_files)} chunk(s) in fallback repository!")
+                    except Exception:
+                        pass
+
                 if max_chunks and max_chunks > 0:
                     chunk_files = chunk_files[:max_chunks]
-                    print(f"[*] Selected {len(chunk_files)} chunk(s) (Disk & RAM Safe Mode)...")
+                    print(f"[*] Selected {len(chunk_files)} chunk(s) from '{active_repo}' (Disk & RAM Safe Mode)...")
                 else:
-                    print(f"[*] Selected all {len(chunk_files)} unique chunk(s) (Full Dataset Mode)...")
+                    print(f"[*] Selected all {len(chunk_files)} unique chunk(s) from '{active_repo}' (Full Dataset Mode)...")
 
                 def stream_download_gen(files):
                     for idx, cf in enumerate(files, 1):
@@ -369,7 +383,7 @@ def train_speech_to_animation(
                         print(f"  [{idx}/{len(files)}] Stream-downloading '{fname}'...", end=" ", flush=True)
                         try:
                             dl_p = hf_hub_download(
-                                repo_id=hf_repo,
+                                repo_id=active_repo,
                                 filename=cf.path,
                                 repo_type="dataset",
                                 token=hf_token,
@@ -814,7 +828,7 @@ if __name__ == "__main__":
     parser.add_argument("--drive-dir", type=str, default=None, help="Google Drive path for checkpoints & chunks")
     parser.add_argument("--data-dir", type=str, default=None, help="Local training data / chunks directory")
     parser.add_argument("--checkpoints-dir", type=str, default=None, help="Directory to save checkpoints")
-    parser.add_argument("--hf-repo", type=str, default="VijayTheOne/facekey-dataset-chunks", help="Hugging Face repo for dataset chunks")
+    parser.add_argument("--hf-repo", type=str, default="VijayTheOne/facekey-gen3-dataset", help="Hugging Face repo for dataset chunks (auto-falls back to Gen 2 if empty)")
     parser.add_argument("--model-repo", type=str, default="VijayTheOne/facekey-speech-to-animator", help="Dedicated HF repo for model checkpoints")
     parser.add_argument("--hf-token", type=str, default=None, help="Hugging Face token")
     parser.add_argument("--epochs", type=int, default=100, help="Total training epochs (default: 100)")

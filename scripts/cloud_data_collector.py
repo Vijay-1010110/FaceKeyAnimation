@@ -1051,7 +1051,7 @@ if __name__ == "__main__":
     parser.add_argument("--service-account", type=str, default=None, help="Google Service Account JSON for automatic cloud-to-drive upload")
     parser.add_argument("--folder-id", type=str, default="11VbtMpmNATsrBZxkPLpA2gPTtgaRFNlA", help="Target Google Drive Folder ID")
     parser.add_argument("--hf-token", type=str, default=None, help="Hugging Face Write Token for private dataset backup")
-    parser.add_argument("--hf-repo", type=str, default="VijayTheOne/facekey-dataset-chunks", help="Hugging Face repository ID")
+    parser.add_argument("--hf-repo", type=str, default="VijayTheOne/facekey-gen3-dataset", help="Hugging Face repository ID")
     parser.add_argument("--proxy", type=str, default=None, help="HTTP/SOCKS5 proxy URL for yt-dlp (e.g. socks5://127.0.0.1:40000)")
     parser.add_argument("--max-duration", type=float, default=None, help="Maximum duration in seconds per video (default None for full length)")
     parser.add_argument("--max-frames", type=int, default=None, help="Maximum frames per video (default None for full length)")

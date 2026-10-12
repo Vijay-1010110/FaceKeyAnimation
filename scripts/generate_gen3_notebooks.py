@@ -3,12 +3,12 @@ Branch: Gen3
 Milestone: Pure 3D Avatar Animation (52 ARKit Blendshapes + 3D Head Pose + 64-Band Log-Mel Acoustics + Emotion Conditioning)
 
 Generates:
-  1. notebooks/Gen3_Kaggle_Dual_T4_Trainer.ipynb     (Kaggle Dual T4 x2 GPU 9h Background Commit Runner)
-  2. notebooks/Gen3_Colab_GPU_Trainer.ipynb          (Google Colab T4 GPU Runner + Hugging Face Sync)
-  3. notebooks/Gen3_Lightning_AI_Trainer.ipynb       (Lightning.ai Persistent 24/7 Studio Runner)
-  4. notebooks/Gen3_Colab_Data_Collector.ipynb       (Google Colab CPU Multi-Worker Collector)
-  5. notebooks/Gen3_Kaggle_Data_Collector.ipynb      (Kaggle Cloud CPU Multi-Worker Collector)
-  6. notebooks/Gen3_Lightning_AI_Data_Collector.ipynb (Lightning.ai 4-Core CPU Collector)
+  1. notebooks/Gen3_Kaggle_Dual_T4_Trainer.ipynb       (Kaggle Dual T4 x2 GPU 9h Background Commit Runner)
+  2. notebooks/Gen3_Colab_GPU_Trainer.ipynb            (Google Colab T4 GPU Runner + Hugging Face Sync)
+  3. notebooks/Gen3_Lightning_AI_Trainer.ipynb         (Lightning.ai Persistent 24/7 Studio Runner)
+  4. notebooks/Gen3_Colab_Data_Collector.ipynb         (Google Colab CPU Multi-Worker Collector)
+  5. notebooks/Gen3_Kaggle_Data_Collector.ipynb        (Kaggle Cloud CPU Multi-Worker Collector)
+  6. notebooks/Gen3_Lightning_AI_Data_Collector.ipynb  (Lightning.ai 4-Core CPU Collector)
 """
 
 import os
@@ -25,7 +25,9 @@ if sys.platform == "win32":
 
 REPO_URL = "https://github.com/Vijay-1010110/FaceKeyAnimation.git"
 BRANCH = "Gen3"
-HF_REPO = "VijayTheOne/facekey-speech-to-animator"
+HF_MODEL_REPO = "VijayTheOne/facekey-speech-to-animator"
+HF_GEN3_DATASET_REPO = "VijayTheOne/facekey-gen3-dataset"
+HF_GEN2_DATASET_REPO = "VijayTheOne/facekey-dataset-chunks"
 
 
 def make_cell(cell_type: str, source: List[str]) -> Dict[str, Any]:
@@ -50,7 +52,7 @@ def generate_gen3_kaggle_trainer() -> Dict[str, Any]:
             "> [!IMPORTANT]",
             "> **KAGGLE SETTINGS (RIGHT SIDEBAR):**",
             "> 1. **Accelerator**: Select **GPU T4 x2** (Allocates 2x NVIDIA Tesla T4 GPUs with 30 GB combined VRAM)",
-            "> 2. **Internet**: Toggle **Internet ON** (Required to pull dataset chunks and sync model weights)",
+            "> 2. **Internet**: Toggle **Internet ON** (Required to stream dataset chunks and sync model weights)",
             "",
             "## 🌟 HOW TO RUN IN BACKGROUND WITH PC TURNED OFF (9 HOURS HEADLESS):",
             "1. In the top right corner of Kaggle, click **Save Version**.",
@@ -64,7 +66,7 @@ def generate_gen3_kaggle_trainer() -> Dict[str, Any]:
             "- **Zero Landmark Bloat**: No 478 raw coordinates stored in dataset, making training 4x faster with minimal RAM usage.",
             "- **True 64-Band Log-Mel Spectral Formants**: Full frequency coverage (20 Hz - 8000 Hz) captures distinct vowel and consonant shapes (/a/, /o/, /e/, /m/, /s/).",
             "- **Expressive Paralinguistics & Tone**: 5-state emotion embedding (Neutral, Happy, Angry, Surprised, Sad) with continuous mood blending.",
-            "- **Auto-Resume**: If a session restarts, running this notebook automatically resumes training from the latest checkpoint on Hugging Face."
+            "- **Auto-Resume & Fallback**: Automatically streams from Gen 3 dataset, falls back to Gen 2 if fresh, and auto-resumes weights."
         ]),
         make_cell("markdown", [
             "## 💓 STEP 0: BROWSER KEEP-ALIVE HEARTBEAT (FOR INTERACTIVE SESSIONS)",
@@ -104,7 +106,7 @@ def generate_gen3_kaggle_trainer() -> Dict[str, Any]:
             "    shutil.rmtree(APP_DIR)",
             f"!git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
-            "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy",
+            "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy matplotlib",
             "print('[+] Gen 3 Deep Learning Training Environment Ready on branch: " + BRANCH + "')"
         ]),
         make_cell("markdown", [
@@ -129,7 +131,7 @@ def generate_gen3_kaggle_trainer() -> Dict[str, Any]:
             "    os.environ['HF_TOKEN'] = hf_token",
             "    print(f'[✓] Hugging Face Hub Authenticated for automatic model sync!')",
             "else:",
-            "    print('[!] Note: HF_TOKEN not found. Training will proceed and save checkpoints locally in /kaggle/working/checkpoints/')"
+            "    print('[!] Note: HF_TOKEN not found. Public datasets will stream freely; model checkpoints will save locally.')"
         ]),
         make_cell("markdown", [
             "## 🚀 STEP 4: LAUNCH GEN 3 3D AVATAR TRAINING (100 EPOCHS)",
@@ -143,7 +145,8 @@ def generate_gen3_kaggle_trainer() -> Dict[str, Any]:
             "    --seq-len 48 \\",
             "    --stride 12 \\",
             "    --checkpoints-dir /kaggle/working/checkpoints \\",
-            f"    --hf-repo {HF_REPO}"
+            f"    --hf-repo {HF_GEN3_DATASET_REPO} \\",
+            f"    --model-repo {HF_MODEL_REPO}"
         ]),
         make_cell("markdown", [
             "## 📊 STEP 5: VERIFY MODEL SIZE, LOSS CURVE & WEIGHT ARTIFACTS"
@@ -219,11 +222,30 @@ def generate_gen3_colab_trainer() -> Dict[str, Any]:
             "    shutil.rmtree(APP_DIR)",
             f"!git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
-            "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy",
+            "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy matplotlib",
             "print('[+] Gen 3 Deep Learning Training Environment Ready on branch: " + BRANCH + "')"
         ]),
         make_cell("markdown", [
-            "## 🚀 STEP 3: LAUNCH GEN 3 3D AVATAR TRAINING (100 EPOCHS)"
+            "## 🔑 STEP 3: HUGGING FACE AUTHENTICATION SETUP"
+        ]),
+        make_cell("code", [
+            "hf_token = None",
+            "try:",
+            "    from google.colab import userdata",
+            "    hf_token = userdata.get('HF_TOKEN')",
+            "except Exception:",
+            "    pass",
+            "if not hf_token and os.path.exists('/content/drive/MyDrive/FaceKeyDataset/hf_token.txt'):",
+            "    with open('/content/drive/MyDrive/FaceKeyDataset/hf_token.txt', 'r') as f:",
+            "        hf_token = f.read().strip()",
+            "if hf_token:",
+            "    os.environ['HF_TOKEN'] = hf_token",
+            "    print('[✓] Hugging Face Hub Authenticated!')",
+            "else:",
+            "    print('[!] Note: HF_TOKEN not set. Public datasets stream freely without auth.')"
+        ]),
+        make_cell("markdown", [
+            "## 🚀 STEP 4: LAUNCH GEN 3 3D AVATAR TRAINING (100 EPOCHS)"
         ]),
         make_cell("code", [
             "drive_ckpt = '/content/drive/MyDrive/FaceKeyDataset/checkpoints'",
@@ -235,10 +257,11 @@ def generate_gen3_colab_trainer() -> Dict[str, Any]:
             "    --seq-len 48 \\",
             "    --stride 12 \\",
             "    --checkpoints-dir {drive_ckpt} \\",
-            f"    --hf-repo {HF_REPO}"
+            f"    --hf-repo {HF_GEN3_DATASET_REPO} \\",
+            f"    --model-repo {HF_MODEL_REPO}"
         ]),
         make_cell("markdown", [
-            "## 📊 STEP 4: DISPLAY LOSS CURVE"
+            "## 📊 STEP 5: DISPLAY LOSS CURVE"
         ]),
         make_cell("code", [
             "import os",
@@ -274,8 +297,18 @@ def generate_gen3_lightning_trainer() -> Dict[str, Any]:
             f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
             "!git fetch origin && !git checkout " + BRANCH + " && !git pull origin " + BRANCH,
-            "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy",
+            "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy matplotlib",
             "print('[+] Lightning.ai Training Environment Ready on Gen 3 branch!')"
+        ]),
+        make_cell("code", [
+            "hf_token = os.environ.get('HF_TOKEN')",
+            "token_path = '/teamspace/studios/this_studio/hf_token.txt'",
+            "if not hf_token and os.path.exists(token_path):",
+            "    with open(token_path, 'r') as f:",
+            "        hf_token = f.read().strip()",
+            "if hf_token:",
+            "    os.environ['HF_TOKEN'] = hf_token",
+            "    print('[✓] Hugging Face Hub Authenticated!')"
         ]),
         make_cell("code", [
             "!python scripts/train_speech_to_animation.py \\",
@@ -285,7 +318,8 @@ def generate_gen3_lightning_trainer() -> Dict[str, Any]:
             "    --seq-len 48 \\",
             "    --stride 12 \\",
             "    --checkpoints-dir /teamspace/studios/this_studio/FaceKeyDataset/checkpoints \\",
-            f"    --hf-repo {HF_REPO}"
+            f"    --hf-repo {HF_GEN3_DATASET_REPO} \\",
+            f"    --model-repo {HF_MODEL_REPO}"
         ])
     ]
     return {
@@ -312,7 +346,8 @@ def generate_gen3_colab_collector() -> Dict[str, Any]:
             "- **52 ARKit Blendshapes**: Facial muscle sliders ($0.0$ to $1.0$).",
             "- **3D Head Orientation Kinematics**: Euler Pitch, Yaw, Roll angles.",
             "- **64-Band Log-Mel Spectral Acoustics**: 16 kHz frequency filterbanks covering 20 Hz to 8000 Hz.",
-            "- **Zero Landmark Overhead**: No 478 raw coordinates stored in dataset, saving 90% disk space."
+            "- **Zero Landmark Overhead**: No 478 raw coordinates stored in dataset, saving 90% disk space.",
+            f"- **100% Public Dataset Backup**: Automatically syncs chunk archives to `{HF_GEN3_DATASET_REPO}`."
         ]),
         make_cell("code", [
             "from IPython.display import display, Javascript",
@@ -339,11 +374,27 @@ def generate_gen3_colab_collector() -> Dict[str, Any]:
             "print('[+] Gen 3 Data Collector Environment Ready on branch: " + BRANCH + "')"
         ]),
         make_cell("code", [
+            "hf_token = None",
+            "try:",
+            "    from google.colab import userdata",
+            "    hf_token = userdata.get('HF_TOKEN')",
+            "except Exception:",
+            "    pass",
+            "if not hf_token and os.path.exists('/content/drive/MyDrive/FaceKeyDataset/hf_token.txt'):",
+            "    with open('/content/drive/MyDrive/FaceKeyDataset/hf_token.txt', 'r') as f:",
+            "        hf_token = f.read().strip()",
+            "if hf_token:",
+            "    os.environ['HF_TOKEN'] = hf_token",
+            "    print('[✓] Hugging Face Hub Authenticated!')",
+            "else:",
+            "    print('[!] Note: HF_TOKEN not set. Set HF_TOKEN in Colab Secrets or Google Drive to push chunks directly to public repo.')"
+        ]),
+        make_cell("code", [
             "!python scripts/cloud_data_collector.py \\",
-            "    --gdrive-dir /content/drive/MyDrive/FaceKeyDataset \\",
-            "    --queue-file sessions/youtube_urls_colab.txt \\",
+            "    --drive-dir /content/drive/MyDrive/FaceKeyDataset \\",
+            "    --urls-file sessions/youtube_urls_colab.txt \\",
             "    --num-workers 2 \\",
-            f"    --hf-repo {HF_REPO}"
+            f"    --hf-repo {HF_GEN3_DATASET_REPO}"
         ])
     ]
     return {
@@ -366,7 +417,7 @@ def generate_gen3_kaggle_collector() -> Dict[str, Any]:
             "## 🌟 HOW TO RUN IN BACKGROUND (9 HOURS HEADLESS):",
             "1. Click **Save Version** ➔ **Save & Run All (Commit)**.",
             "2. Close your browser and shut down your computer.",
-            "3. Processed sessions automatically sync to Hugging Face Hub!"
+            f"3. Processed sessions automatically sync to Hugging Face Hub: `{HF_GEN3_DATASET_REPO}`!"
         ]),
         make_cell("code", [
             "from IPython.display import display, Javascript",
@@ -395,15 +446,20 @@ def generate_gen3_kaggle_collector() -> Dict[str, Any]:
             "    hf_token = UserSecretsClient().get_secret('HF_TOKEN')",
             "except Exception:",
             "    pass",
+            "if not hf_token and os.path.exists('/kaggle/working/hf_token.txt'):",
+            "    with open('/kaggle/working/hf_token.txt', 'r') as f:",
+            "        hf_token = f.read().strip()",
             "if hf_token:",
             "    os.environ['HF_TOKEN'] = hf_token",
-            "    print('[✓] Hugging Face Hub Authenticated!')"
+            "    print('[✓] Hugging Face Hub Authenticated!')",
+            "else:",
+            "    print('[!] Note: Add HF_TOKEN to Kaggle Secrets (Add-ons -> Secrets) to push chunks to Hugging Face.')"
         ]),
         make_cell("code", [
             "!python scripts/cloud_data_collector.py \\",
-            "    --queue-file sessions/youtube_urls_kaggle.txt \\",
+            "    --urls-file sessions/youtube_urls_kaggle.txt \\",
             "    --num-workers 2 \\",
-            f"    --hf-repo {HF_REPO}"
+            f"    --hf-repo {HF_GEN3_DATASET_REPO}"
         ])
     ]
     return {
@@ -421,7 +477,8 @@ def generate_gen3_lightning_collector() -> Dict[str, Any]:
     cells = [
         make_cell("markdown", [
             "# 🚀 FaceKey Studio Gen 3 — Lightning.ai 24/7 CPU 3D Avatar Data Collector",
-            "### Persistent 4-Core CPU Background Video Collector"
+            "### Persistent 4-Core CPU Background Video Collector",
+            f"Automatically syncs chunk archives to `{HF_GEN3_DATASET_REPO}`."
         ]),
         make_cell("code", [
             "import os, shutil",
@@ -434,11 +491,21 @@ def generate_gen3_lightning_collector() -> Dict[str, Any]:
             "print('[+] Lightning.ai Collector Ready on Gen 3 branch!')"
         ]),
         make_cell("code", [
+            "hf_token = os.environ.get('HF_TOKEN')",
+            "token_path = '/teamspace/studios/this_studio/hf_token.txt'",
+            "if not hf_token and os.path.exists(token_path):",
+            "    with open(token_path, 'r') as f:",
+            "        hf_token = f.read().strip()",
+            "if hf_token:",
+            "    os.environ['HF_TOKEN'] = hf_token",
+            "    print('[✓] Hugging Face Hub Authenticated!')"
+        ]),
+        make_cell("code", [
             "!python scripts/cloud_data_collector.py \\",
-            "    --gdrive-dir /teamspace/studios/this_studio/FaceKeyDataset \\",
-            "    --queue-file sessions/youtube_urls_lightning.txt \\",
+            "    --drive-dir /teamspace/studios/this_studio/FaceKeyDataset \\",
+            "    --urls-file sessions/youtube_urls_lightning.txt \\",
             "    --num-workers 2 \\",
-            f"    --hf-repo {HF_REPO}"
+            f"    --hf-repo {HF_GEN3_DATASET_REPO}"
         ])
     ]
     return {
@@ -465,9 +532,11 @@ def main():
 
     print("=" * 82)
     print(" 🌟 GENERATING FACEKEY GEN 3 JUPYTER NOTEBOOK SUITE")
-    print(f" Target Branch : {BRANCH}")
-    print(f" GitHub Repo   : {REPO_URL}")
-    print(f" HF Model Hub  : {HF_REPO}")
+    print(f" Target Branch   : {BRANCH}")
+    print(f" GitHub Repo     : {REPO_URL}")
+    print(f" HF Model Hub    : {HF_MODEL_REPO}")
+    print(f" HF Gen 3 Dataset: {HF_GEN3_DATASET_REPO}")
+    print(f" HF Gen 2 Dataset: {HF_GEN2_DATASET_REPO}")
     print("=" * 82)
 
     for path, nb in nb_suite.items():
