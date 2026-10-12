@@ -487,8 +487,30 @@ def generate_gen3_lightning_collector() -> Dict[str, Any]:
     cells = [
         make_cell("markdown", [
             "# 🚀 FaceKey Studio Gen 3 — Lightning.ai 24/7 CPU 3D Avatar Data Collector",
-            "### Persistent 4-Core CPU Background Video Collector",
-            f"Automatically syncs chunk archives to `{HF_GEN3_DATASET_REPO}`."
+            "### Max Free Potential: Persistent 4-Core CPU Background Video Collector",
+            "",
+            "## 🌟 HOW TO RUN HEADLESS IN BACKGROUND (PC TURNED OFF / 24/7):",
+            "Lightning.ai Studios provide persistent cloud storage and Linux background terminal capabilities.",
+            "To keep collection running 24/7 even after you close your browser tab or turn off your computer:",
+            "",
+            "1. In the top-left menu or bottom dock, open the **Terminal** (or press ``Ctrl + ` ``).",
+            "2. Start a persistent `tmux` session:",
+            "   ```bash",
+            "   tmux new -s facekey_collector",
+            "   ```",
+            "3. Run the automated 4-worker runner script:",
+            "   ```bash",
+            "   bash /teamspace/studios/this_studio/FaceKeyAnimation/scripts/run_lightning_background_collector.sh",
+            "   ```",
+            "4. **Detach from the session** by pressing `Ctrl + B`, then releasing and pressing `D`.",
+            "5. **🎉 YOU CAN NOW CLOSE YOUR BROWSER AND SHUT DOWN YOUR PC!**",
+            "   The 4 workers will continue capturing videos 24/7 in the cloud and syncing chunks to `VijayTheOne/facekey-gen3-dataset`.",
+            "",
+            "**To view live progress anytime later:**",
+            "Open the terminal and run: `tmux attach -t facekey_collector` (or press `Ctrl+B`, `D` to detach again).",
+            "",
+            "---",
+            "### Alternatively: Run Interactively in this Notebook Below"
         ]),
         make_cell("code", [
             "import os, shutil",
