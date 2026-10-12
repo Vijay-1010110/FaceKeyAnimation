@@ -107,7 +107,7 @@ def generate_gen3_kaggle_trainer() -> Dict[str, Any]:
             "if not os.path.exists(APP_DIR):",
             f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
-            f"!git fetch origin && !git checkout {BRANCH} && !git pull origin {BRANCH}",
+            f"!git fetch origin {BRANCH} && !git reset --hard origin/{BRANCH} && !git pull origin {BRANCH}",
             "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy matplotlib",
             "print('[+] Gen 3 Deep Learning Training Environment Ready on branch: " + BRANCH + "')"
         ]),
@@ -220,7 +220,7 @@ def generate_gen3_colab_trainer() -> Dict[str, Any]:
             "if not os.path.exists(APP_DIR):",
             f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
-            f"!git fetch origin && !git checkout {BRANCH} && !git pull origin {BRANCH}",
+            f"!git fetch origin {BRANCH} && !git reset --hard origin/{BRANCH} && !git pull origin {BRANCH}",
             "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy matplotlib",
             "print('[+] Gen 3 Deep Learning Training Environment Ready on branch: " + BRANCH + "')"
         ]),
@@ -295,7 +295,7 @@ def generate_gen3_lightning_trainer() -> Dict[str, Any]:
             "if not os.path.exists(APP_DIR):",
             f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
-            f"!git fetch origin && !git checkout {BRANCH} && !git pull origin {BRANCH}",
+            f"!git fetch origin {BRANCH} && !git reset --hard origin/{BRANCH} && !git pull origin {BRANCH}",
             "!sudo apt-get update -qq && sudo apt-get install -y -qq libgles2 libgl1 libegl1 libglib2.0-0",
             "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy matplotlib",
             "print('[+] Lightning.ai Training Environment Ready on Gen 3 branch!')"
@@ -366,7 +366,7 @@ def generate_gen3_colab_collector() -> Dict[str, Any]:
             "if not os.path.exists(APP_DIR):",
             f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
-            f"!git fetch origin && !git checkout {BRANCH} && !git pull origin {BRANCH}",
+            f"!git fetch origin {BRANCH} && !git reset --hard origin/{BRANCH} && !git pull origin {BRANCH}",
             "!pip install -q -U yt-dlp opencv-python mediapipe huggingface_hub numpy scipy",
             "print('[+] Gen 3 Data Collector Environment Ready on branch: " + BRANCH + "')"
         ]),
@@ -433,7 +433,7 @@ def generate_gen3_kaggle_collector() -> Dict[str, Any]:
             "if not os.path.exists(APP_DIR):",
             f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
-            f"!git fetch origin && !git checkout {BRANCH} && !git pull origin {BRANCH}",
+            f"!git fetch origin {BRANCH} && !git reset --hard origin/{BRANCH} && !git pull origin {BRANCH}",
             "!pip install -q -U yt-dlp opencv-python mediapipe huggingface_hub numpy scipy",
             "print('[+] Gen 3 Kaggle Collector Environment Ready on branch: " + BRANCH + "')"
         ]),
