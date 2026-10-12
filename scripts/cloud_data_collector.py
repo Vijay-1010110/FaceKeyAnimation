@@ -385,16 +385,16 @@ def worker_process_loop(
                     # 2. Android VR & mobile clients (low bot challenge probability)
                     # 3. Standard clients with authenticated cookies
                     download_attempts = [
-                        {"client": "tv_embedded", "use_cookies": False},
+                        {"client": "visionos", "use_cookies": False},
                         {"client": "android_vr", "use_cookies": False},
-                        {"client": "default", "use_cookies": False},
-                        {"client": "web", "use_cookies": False},
-                        {"client": "mweb", "use_cookies": False},
+                        {"client": "tv", "use_cookies": False},
                         {"client": "ios", "use_cookies": False},
+                        {"client": "mweb", "use_cookies": False},
+                        {"client": "default", "use_cookies": False},
                     ]
                     if cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file):
                         download_attempts.extend([
-                            {"client": "tv_embedded", "use_cookies": True},
+                            {"client": "visionos", "use_cookies": True},
                             {"client": "android_vr", "use_cookies": True},
                             {"client": "default", "use_cookies": True},
                             {"client": "web", "use_cookies": True},
@@ -439,7 +439,7 @@ def worker_process_loop(
                                 err_tail = (proc.stderr or proc.stdout or "").strip()
                                 last_err = err_tail.splitlines()[-1] if err_tail else f"exit {proc.returncode}"
                                 if "no space left" in last_err.lower() or "errno 28" in last_err.lower():
-                                    print(f"[!] [WORKER {coordinator.worker_id}] Scratch disk full. Falling back to zero-disk streaming mode.")
+                                    print(f"[!] [WORKER {coordinator.worker_id}] Scratch disk full.")
                                     use_turbo_for_this_video = False
                                     break
                                 elif "bot" in last_err.lower() or "sign in" in last_err.lower():
@@ -450,116 +450,6 @@ def worker_process_loop(
                                     os.remove(scratch_video)
                                 except Exception:
                                     pass
-
-                    # Fallback Strategy: Python API
-                    if not download_success:
-                        cookie_try = [True, False] if (cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file)) else [False]
-                        for use_c in cookie_try:
-                            if download_success:
-                                break
-                            try:
-                                import yt_dlp
-                                ydl_opts = {
-                                    'format': fmt_spec,
-                                    'outtmpl': scratch_video,
-                                    'js_runtimes': js_dict,
-                                    'quiet': True,
-                                    'no_warnings': True,
-                                    'noprogress': True,
-                                    'retries': 3,
-                                    'socket_timeout': 30,
-                                }
-                                if not use_c:
-                                    ydl_opts['extractor_args'] = {'youtube': {'player_client': ['visionos', 'android_vr', 'default']}}
-                                if proxy:
-                                    ydl_opts['proxy'] = proxy
-                                if use_c and cookies_file:
-                                    ydl_opts['cookiefile'] = cookies_file
-                                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                                    info = ydl.extract_info(raw_url, download=True)
-                                    title = info.get('title', item_title)
-                                    canonical_url = info.get('webpage_url') or canonical_url
-                                if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
-                                    download_success = True
-                                    break
-                            except Exception:
-                                pass
-
-                    # Strategy Buffer stream URL directly via curl through proxy if scratch failed
-                    if not download_success:
-                        try:
-                            import yt_dlp
-                            ydl_s_opts = {
-                                'format': fmt_spec,
-                                'js_runtimes': js_dict,
-                                'quiet': True,
-                                'skip_download': True,
-                                'extractor_args': {'youtube': {'player_client': ['visionos', 'android_vr', 'default']}}
-                            }
-                            if proxy:
-                                ydl_s_opts['proxy'] = proxy
-                            if cookies_file and os.path.exists(cookies_file) and is_authenticated_cookie_file(cookies_file):
-                                ydl_s_opts['cookiefile'] = cookies_file
-                            info_s = None
-                            try:
-                                with yt_dlp.YoutubeDL(ydl_s_opts) as ydl_s:
-                                    info_s = ydl_s.extract_info(raw_url, download=False)
-                            except Exception:
-                                if cookies_file:
-                                    ydl_s_opts.pop('cookiefile', None)
-                                    with yt_dlp.YoutubeDL(ydl_s_opts) as ydl_s:
-                                        info_s = ydl_s.extract_info(raw_url, download=False)
-                            if info_s:
-                                s_url = info_s.get('url')
-                                if not s_url and info_s.get('requested_formats'):
-                                    s_url = info_s['requested_formats'][0].get('url')
-                                title = info_s.get('title', item_title)
-                                canonical_url = info_s.get('webpage_url') or canonical_url
-                                if s_url:
-                                    if proxy:
-                                        p_host = proxy.replace("socks5://", "").replace("socks5h://", "").replace("http://", "").replace("https://", "")
-                                        curl_cmd = [
-                                            "curl", "-s", "-L",
-                                            "--socks5-hostname", p_host,
-                                            "-o", scratch_video,
-                                            s_url
-                                        ]
-                                    else:
-                                        curl_cmd = ["curl", "-s", "-L", "-o", scratch_video, s_url]
-                                    subprocess.run(curl_cmd, timeout=120)
-                                    if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
-                                        download_success = True
-                        except Exception:
-                            pass
-                        if not download_success and os.path.exists(scratch_video):
-                            try:
-                                os.remove(scratch_video)
-                            except Exception:
-                                pass
-
-                    # Fallback without proxy using visionos if proxy was rate-limited
-                    if not download_success and proxy:
-                        try:
-                            import yt_dlp
-                            ydl_nop = {
-                                'format': fmt_spec,
-                                'outtmpl': scratch_video,
-                                'js_runtimes': js_dict,
-                                'extractor_args': {'youtube': {'player_client': ['visionos', 'android_vr']}},
-                                'quiet': True,
-                                'no_warnings': True,
-                                'noprogress': True,
-                                'retries': 2,
-                                'socket_timeout': 30,
-                            }
-                            with yt_dlp.YoutubeDL(ydl_nop) as ydl:
-                                info = ydl.extract_info(raw_url, download=True)
-                                title = info.get('title', item_title)
-                                canonical_url = info.get('webpage_url') or canonical_url
-                            if os.path.exists(scratch_video) and os.path.getsize(scratch_video) > 1000:
-                                download_success = True
-                        except Exception:
-                            pass
 
                     # Extract title and canonical_url if not yet resolved
                     if download_success and (not title or title == item_title or title == "Pending Resolution"):
