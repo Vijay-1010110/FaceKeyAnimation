@@ -140,10 +140,11 @@ def generate_gen3_kaggle_trainer() -> Dict[str, Any]:
         make_cell("code", [
             "!python scripts/train_speech_to_animation.py \\",
             "    --epochs 100 \\",
-            "    --batch-size 64 \\",
-            "    --lr 3.5e-4 \\",
+            "    --batch-size 1024 \\",
+            "    --lr 5e-4 \\",
             "    --seq-len 48 \\",
             "    --stride 12 \\",
+            "    --num-workers 4 \\",
             "    --checkpoints-dir /kaggle/working/checkpoints \\",
             f"    --hf-repo {HF_GEN3_DATASET_REPO} \\",
             f"    --model-repo {HF_MODEL_REPO}"
@@ -458,7 +459,7 @@ def generate_gen3_kaggle_collector() -> Dict[str, Any]:
         make_cell("code", [
             "!python scripts/cloud_data_collector.py \\",
             "    --urls-file sessions/youtube_urls_kaggle.txt \\",
-            "    --num-workers 2 \\",
+            "    --num-workers 4 \\",
             f"    --hf-repo {HF_GEN3_DATASET_REPO}"
         ])
     ]
@@ -504,7 +505,7 @@ def generate_gen3_lightning_collector() -> Dict[str, Any]:
             "!python scripts/cloud_data_collector.py \\",
             "    --drive-dir /teamspace/studios/this_studio/FaceKeyDataset \\",
             "    --urls-file sessions/youtube_urls_lightning.txt \\",
-            "    --num-workers 2 \\",
+            "    --num-workers 4 \\",
             f"    --hf-repo {HF_GEN3_DATASET_REPO}"
         ])
     ]
