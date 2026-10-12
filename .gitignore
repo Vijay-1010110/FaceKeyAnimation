@@ -59,3 +59,4 @@ Desktop.ini
 test_results/
 test_results_epoch10/
 test_inference_*
+hf_token.txt
