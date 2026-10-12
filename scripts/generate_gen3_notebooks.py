@@ -3,11 +3,11 @@ Branch: Gen3
 Milestone: Pure 3D Avatar Animation (52 ARKit Blendshapes + 3D Head Pose + 64-Band Log-Mel Acoustics + Emotion Conditioning)
 
 Generates:
-  1. notebooks/Gen3_Kaggle_Dual_T4_Trainer.ipynb       (Kaggle Dual T4 x2 GPU 9h Background Commit Runner)
+  1. notebooks/Gen3_Kaggle_Dual_T4_Trainer.ipynb       (Kaggle Dual T4 x2 GPU 9h Background Commit Runner - Batch 2048)
   2. notebooks/Gen3_Colab_GPU_Trainer.ipynb            (Google Colab T4 GPU Runner + Hugging Face Sync)
   3. notebooks/Gen3_Lightning_AI_Trainer.ipynb         (Lightning.ai Persistent 24/7 Studio Runner)
   4. notebooks/Gen3_Colab_Data_Collector.ipynb         (Google Colab CPU Multi-Worker Collector)
-  5. notebooks/Gen3_Kaggle_Data_Collector.ipynb        (Kaggle Cloud CPU Multi-Worker Collector)
+  5. notebooks/Gen3_Kaggle_Data_Collector.ipynb        (Kaggle Cloud CPU 4-Worker Collector - 400% Saturation)
   6. notebooks/Gen3_Lightning_AI_Data_Collector.ipynb  (Lightning.ai 4-Core CPU Collector)
 """
 
@@ -59,7 +59,7 @@ def generate_gen3_kaggle_trainer() -> Dict[str, Any]:
             "2. Under *Version Type*, select **Save & Run All (Commit)**.",
             "3. Click **Save**.",
             "4. **🎉 YOU CAN NOW SAFELY CLOSE YOUR BROWSER AND SHUT DOWN YOUR PC!**",
-            "   Kaggle runs the entire 100-epoch training run in the cloud. Every epoch automatically pushes `checkpoint_latest.pt`, `checkpoint_best.pt`, and `loss_curve.png` to Hugging Face Model Hub!",
+            "   Kaggle runs the entire 100-epoch training run in the cloud with batch size 2048 saturating both GPUs. Every epoch automatically pushes `checkpoint_latest.pt`, `checkpoint_best.pt`, and `loss_curve.png` to Hugging Face Model Hub!",
             "",
             "**🛡️ GEN 3 ARCHITECTURAL PILLARS:**",
             "- **Pure 3D Avatar Targets**: Predicts 52 ARKit blendshapes + 3D head pose Euler angles + dental visibility.",
@@ -101,11 +101,12 @@ def generate_gen3_kaggle_trainer() -> Dict[str, Any]:
         ]),
         make_cell("code", [
             "import os, shutil",
+            "os.chdir('/kaggle/working')",
             "APP_DIR = '/kaggle/working/FaceKeyAnimation'",
-            "if os.path.exists(APP_DIR):",
-            "    shutil.rmtree(APP_DIR)",
-            f"!git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
+            "if not os.path.exists(APP_DIR):",
+            f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
+            f"!git fetch origin && !git checkout {BRANCH} && !git pull origin {BRANCH}",
             "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy matplotlib",
             "print('[+] Gen 3 Deep Learning Training Environment Ready on branch: " + BRANCH + "')"
         ]),
@@ -134,13 +135,14 @@ def generate_gen3_kaggle_trainer() -> Dict[str, Any]:
             "    print('[!] Note: HF_TOKEN not found. Public datasets will stream freely; model checkpoints will save locally.')"
         ]),
         make_cell("markdown", [
-            "## 🚀 STEP 4: LAUNCH GEN 3 3D AVATAR TRAINING (100 EPOCHS)",
+            "## 🚀 STEP 4: LAUNCH GEN 3 3D AVATAR TRAINING (100 EPOCHS, BATCH 2048)",
             "> Dual-GPU DataParallel training with Cosine Annealing, FP16 AMP, and phonetically-weighted viseme loss."
         ]),
         make_cell("code", [
+            "%cd /kaggle/working/FaceKeyAnimation",
             "!python scripts/train_speech_to_animation.py \\",
             "    --epochs 100 \\",
-            "    --batch-size 1024 \\",
+            "    --batch-size 2048 \\",
             "    --lr 5e-4 \\",
             "    --seq-len 48 \\",
             "    --stride 12 \\",
@@ -218,11 +220,12 @@ def generate_gen3_colab_trainer() -> Dict[str, Any]:
         ]),
         make_cell("code", [
             "import os, shutil",
+            "os.chdir('/content')",
             "APP_DIR = '/content/FaceKeyAnimation'",
-            "if os.path.exists(APP_DIR):",
-            "    shutil.rmtree(APP_DIR)",
-            f"!git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
+            "if not os.path.exists(APP_DIR):",
+            f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
+            f"!git fetch origin && !git checkout {BRANCH} && !git pull origin {BRANCH}",
             "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy matplotlib",
             "print('[+] Gen 3 Deep Learning Training Environment Ready on branch: " + BRANCH + "')"
         ]),
@@ -249,6 +252,7 @@ def generate_gen3_colab_trainer() -> Dict[str, Any]:
             "## 🚀 STEP 4: LAUNCH GEN 3 3D AVATAR TRAINING (100 EPOCHS)"
         ]),
         make_cell("code", [
+            "%cd /content/FaceKeyAnimation",
             "drive_ckpt = '/content/drive/MyDrive/FaceKeyDataset/checkpoints'",
             "os.makedirs(drive_ckpt, exist_ok=True)",
             "!python scripts/train_speech_to_animation.py \\",
@@ -297,7 +301,7 @@ def generate_gen3_lightning_trainer() -> Dict[str, Any]:
             "if not os.path.exists(APP_DIR):",
             f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
-            "!git fetch origin && !git checkout " + BRANCH + " && !git pull origin " + BRANCH,
+            f"!git fetch origin && !git checkout {BRANCH} && !git pull origin {BRANCH}",
             "!pip install -q -U torch torchvision torchaudio huggingface_hub numpy scipy matplotlib",
             "print('[+] Lightning.ai Training Environment Ready on Gen 3 branch!')"
         ]),
@@ -312,6 +316,7 @@ def generate_gen3_lightning_trainer() -> Dict[str, Any]:
             "    print('[✓] Hugging Face Hub Authenticated!')"
         ]),
         make_cell("code", [
+            "%cd /teamspace/studios/this_studio/FaceKeyAnimation",
             "!python scripts/train_speech_to_animation.py \\",
             "    --epochs 100 \\",
             "    --batch-size 64 \\",
@@ -366,11 +371,12 @@ def generate_gen3_colab_collector() -> Dict[str, Any]:
         ]),
         make_cell("code", [
             "import os, shutil",
+            "os.chdir('/content')",
             "APP_DIR = '/content/FaceKeyAnimation'",
-            "if os.path.exists(APP_DIR):",
-            "    shutil.rmtree(APP_DIR)",
-            f"!git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
+            "if not os.path.exists(APP_DIR):",
+            f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
+            f"!git fetch origin && !git checkout {BRANCH} && !git pull origin {BRANCH}",
             "!pip install -q -U yt-dlp opencv-python mediapipe huggingface_hub numpy scipy",
             "print('[+] Gen 3 Data Collector Environment Ready on branch: " + BRANCH + "')"
         ]),
@@ -391,6 +397,7 @@ def generate_gen3_colab_collector() -> Dict[str, Any]:
             "    print('[!] Note: HF_TOKEN not set. Set HF_TOKEN in Colab Secrets or Google Drive to push chunks directly to public repo.')"
         ]),
         make_cell("code", [
+            "%cd /content/FaceKeyAnimation",
             "!python scripts/cloud_data_collector.py \\",
             "    --drive-dir /content/drive/MyDrive/FaceKeyDataset \\",
             "    --urls-file sessions/youtube_urls_colab.txt \\",
@@ -413,7 +420,7 @@ def generate_gen3_kaggle_collector() -> Dict[str, Any]:
     cells = [
         make_cell("markdown", [
             "# 🚀 FaceKey Studio Gen 3 — Kaggle Cloud CPU 3D Avatar Data Collector",
-            "### 100% Free Cloud CPU Multi-Worker Capture (0 GPU Hours Used!)",
+            "### 100% Free Cloud CPU 4-Worker Capture (Saturates all 4 vCPUs at 380-400%!)",
             "",
             "## 🌟 HOW TO RUN IN BACKGROUND (9 HOURS HEADLESS):",
             "1. Click **Save Version** ➔ **Save & Run All (Commit)**.",
@@ -432,11 +439,12 @@ def generate_gen3_kaggle_collector() -> Dict[str, Any]:
         ]),
         make_cell("code", [
             "import os, shutil",
+            "os.chdir('/kaggle/working')",
             "APP_DIR = '/kaggle/working/FaceKeyAnimation'",
-            "if os.path.exists(APP_DIR):",
-            "    shutil.rmtree(APP_DIR)",
-            f"!git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
+            "if not os.path.exists(APP_DIR):",
+            f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
+            f"!git fetch origin && !git checkout {BRANCH} && !git pull origin {BRANCH}",
             "!pip install -q -U yt-dlp opencv-python mediapipe huggingface_hub numpy scipy",
             "print('[+] Gen 3 Kaggle Collector Environment Ready on branch: " + BRANCH + "')"
         ]),
@@ -457,6 +465,7 @@ def generate_gen3_kaggle_collector() -> Dict[str, Any]:
             "    print('[!] Note: Add HF_TOKEN to Kaggle Secrets (Add-ons -> Secrets) to push chunks to Hugging Face.')"
         ]),
         make_cell("code", [
+            "%cd /kaggle/working/FaceKeyAnimation",
             "!python scripts/cloud_data_collector.py \\",
             "    --urls-file sessions/youtube_urls_kaggle.txt \\",
             "    --num-workers 4 \\",
@@ -487,7 +496,7 @@ def generate_gen3_lightning_collector() -> Dict[str, Any]:
             "if not os.path.exists(APP_DIR):",
             f"    !git clone -b {BRANCH} {REPO_URL} {{APP_DIR}}",
             "%cd {APP_DIR}",
-            "!git fetch origin && !git checkout " + BRANCH + " && !git pull origin " + BRANCH,
+            f"!git fetch origin && !git checkout {BRANCH} && !git pull origin {BRANCH}",
             "!pip install -q -U yt-dlp opencv-python mediapipe huggingface_hub numpy scipy",
             "print('[+] Lightning.ai Collector Ready on Gen 3 branch!')"
         ]),
@@ -502,6 +511,7 @@ def generate_gen3_lightning_collector() -> Dict[str, Any]:
             "    print('[✓] Hugging Face Hub Authenticated!')"
         ]),
         make_cell("code", [
+            "%cd /teamspace/studios/this_studio/FaceKeyAnimation",
             "!python scripts/cloud_data_collector.py \\",
             "    --drive-dir /teamspace/studios/this_studio/FaceKeyDataset \\",
             "    --urls-file sessions/youtube_urls_lightning.txt \\",
